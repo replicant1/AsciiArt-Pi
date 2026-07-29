@@ -4,6 +4,12 @@ Live view from the Pi Camera Module 2, rendered as ASCII art in a terminal on
 the HDMI screen. This is the Python counterpart of the Live Camera pipeline in
 the Android ASCII Art app.
 
+![The ASCII Art Camera window running on a Raspberry Pi Zero 2](docs/screenshot.png)
+
+*Running on the Pi at 14.9 fps. The status bar along the bottom reports the
+frame rate, ASCII grid size, and the current state of every toggle — rotation,
+contrast, character ramp, auto-levels, fill and invert.*
+
 ## Running it
 
 ```bash

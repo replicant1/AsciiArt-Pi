@@ -2,6 +2,8 @@
 ascii_camera.log
 *.log
 *.png
+# ...except documentation images, which are meant to be committed
+!docs/*.png
 
 # Python
 __pycache__/

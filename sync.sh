@@ -32,6 +32,10 @@ ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
             README.md piinput.py setup_uinput.sh)
 SRC_FILES=(ascii_art.py camera.py display.py image_processor.py window_plan.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py)
+# README.md links to this, so it is kept alongside rather than repo-only:
+# otherwise the two copies of the README would reference an image that exists
+# on one side and not the other.
+DOC_FILES=(screenshot.png)
 
 changed=0
 
@@ -133,6 +137,13 @@ sweep() {
             transfer "$REPO/tests/$name" "$PI/tests/$name" "tests/$name"
         fi
     done
+    for name in "${DOC_FILES[@]}"; do
+        if [ "$direction" = pull ]; then
+            transfer "$PI/docs/$name" "$REPO/docs/$name" "docs/$name"
+        else
+            transfer "$REPO/docs/$name" "$PI/docs/$name" "docs/$name"
+        fi
+    done
 }
 
 case "$MODE" in
@@ -145,7 +156,7 @@ case "$MODE" in
         ;;
     push)
         require_mount
-        mkdir -p "$PI/src" "$PI/tests"
+        mkdir -p "$PI/src" "$PI/tests" "$PI/docs"
         echo "repo -> Pi:"
         sweep push
         # CLAUDE.md is deliberately never pushed: the repo's copy is redacted,
