@@ -249,6 +249,7 @@
   tbody tr:last-child td { border-bottom: none; }
   td.hero { color: var(--petrol); font-weight: 700; }
   td.quiet { color: var(--ink-faint); }
+  .mark { color: var(--petrol); font-weight: 700; }
   td[rowspan] { vertical-align: middle; }
 
   pre.code {
@@ -856,12 +857,37 @@
               <tr><td>CS</td><td>24</td><td>SPI0 CE0</td><td>GPIO&nbsp;8</td><td class="hero" rowspan="3">port=0<br>device=0</td></tr>
               <tr><td>SDI (MOSI)</td><td>19</td><td>SPI0 MOSI</td><td>GPIO&nbsp;10</td></tr>
               <tr><td>SCK / CLK</td><td>23</td><td>SPI0 SCLK</td><td>GPIO&nbsp;11</td></tr>
-              <tr><td>DC / RS</td><td>16</td><td>your choice</td><td>GPIO&nbsp;23</td><td class="hero">gpio_DC=23</td></tr>
-              <tr><td>RESET</td><td>18</td><td>your choice</td><td>GPIO&nbsp;24</td><td class="hero">gpio_RST=24</td></tr>
-              <tr><td>LED</td><td>12</td><td>backlight</td><td>GPIO&nbsp;18</td><td class="hero">gpio_LIGHT=18<br>(optional)</td></tr>
+              <tr><td>DC / RS</td><td>16</td><td>command/data flag</td><td>GPIO&nbsp;23<span class="mark">&nbsp;&dagger;</span></td><td class="hero">gpio_DC=23</td></tr>
+              <tr><td>RESET</td><td>18</td><td>reset pulse</td><td>GPIO&nbsp;24<span class="mark">&nbsp;&dagger;</span></td><td class="hero">gpio_RST=24</td></tr>
+              <tr><td>LED</td><td>12</td><td>backlight on/off</td><td>GPIO&nbsp;18<span class="mark">&nbsp;&dagger;</span></td><td class="hero">gpio_LIGHT=18<br>(optional)</td></tr>
             </tbody>
           </table>
         </div>
+        <p>
+          <b>&dagger; Three of the eight pins are yours to pick.</b> DC, RESET and the backlight
+          are plain outputs that belong to no peripheral, so any free GPIO drives them. The
+          numbers in Table&nbsp;2 are not requirements &mdash; they are simply the ones used in
+          the code below.
+        </p>
+        <p>
+          <b>Express the choice in two places at once:</b> the hole the jumper goes into, and
+          the number handed to luma.lcd. Move DC from header pin&nbsp;16 to header pin&nbsp;22,
+          for example, and the argument becomes
+          <code style="font-family:var(--mono);font-size:0.85em">gpio_DC=25</code>, because
+          header pin&nbsp;22 is BCM&nbsp;25. Nothing else in the wiring or the code changes.
+          Get the two out of step and the screen stays blank with no error, which is the single
+          most common way this build fails.
+        </p>
+        <p>
+          <b>What is actually free.</b> On a Pi running nothing else, GPIO&nbsp;5, 6, 12, 13,
+          16, 17 and 19&ndash;27 are all available. Four groups are best avoided:
+          GPIO&nbsp;7&ndash;11 are taken by SPI0 in the rows above; GPIO&nbsp;2 and 3 carry
+          fixed 1.8&nbsp;k&Omega; pull-up resistors for I&sup2;C, which hold them high;
+          GPIO&nbsp;14 and 15 are the serial console by default; and GPIO&nbsp;0 and 1 are
+          reserved for board identification. GPIO&nbsp;18 works perfectly well &mdash; the table
+          uses it for the backlight &mdash; but it doubles as the I&sup2;S clock, so choose
+          another if digital audio is ever likely.
+        </p>
         <p>
           The last column holds <b>literal keyword arguments to luma.lcd</b> &mdash; the Python
           driver library recommended above &mdash; not defaults you can assume and not pin
