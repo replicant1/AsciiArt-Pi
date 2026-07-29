@@ -102,6 +102,131 @@ The camera thread keeps a **one-frame queue and drops the previous frame** on
 every capture, so a slow render never accumulates a backlog of stale frames —
 the picture stays current rather than falling progressively further behind.
 
+### Classes
+
+```mermaid
+classDiagram
+    direction TB
+
+    class AsciiArtLiveCamera {
+        +NcursesDisplay display
+        +CameraCapture camera
+        +ImageProcessor processor
+        +AsciiArt ascii_art
+        +Namespace args
+        +str ramp_name
+        +int ramp_index
+        +bool invert
+        +tuple grid
+        +tuple grid_key
+        +float cell_aspect
+        +int frame_count
+        +int dropped
+        +deque frame_times
+        +bool is_running
+        +run()
+        -_refresh_cell_aspect()
+        -_grid_for(frame_shape) tuple
+        -_status() str
+        -_handle_key(key) bool
+        -_drain_keys() bool
+    }
+
+    class CameraCapture {
+        +int width
+        +int height
+        +int frame_rate
+        +Picamera2 picam2
+        +int stride
+        +Queue frame_queue
+        +Thread capture_thread
+        +bool is_running
+        +start()
+        +get_frame(timeout) ndarray
+        +stop()
+        -_capture_loop()
+        -_extract_luma(frame) ndarray
+    }
+
+    class ImageProcessor {
+        +float contrast
+        +bool auto_levels
+        +int rotation
+        +bool fill
+        +float cell_aspect
+        +process(luma, cols, rows) ndarray
+        +rotate(frame) ndarray
+        +crop_to_aspect(frame, target_aspect) ndarray
+        +resize(frame, cols, rows) ndarray
+        +adjust_levels(frame) ndarray
+        +source_size(width, height) tuple
+    }
+
+    class AsciiArt {
+        +str chars
+        +ndarray lut
+        +bool is_ascii
+        +to_ascii_text(grayscale_frame) list
+        -_build_lut() ndarray
+    }
+
+    class NcursesDisplay {
+        +window stdscr
+        +int rows
+        +int cols
+        +tuple canvas_size
+        +cell_metrics() tuple
+        +refresh_size() bool
+        +render(ascii_lines, status)
+        +get_key() str
+        +message(text)
+        +clear()
+        -_configure()
+    }
+
+    class Mouse {
+        +int width
+        +int height
+        +UInput ui
+        +move_to(x, y)
+        +click(button)
+        +click_at(x, y, button)
+        +close()
+    }
+
+    class Keyboard {
+        +UInput ui
+        +key(name)
+        +type(text)
+        +close()
+        -_tap(code, shift)
+    }
+
+    AsciiArtLiveCamera *-- CameraCapture : luma frames
+    AsciiArtLiveCamera *-- ImageProcessor : rotate, crop, resize, levels
+    AsciiArtLiveCamera *-- AsciiArt : brightness to characters
+    AsciiArtLiveCamera o-- NcursesDisplay : render, keys
+
+    Keyboard ..> NcursesDisplay : synthetic keys, via the kernel
+```
+
+Five classes make up the app itself. `AsciiArtLiveCamera` constructs the
+camera, processor and renderer, hence composition; `NcursesDisplay` is
+aggregation instead, because `curses.wrapper()` owns the screen and hands the
+window in.
+
+`Mouse` and `Keyboard` (`piinput.py`) are **test tooling, not part of the
+app** — they create a virtual input device under `/dev/uinput` so the running
+application can be driven with synthetic events. The dashed line is deliberate:
+nothing imports them. Events travel out to the kernel, through the compositor,
+and arrive at `NcursesDisplay.get_key()` indistinguishable from a real
+keypress, which is what makes them useful for testing the live controls.
+
+Two parts of the codebase hold no classes and so do not appear above:
+`fit_grid()` in `image_processor.py`, and all of `window_plan.py`
+(`cell_size()`, `plan()`), which is called by `run_ascii_camera.sh` when
+sizing the window and is never imported by the app at runtime.
+
 ```
 pi/
 ├── ascii_camera.py            # entry point, main loop, CLI, live controls
