@@ -263,15 +263,26 @@
     white-space: pre;
   }
   pre.code .cmt { color: var(--ink-faint); }
-  /* Grouping row above the column headers: says what each block of columns is
-     for, so a reader knows which numbers they need at the bench and which they
-     need in the editor. */
+  /* Column groups. A colspan alone gives no clue how far a heading reaches, so
+     each group gets a background block running the full height of the table and
+     an underline beneath its label spanning exactly its own columns. Backgrounds
+     are set on <col> rather than per-cell because rowspans make nth-child
+     selectors address the wrong columns. */
+  .cg-wire { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .cg-code { background: color-mix(in srgb, var(--petrol) 12%, transparent); }
+
   th.group {
     font-size: 0.6rem;
-    color: var(--petrol);
-    border-bottom: 1px solid var(--rule);
-    padding-bottom: 0.3rem;
-    text-align: left;
+    padding: 0 0.9rem 0.3rem;
+    text-align: center;
+    border-bottom: 2px solid;
+  }
+  th.g-wire { color: var(--ink-soft); border-bottom-color: var(--ink-soft); }
+  th.g-code { color: var(--petrol);   border-bottom-color: var(--petrol); }
+  th.g-what {
+    color: var(--ink-faint);
+    border-bottom-color: transparent;
+    font-weight: 500;
   }
 
   /* ---------- recommendation entries ---------- */
@@ -820,11 +831,16 @@
         <div class="table-wrap">
           <table>
             <caption><span class="num">Table 2</span>&nbsp;&mdash; ILI9341 to Raspberry Pi &mdash; all eight connections</caption>
+            <colgroup>
+              <col class="cg-wire"><col class="cg-wire">
+              <col class="cg-what">
+              <col class="cg-code"><col class="cg-code">
+            </colgroup>
             <thead>
               <tr>
-                <th class="group" scope="colgroup" colspan="2">Wiring &mdash; count these</th>
-                <th class="group" scope="col">What it is</th>
-                <th class="group" scope="colgroup" colspan="2">Library config &mdash; type these</th>
+                <th class="group g-wire" scope="colgroup" colspan="2">Wiring &mdash; count these</th>
+                <th class="group g-what" scope="col">What it is</th>
+                <th class="group g-code" scope="colgroup" colspan="2">Library config &mdash; type these</th>
               </tr>
               <tr>
                 <th scope="col">ILI9341 pin</th>
