@@ -13,11 +13,10 @@ and invert.*
 
 ![The same app in colour mode, 140 by 52 characters at 15 fps](docs/screenshot-colour.png)
 
-*Colour, at 140x52 and the full 15 fps. Press `g` to switch. The character
-still comes from the brightness, so the two modes draw the same shapes; the
-colour comes from the camera's chroma, which greyscale mode discards. Shown
-here in a window sized for colour — see [Colour mode](#colour-mode) for why
-that matters.*
+*Colour, at the full 15 fps. Press `g` to switch, or pass `--colour` at launch
+to have the window sized for colour automatically. The character still comes
+from the brightness, so the two modes draw the same shapes; the colour comes
+from the camera's chroma, which greyscale mode discards.*
 
 Choosing hardware to run this on? **[`docs/display-selection-guide.html`](docs/display-selection-guide.html)**
 is a ranked guide to vintage terminals, VFDs, graphic LCDs and OLED modules,
@@ -587,17 +586,24 @@ that — which is why full-window colour runs at 133x50 and holds the full 15 fp
 rather than the 4 fps a full-size grid would give. Halving both axes keeps the
 aspect correct, so the picture is coarser but not distorted.
 
-One consequence to be aware of: the grid shrinks but the window does not, so
-pressing `g` in a full-screen window leaves the picture occupying a quarter of
-the area, centred. For a window colour genuinely fills, size the window for the
-colour grid and turn the reduction off:
+**Passing `--colour` at launch sizes the window for colour automatically.** The
+launcher re-plans at half the linear size, which gives a window the colour grid
+fills exactly, a larger font, and the full frame rate — and it passes
+`--colour-divisor 1` so the app uses every cell:
 
 ```bash
-bash run_ascii_camera.sh 140 --colour --colour-divisor 1
+bash run_ascii_camera.sh fit --colour     # 133x51 window, Monospace 11, 15 fps
 ```
 
-That is how the colour screenshot above was taken: 140x52 at 15 fps, filling the
-window, with characters large enough to read.
+**The `g` key is a different matter.** Toggling colour on in a window that was
+sized for greyscale cannot enlarge the font, so the grid halves and the picture
+ends up occupying a quarter of the area, centred in black. That is deliberate:
+the alternative is full-grid colour at about 4 fps, which reads as broken rather
+than merely smaller. Press `g` again and full-size greyscale returns.
+
+If you would rather `g` never changed the picture size, launch with
+`--colour-divisor 1` and accept roughly 4 fps whenever colour is on in a
+full-screen window.
 
 Two things make it affordable:
 
