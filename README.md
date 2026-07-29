@@ -227,6 +227,99 @@ Two parts of the codebase hold no classes and so do not appear above:
 (`cell_size()`, `plan()`), which is called by `run_ascii_camera.sh` when
 sizing the window and is never imported by the app at runtime.
 
+### Main render loop
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant T as CameraCapture._capture_loop<br/>background thread
+    participant Q as frame_queue<br/>maxsize 1
+    participant App as AsciiArtLiveCamera.run<br/>main thread
+    participant P as ImageProcessor
+    participant A as AsciiArt
+    participant D as NcursesDisplay
+
+    Note over T,Q: started by camera.start(), runs until stop()
+
+    loop every sensor frame, rate capped by --fps
+        T->>T: picam2.capture_array(main)
+        T->>T: _extract_luma, Y plane with stride padding removed
+        T->>Q: get_nowait, discard the previous frame
+        T->>Q: put_nowait(luma)
+    end
+
+    Note over App,D: one pass per rendered frame
+
+    loop while is_running
+        App->>D: refresh_size()
+        alt terminal size changed
+            D-->>App: True
+            App->>D: cell_metrics()
+            D-->>App: cell pixels, or None on lxterminal
+            App->>App: invalidate grid_key
+        else unchanged
+            D-->>App: False
+        end
+
+        App->>Q: camera.get_frame(timeout=1.0)
+
+        alt no frame within 1 s
+            Q-->>App: None
+            App->>App: dropped += 1
+            App->>D: message, waiting for camera
+        else frame ready
+            Q-->>App: luma, h x w uint8
+
+            App->>App: _grid_for(luma.shape), fit_grid unless cached
+
+            App->>P: process(luma, cols, rows)
+            P->>P: rotate()
+            opt fill mode on
+                P->>P: crop_to_aspect()
+            end
+            P->>P: resize(), PIL BOX area average
+            P->>P: adjust_levels(), auto-levels then contrast
+            P-->>App: rows x cols uint8
+
+            App->>A: to_ascii_text(grid)
+            A->>A: lut[grid], then tobytes().decode() per row
+            A-->>App: list of strings
+
+            App->>App: frame_count += 1, frame_times.append()
+            App->>D: render(lines, _status())
+            D->>D: addstr per row, then refresh()
+        end
+
+        loop _drain_keys, until nothing is waiting
+            App->>D: get_key()
+            D-->>App: key, or None when drained
+            opt a key was pressed
+                App->>App: _handle_key(), q ends the loop
+            end
+        end
+    end
+
+    App->>T: camera.stop()
+```
+
+The two loops are independent, which is the point of the one-slot queue. The
+capture thread never waits for the renderer: it overwrites the pending frame
+on every capture, so `get_frame()` always yields the newest image rather than
+the head of a growing backlog. A slow render therefore drops frames instead of
+falling progressively further behind real time.
+
+Three details the diagram makes explicit:
+
+- **The terminal size is checked every pass**, not just at startup, which is
+  what lets the picture refit when the window is resized under it.
+- **`get_frame()` blocks for up to a second.** The camera caps its own rate, so
+  the main loop needs no pacing of its own — it runs exactly as often as frames
+  arrive. A timeout means the camera is still warming up or has stalled, not
+  that the loop is spinning too fast.
+- **Keys are drained, not sampled.** A single `getch()` per frame would lag
+  behind a keypress burst at 15 fps, so `_drain_keys()` consumes everything
+  buffered before the next frame is fetched.
+
 ```
 pi/
 ├── ascii_camera.py            # entry point, main loop, CLI, live controls
