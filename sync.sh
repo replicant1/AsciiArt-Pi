@@ -35,7 +35,7 @@ TEST_FILES=(bench_pipeline.py capture_reference.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
-DOC_FILES=(screenshot.png display-selection-guide.html)
+DOC_FILES=(screenshot.png screenshot-colour.png display-selection-guide.html)
 
 changed=0
 

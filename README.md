@@ -6,9 +6,23 @@ the Android ASCII Art app.
 
 ![The ASCII Art Camera window running on a Raspberry Pi Zero 2](docs/screenshot.png)
 
-*Running on the Pi at 14.9 fps. The status bar along the bottom reports the
-frame rate, ASCII grid size, and the current state of every toggle — rotation,
-contrast, colour mode, character ramp, auto-levels, fill and invert.*
+*Greyscale, running on the Pi at 14.9 fps. The status bar along the bottom
+reports the frame rate, ASCII grid size, and the current state of every
+toggle — rotation, contrast, colour mode, character ramp, auto-levels, fill
+and invert.*
+
+![The same app in colour mode, 140 by 52 characters at 15 fps](docs/screenshot-colour.png)
+
+*Colour, at 140x52 and the full 15 fps. Press `g` to switch. The character
+still comes from the brightness, so the two modes draw the same shapes; the
+colour comes from the camera's chroma, which greyscale mode discards. Shown
+here in a window sized for colour — see [Colour mode](#colour-mode) for why
+that matters.*
+
+Choosing hardware to run this on? **[`docs/display-selection-guide.html`](docs/display-selection-guide.html)**
+is a ranked guide to vintage terminals, VFDs, graphic LCDs and OLED modules,
+priced in AUD and sourced for a buyer in Sydney. Download it and open it in a
+browser — GitHub shows HTML as source.
 
 ## Running it
 
@@ -572,6 +586,18 @@ Colour therefore **halves the grid on both axes** — `--colour-divisor` changes
 that — which is why full-window colour runs at 133x50 and holds the full 15 fps
 rather than the 4 fps a full-size grid would give. Halving both axes keeps the
 aspect correct, so the picture is coarser but not distorted.
+
+One consequence to be aware of: the grid shrinks but the window does not, so
+pressing `g` in a full-screen window leaves the picture occupying a quarter of
+the area, centred. For a window colour genuinely fills, size the window for the
+colour grid and turn the reduction off:
+
+```bash
+bash run_ascii_camera.sh 140 --colour --colour-divisor 1
+```
+
+That is how the colour screenshot above was taken: 140x52 at 15 fps, filling the
+window, with characters large enough to read.
 
 Two things make it affordable:
 
