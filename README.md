@@ -48,6 +48,32 @@ narrow to hold them; the readouts on the left always stay.
 A literal `--ramp` string (rather than one of the three names) reads out as
 `chr:custom`.
 
+## Repo layout and syncing to the Pi
+
+The code runs on the Pi, which is mounted over SSHFS at `../remote`. This git
+repo lives on local disk beside that mount rather than inside it: git does a
+lot of read-after-write against its own object store, and reads back through
+the mount can return stale cached data when the Pi has written out of band
+(see `CLAUDE.md`). `sync.sh` bridges the two.
+
+```bash
+bash sync.sh            # or "pull": Pi -> repo, ready to commit
+bash sync.sh push       # repo -> Pi, e.g. after a git pull on another machine
+bash sync.sh status     # report differences, copy nothing
+```
+
+It copies an explicit file list, so nothing stray gets picked up, and reports
+only files that actually differ. Two things it does that are worth knowing:
+
+- **It refuses to run if the mount is not live.** Were the mount to drop,
+  `../remote` would be an ordinary empty directory, and a `push` would write to
+  local disk while appearing to succeed — the code would never reach the Pi.
+- **It regenerates `CLAUDE.md` with the Pi's address masked on every sync**,
+  rather than relying on a one-off edit, so a later change to the original
+  cannot quietly reintroduce the full address into a public commit. The mask
+  matches any dotted quad rather than one specific address, since this script
+  is published too.
+
 ## Architecture
 
 ```
