@@ -1,0 +1,9 @@
+# Both of these ship with Raspberry Pi OS Bookworm and are already present on
+# this Pi (numpy 2.2.4, Pillow 11.1.0).  Prefer the apt packages -
+# python3-numpy and python3-pil - over pip: building either from source on a
+# Zero 2 exhausts its ~416 MB of RAM.
+#
+# picamera2 and curses are deliberately not listed: picamera2 comes from apt
+# (python3-picamera2) and curses is part of the Python standard library.
+numpy>=1.24
+Pillow>=9.0

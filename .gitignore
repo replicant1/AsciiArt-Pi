@@ -1,0 +1,12 @@
+# Runtime artefacts
+ascii_camera.log
+*.log
+*.png
+
+# Python
+__pycache__/
+*.py[cod]
+
+# macOS metadata, which appears when editing through the SSHFS mount
+._*
+.DS_Store
