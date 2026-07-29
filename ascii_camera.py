@@ -5,8 +5,8 @@ ASCII Art Live Camera Preview for Raspberry Pi Zero 2.
 Captures video from the Camera Module 2 and renders it as ASCII art in the
 terminal on the HDMI screen.
 
-    python3 ascii_camera.py                    # sensible defaults
-    python3 ascii_camera.py --fps 8 --scale 1  # even lighter
+    python3 ascii_camera.py                        # sensible defaults
+    python3 ascii_camera.py --fps 8 --width 160 --height 120   # even lighter
     python3 ascii_camera.py --help
 
 Press 'q' to quit; other live controls are listed in the status line.

@@ -227,6 +227,97 @@ Two parts of the codebase hold no classes and so do not appear above:
 (`cell_size()`, `plan()`), which is called by `run_ascii_camera.sh` when
 sizing the window and is never imported by the app at runtime.
 
+### Startup
+
+Most of the work before the first frame is done by the supplementary scripts,
+not the app: sizing the window, choosing a font, and handing the desktop
+session's environment to a process launched over SSH.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant L as run_ascii_camera.sh
+    participant W as window_plan.py
+    participant X as lxterminal
+    participant M as ascii_camera.py<br/>main()
+    participant D as NcursesDisplay
+    participant C as CameraCapture
+    participant Pi as Picamera2<br/>libcamera
+
+    opt first run only
+        U->>U: bash setup.sh, checks numpy, PIL, picamera2, curses, camera
+    end
+
+    U->>L: bash run_ascii_camera.sh fit [args]
+
+    L->>L: export XDG_RUNTIME_DIR and WAYLAND_DISPLAY
+    Note right of L: an SSH session inherits neither,<br/>and without them no window appears
+    L->>L: wlr-randr, parse the screen size with sed
+    L->>L: camera aspect, transposed for a 90 or 270 rotation
+
+    L->>W: plan(request, screen, aspect)
+    loop font sizes 6 to 14
+        W->>W: cell_size(), real cell metrics from Pango
+        W->>W: discard sizes whose window overflows the screen
+    end
+    W-->>L: COLS ROWS FONT_SIZE CELL_ASPECT
+
+    L->>L: write ~/.config/lxterminal/lxterminal-asciicam.conf
+    Note right of L: a dedicated profile, so the user's<br/>own terminal settings are untouched
+
+    L->>X: launch with that profile, geometry and title
+    L-->>U: report window, cell aspect, screen and log path
+
+    X->>X: read the profile, map the window
+    X->>M: run python3 ascii_camera.py in a pty
+
+    M->>M: set LIBCAMERA_LOG_LEVELS before picamera2 is imported
+    M->>M: import picamera2, about 5.4 s on a Zero 2
+    M->>M: parse_args()
+    M->>M: setup_logging, basicConfig to file then dup2 stderr onto it
+    Note right of M: nothing may reach the terminal<br/>once curses owns the screen
+
+    M->>D: curses.wrapper, then NcursesDisplay(stdscr)
+    D->>D: noecho, cbreak, nodelay, keypad, hide the cursor
+    D->>D: getmaxyx, log the terminal size
+    D-->>M: display
+
+    M->>M: build CameraCapture, ImageProcessor, AsciiArt
+    M->>D: cell_metrics()
+    D-->>M: None on lxterminal, so the passed cell aspect stands
+
+    M->>D: message, starting camera please wait
+    M->>C: camera.start()
+    C->>Pi: Picamera2, create_video_configuration, YUV420 and FrameDurationLimits
+    C->>Pi: configure, then read back the real stride and size
+    C->>Pi: start()
+    C->>C: spawn the daemon capture thread
+    C-->>M: running
+
+    Note over M,Pi: about 8 s from process start to the first frame
+
+    M->>M: enter the main render loop
+```
+
+Three ordering constraints in there are not free choices:
+
+- **`LIBCAMERA_LOG_LEVELS` is set at module level**, above the import of
+  `camera`. libcamera reads it when its C++ layer loads, so setting it inside
+  `main()` would be too late.
+- **`setup_logging()` runs before `curses.wrapper()`**, and redirects file
+  descriptor 2 rather than just Python's logging. libcamera writes to stderr
+  directly, never through `logging`, and a single stray line garbles the
+  picture once curses owns the screen.
+- **The stride is read back after `configure()`, not assumed.** The ISP may pad
+  rows out to a hardware-friendly width, and slicing that padding off is what
+  keeps the image from shearing.
+
+The two scripts exist because neither problem can be solved from inside the
+app: a process launched over SSH does not inherit the Wayland session, and
+lxterminal takes its font size from a config file rather than the command line.
+`setup.sh` is a one-time dependency and camera check, not part of startup.
+
 ### Main render loop
 
 ```mermaid
