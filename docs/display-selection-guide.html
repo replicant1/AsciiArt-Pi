@@ -249,6 +249,20 @@
   tbody tr:last-child td { border-bottom: none; }
   td.hero { color: var(--petrol); font-weight: 700; }
   td.quiet { color: var(--ink-faint); }
+  td[rowspan] { vertical-align: middle; }
+
+  pre.code {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--paper-sunk);
+    border-left: 3px solid var(--petrol);
+    padding: var(--gap-s) var(--gap-m);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  pre.code .cmt { color: var(--ink-faint); }
   /* Grouping row above the column headers: says what each block of columns is
      for, so a reader knows which numbers they need at the bench and which they
      need in the editor. */
@@ -821,17 +835,42 @@
               </tr>
             </thead>
             <tbody>
-              <tr><td>VCC</td><td>1</td><td>3.3&nbsp;V</td><td>&mdash;</td><td class="quiet">not named</td></tr>
-              <tr><td>GND</td><td>6</td><td>GND</td><td>&mdash;</td><td class="quiet">not named</td></tr>
-              <tr><td>CS</td><td>24</td><td>SPI0 CE0</td><td>GPIO&nbsp;8</td><td class="quiet">device=0</td></tr>
-              <tr><td>SDI (MOSI)</td><td>19</td><td>SPI0 MOSI</td><td>GPIO&nbsp;10</td><td class="quiet">port=0</td></tr>
-              <tr><td>SCK / CLK</td><td>23</td><td>SPI0 SCLK</td><td>GPIO&nbsp;11</td><td class="quiet">port=0</td></tr>
+              <tr><td>VCC</td><td>1</td><td>3.3&nbsp;V</td><td>&mdash;</td><td class="quiet" rowspan="2">nothing to set</td></tr>
+              <tr><td>GND</td><td>6</td><td>GND</td><td>&mdash;</td></tr>
+              <tr><td>CS</td><td>24</td><td>SPI0 CE0</td><td>GPIO&nbsp;8</td><td class="quiet" rowspan="3">all three covered by<br>port=0, device=0</td></tr>
+              <tr><td>SDI (MOSI)</td><td>19</td><td>SPI0 MOSI</td><td>GPIO&nbsp;10</td></tr>
+              <tr><td>SCK / CLK</td><td>23</td><td>SPI0 SCLK</td><td>GPIO&nbsp;11</td></tr>
               <tr><td>DC / RS</td><td>16</td><td>your choice</td><td>GPIO&nbsp;23</td><td class="hero">gpio_DC=23</td></tr>
               <tr><td>RESET</td><td>18</td><td>your choice</td><td>GPIO&nbsp;24</td><td class="hero">gpio_RST=24</td></tr>
-              <tr><td>LED</td><td>12</td><td>backlight</td><td>GPIO&nbsp;18</td><td class="hero">optional</td></tr>
+              <tr><td>LED</td><td>12</td><td>backlight</td><td>GPIO&nbsp;18</td><td class="hero">gpio_LIGHT=18<br>(optional)</td></tr>
             </tbody>
           </table>
         </div>
+        <p>
+          The last column holds <b>literal keyword arguments</b>, not defaults you can assume
+          and not pin numbers. They are what you pass to the library's constructor, and the
+          whole of the configuration is this:
+        </p>
+        <pre class="code">from luma.core.interface.serial import spi
+from luma.lcd.device import ili9341
+
+serial = spi(port=0, device=0, gpio_DC=23, gpio_RST=24)
+device = ili9341(serial, width=320, height=240)</pre>
+        <p>
+          <b>The two zeros are indices, not pins.</b>
+          <code style="font-family:var(--mono);font-size:0.85em">port=0</code> selects which SPI
+          <em>controller</em> to use &mdash; 0 means SPI0, and there is a second controller,
+          SPI1, on other pins.
+          <code style="font-family:var(--mono);font-size:0.85em">device=0</code> selects which
+          <em>chip-select line</em> on that controller &mdash; 0 means CE0, and 1 would mean
+          CE1, which is how you would drive a second display on the same three wires. Neither
+          zero is a GPIO number or a header position, which is why the table shows them once,
+          spanning all three SPI rows: one pair of arguments covers the lot.
+        </p>
+        <p>
+          The only GPIO numbers you ever type are the last two, and both are BCM. Change the
+          wiring, change those numbers &mdash; nothing else in the code moves.
+        </p>
         <p>
           <b>Wire by header pin, configure by BCM.</b> Those are two different numbering
           schemes for the same connector, and they overlap &mdash; this very table contains the
@@ -1329,10 +1368,10 @@
       <li><span class="term">/RD, /WR</span><span>Read and write strobes on a parallel bus. The leading slash means <em>active low</em>: the signal does its job when pulled down to ground rather than up.</span></li>
       <li><span class="term">RC network</span><span>A resistor and capacitor shaping a signal &mdash; here, holding a reset line low briefly at power-up.</span></li>
       <li><span class="term">Module</span><span>Throughout this document, the small circuit board carrying a display and its supporting parts &mdash; regulator, level shifter, connector &mdash; as distinct from the bare <em>panel</em> it is built around. Never the Pi.</span></li>
-      <li><span class="term">SPI</span><span>Serial Peripheral Interface. A four-wire bus: clock, data out, data in, chip select. <b>SPI0</b> is the Pi's first such controller &mdash; that is a digit zero, an instance number, not a letter.</span></li>
+      <li><span class="term">SPI</span><span>Serial Peripheral Interface. A four-wire bus: clock, data out, data in, chip select. <b>SPI0</b> is the Pi's first such controller &mdash; that is a digit zero, an instance number, not a letter. There is a second, <b>SPI1</b>, on different pins; <code style="font-family:var(--mono);font-size:0.85em">port=0</code> in the code is what selects between them.</span></li>
       <li><span class="term">MOSI / MISO</span><span>Master Out Slave In / Master In Slave Out, the two SPI data lines. Only MOSI is used here, because these displays are write-only.</span></li>
       <li><span class="term">SCLK</span><span>Serial Clock, the SPI timing line.</span></li>
-      <li><span class="term">CS / CE0</span><span>Chip Select, also written Chip Enable. Tells one device on a shared bus that the traffic is meant for it. Two names for the same signal.</span></li>
+      <li><span class="term">CS / CE0 / CE1</span><span>Chip Select, also written Chip Enable &mdash; two names for the same signal. It tells one device on a shared bus that the traffic is meant for it. SPI0 provides two of them, <b>CE0</b> and <b>CE1</b>, so two displays can share one set of clock and data wires; <code style="font-family:var(--mono);font-size:0.85em">device=0</code> in the code is what picks between them.</span></li>
       <li><span class="term">DC / RS</span><span>Data/Command, sometimes Register Select or A0. A single wire that tells the display whether the bytes now arriving are a command or pixel data &mdash; SPI itself has no way to mark the difference.</span></li>
       <li><span class="term">I&sup2;C</span><span>Inter-Integrated Circuit. A two-wire bus, slower than SPI; the smaller OLEDs often offer it as an alternative.</span></li>
       <li><span class="term">I&sup2;S / PCM</span><span>Inter-IC Sound / Pulse Code Modulation &mdash; digital audio. Relevant here only because GPIO&nbsp;18 serves both it and the backlight.</span></li>
