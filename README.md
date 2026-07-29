@@ -8,7 +8,7 @@ the Android ASCII Art app.
 
 *Running on the Pi at 14.9 fps. The status bar along the bottom reports the
 frame rate, ASCII grid size, and the current state of every toggle — rotation,
-contrast, character ramp, auto-levels, fill and invert.*
+contrast, colour mode, character ramp, auto-levels, fill and invert.*
 
 ## Running it
 
@@ -17,6 +17,7 @@ bash run_ascii_camera.sh fit            # biggest window the picture fills exact
 bash run_ascii_camera.sh 120            # 120 columns, rows chosen to match
 bash run_ascii_camera.sh 80x80          # exactly 80x80 (picture is letterboxed)
 bash run_ascii_camera.sh 80x80 --fill   # 80x80, cropped to fill the window
+bash run_ascii_camera.sh fit --colour   # start in colour (or press g)
 bash run_ascii_camera.sh 120 --fps 10 --rotation 0
 python3 ascii_camera.py                 # in the terminal you are already in
 python3 ascii_camera.py --help          # all options
@@ -38,6 +39,7 @@ Click the window first so it has keyboard focus.
 | `f`   | Toggle fill (crop to fill the window) vs fit (whole field of view) | `fill:on` / `fill:off` |
 | `i`   | Invert the character ramp | `inv:on` / `inv:off` |
 | `c`   | Cycle character ramp: standard / fine / blocks | `chr:standard` |
+| `g`   | Toggle greyscale / colour | `mode:grey` / `mode:colour` |
 | `+` `-` | Contrast | `con1.0` |
 | `a`   | Toggle per-frame auto-levels | `auto:on` / `auto:off` |
 
@@ -45,7 +47,7 @@ Every toggle reads out its current state on the left of the status bar, so
 nothing is hidden:
 
 ```
- 15.0fps 267x100 rot180 con1.0 chr:standard auto:on fill:off inv:off | q:quit r:rotate ...
+ 15.0fps 267x100 rot180 con1.0 mode:grey chr:standard auto:on fill:off inv:off | q:quit ...
 ```
 
 The key hints on the right are dropped in whole groups when the window is too
@@ -551,6 +553,48 @@ This is well above the 8–12 fps originally predicted, for three reasons:
 Resizing uses PIL's `BOX` filter (area averaging) rather than `LANCZOS`: each
 ASCII cell should hold the *mean* brightness of the region it covers, which is
 exactly what area averaging computes, and it is faster besides.
+
+### Colour mode
+
+`g` switches between greyscale and colour. The colour comes from the camera's
+chroma, and the character still comes from the luma, so the two agree.
+
+Measured in lxterminal on this Pi, redrawing the same scene with and without
+per-character colour:
+
+| Grid | Greyscale | Colour | Cost |
+|------|-----------|--------|------|
+| 267x100 | 91 ms (11.0 fps) | 244 ms (4.1 fps) | 2.7x |
+| 133x50 | 32 ms (31.6 fps) | 61 ms (16.3 fps) | 1.9x |
+| 80x30 | 6 ms (169 fps) | 28 ms (35 fps) | 4.8x |
+
+Colour therefore **halves the grid on both axes** — `--colour-divisor` changes
+that — which is why full-window colour runs at 133x50 and holds the full 15 fps
+rather than the 4 fps a full-size grid would give. Halving both axes keeps the
+aspect correct, so the picture is coarser but not distorted.
+
+Two things make it affordable:
+
+1. **The conversion happens after the downscale.** Chroma is resampled to the
+   character grid first, then converted, so at 133x50 that is about 6,650 pixels
+   of arithmetic per frame instead of 76,800 at full resolution. Doing it the
+   other way round was the most expensive thing in the original pipeline, and is
+   why greyscale mode takes the luma plane directly.
+2. **Cells sharing a colour are drawn as one run.** One `addstr` per run rather
+   than per character, so ncurses emits a single escape sequence for each. A
+   real scene averages a dozen or so runs per row at this grid size.
+
+`--colour-levels` (2 to 6, default 6) sets how many steps per channel are used
+from the xterm-256 colour cube. Fewer steps means longer runs of one colour and
+a cheaper redraw, at the cost of banding — the main lever if colour feels slow.
+
+Terminal support was checked rather than assumed: inside lxterminal, curses
+reports `TERM=xterm-256color`, 256 colours and 65,536 pairs, so the 240 pairs
+this uses are nowhere near a limit. If a terminal cannot manage 256 colours,
+`g` logs the fact and stays in greyscale.
+
+Greyscale mode costs nothing for the feature — the chroma planes are sliced from
+the buffer that already had to be copied, and no conversion runs.
 
 ### The character ramp costs frame rate
 

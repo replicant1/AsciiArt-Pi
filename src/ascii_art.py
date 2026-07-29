@@ -20,17 +20,39 @@ RAMPS = {
     "blocks": " .:-=+*#%@▓█",
 }
 
+# xterm-256 puts a 6x6x6 colour cube at indices 16..231, with these intensities
+# on each axis. The steps are deliberately uneven - a large gap from 0 to 95,
+# then 40 apart - so nearest-level quantisation needs the real values, not a
+# uniform division.
+CUBE_LEVELS = np.array([0, 95, 135, 175, 215, 255], dtype=np.int16)
+
+
+def _level_lut(levels):
+    """
+    Map each of the 256 input values to a cube axis index, 0..5.
+
+    `levels` is how many of the six cube steps to use. Fewer steps means fewer
+    distinct colours, which makes runs of identical colour longer and the
+    terminal redraw correspondingly cheaper - the main lever on colour-mode
+    frame rate.
+    """
+    chosen = np.unique(np.linspace(0, 5, levels).round().astype(np.int16))
+    values = CUBE_LEVELS[chosen]
+    nearest = np.abs(np.arange(256, dtype=np.int16)[:, None] - values[None, :])
+    return chosen[nearest.argmin(axis=1)].astype(np.uint8)
+
 
 class AsciiArt:
     """Generates ASCII art from a greyscale array."""
 
-    def __init__(self, ramp="standard", invert=False):
+    def __init__(self, ramp="standard", invert=False, colour_levels=6):
         """
         Args:
             ramp: Key into RAMPS, or a literal character ramp (light -> dark).
             invert: Swap the ramp.  The default suits light-on-dark terminals,
                 where a bright part of the scene should be drawn with a dense
                 character (more lit pixels).  Invert for a light background.
+            colour_levels: Cube steps per channel used in colour mode, 2 to 6.
         """
         self.chars = RAMPS.get(ramp, ramp)
         if not self.chars:
@@ -39,6 +61,23 @@ class AsciiArt:
             self.chars = self.chars[::-1]
 
         self.lut = self._build_lut()
+        self.colour_levels = max(2, min(6, colour_levels))
+        self._level_lut = _level_lut(self.colour_levels)
+
+    def to_colour_indices(self, rgb):
+        """
+        Map per-cell RGB to xterm-256 palette indices.
+
+        Args:
+            rgb: uint8 array of shape (rows, cols, 3).
+
+        Returns:
+            int array of shape (rows, cols), each value 16..231.
+        """
+        q = self._level_lut[rgb]
+        return (16 + 36 * q[..., 0].astype(np.int16)
+                + 6 * q[..., 1].astype(np.int16)
+                + q[..., 2].astype(np.int16))
 
     def _build_lut(self):
         """

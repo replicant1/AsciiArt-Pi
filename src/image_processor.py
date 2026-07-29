@@ -141,13 +141,51 @@ class ImageProcessor:
         Returns:
             uint8 array of shape (rows, cols).
         """
-        rotated = self.rotate(luma)
+        return self.adjust_levels(self.to_grid(luma, cols, rows))
+
+    def to_grid(self, plane, cols, rows):
+        """
+        Rotate, optionally crop, and resample one plane down to the ASCII grid.
+
+        Shared by luma and chroma so the three planes stay in register: any
+        difference in rotation or cropping would show up as colour fringing
+        along edges.
+        """
+        out = self.rotate(plane)
         if self.fill:
             # On-screen aspect of the grid, which the source must be cropped to
             # match if it is to fill the grid without distortion.
-            rotated = self.crop_to_aspect(rotated, cols / (rows * self.cell_aspect))
-        scaled = self.resize(rotated, cols, rows)
-        return self.adjust_levels(scaled)
+            out = self.crop_to_aspect(out, cols / (rows * self.cell_aspect))
+        return self.resize(out, cols, rows)
+
+    def colour_grid(self, frame, grey, cols, rows):
+        """
+        One RGB colour per character cell.
+
+        Args:
+            frame: the YuvFrame, for its chroma planes.
+            grey: the already-processed luma grid, reused as the Y term so the
+                colours agree with the characters that were chosen from it.
+            cols, rows: ASCII grid size.
+
+        Returns:
+            uint8 array of shape (rows, cols, 3).
+
+        The conversion runs *after* the downscale, which is what makes colour
+        affordable on a Zero 2: at 133x50 that is about 6,650 pixels of
+        arithmetic per frame instead of 76,800 at full resolution. Doing it the
+        other way round was the single most expensive thing in the original
+        pipeline.
+        """
+        u, v = frame.chroma
+        u_grid = self.to_grid(u, cols, rows).astype(np.float32) - 128.0
+        v_grid = self.to_grid(v, cols, rows).astype(np.float32) - 128.0
+        y = grey.astype(np.float32)
+
+        r = y + 1.402 * v_grid
+        g = y - 0.344 * u_grid - 0.714 * v_grid
+        b = y + 1.772 * u_grid
+        return np.clip(np.stack([r, g, b], axis=2), 0, 255).astype(np.uint8)
 
     def source_size(self, width, height):
         """Frame dimensions after rotation, for grid-fitting purposes."""

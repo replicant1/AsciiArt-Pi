@@ -68,7 +68,9 @@ class AsciiArtLiveCamera:
         self.ramp_index = (RAMP_CYCLE.index(args.ramp)
                            if args.ramp in RAMP_CYCLE else 0)
         self.invert = args.invert
-        self.ascii_art = AsciiArt(ramp=self.ramp_name, invert=self.invert)
+        self.colour = args.colour
+        self.colour_levels = args.colour_levels
+        self._rebuild_ascii()
 
         self.grid = None            # (cols, rows), recomputed lazily
         self.grid_key = None        # inputs the grid was computed from
@@ -78,6 +80,11 @@ class AsciiArtLiveCamera:
         self.dropped = 0
         self.frame_times = deque(maxlen=20)
         self.is_running = False
+
+    def _rebuild_ascii(self):
+        """Rebuild the generator, carrying every current setting."""
+        self.ascii_art = AsciiArt(ramp=self.ramp_name, invert=self.invert,
+                                  colour_levels=self.colour_levels)
 
     def _refresh_cell_aspect(self):
         """
@@ -108,7 +115,7 @@ class AsciiArtLiveCamera:
         max_cols, max_rows = self.display.canvas_size
 
         key = (width, height, max_cols, max_rows, self.cell_aspect,
-               self.processor.fill)
+               self.processor.fill, self.colour)
         if key != self.grid_key:
             if self.processor.fill:
                 # Use every cell; process() crops the frame to suit.
@@ -116,6 +123,12 @@ class AsciiArtLiveCamera:
             else:
                 self.grid = fit_grid(width, height, max_cols, max_rows,
                                      self.cell_aspect)
+            if self.colour:
+                # Colour redraw costs several times greyscale, so coarsen the
+                # grid. Dividing both axes equally keeps the aspect correct.
+                d = max(1, self.args.colour_divisor)
+                self.grid = (max(8, self.grid[0] // d),
+                             max(4, self.grid[1] // d))
             self.grid_key = key
             logger.info("ASCII grid: %dx%d characters (source %dx%d, "
                         "terminal %dx%d, fill=%s)", self.grid[0], self.grid[1],
@@ -141,6 +154,7 @@ class AsciiArtLiveCamera:
         ramp = self.ramp_name if self.ramp_name in RAMPS else "custom"
         stats = (f" {fps:4.1f}fps {cols}x{rows} rot{self.processor.rotation}"
                  f" con{self.processor.contrast:.1f}"
+                 f" mode:{'colour' if self.colour else 'grey'}"
                  f" chr:{ramp}"
                  f" auto:{_on_off(self.processor.auto_levels)}"
                  f" fill:{_on_off(self.processor.fill)}"
@@ -148,7 +162,7 @@ class AsciiArtLiveCamera:
 
         width = self.display.cols - 1
         for keys in (" | q:quit r:rotate f:fill i:invert c:chars +/-:contrast"
-                     " a:auto",
+                     " a:auto g:colour",
                      " | q:quit r:rotate f:fill i:invert c:chars",
                      " | q:quit r:rotate f:fill",
                      " | q:quit",
@@ -168,17 +182,24 @@ class AsciiArtLiveCamera:
         elif key in ("r", "R"):
             self.processor.rotation = (self.processor.rotation + 90) % 360
             self.grid_key = None
+        elif key in ("g", "G"):
+            if self.display.colour_ok:
+                self.colour = not self.colour
+                self.grid_key = None
+                self.display.clear()
+            else:
+                logger.info("Colour asked for, but the terminal lacks 256 colours")
         elif key in ("f", "F"):
             self.processor.fill = not self.processor.fill
             self.grid_key = None
             self.display.clear()
         elif key in ("i", "I"):
             self.invert = not self.invert
-            self.ascii_art = AsciiArt(ramp=self.ramp_name, invert=self.invert)
+            self._rebuild_ascii()
         elif key in ("c", "C"):
             self.ramp_index = (self.ramp_index + 1) % len(RAMP_CYCLE)
             self.ramp_name = RAMP_CYCLE[self.ramp_index]
-            self.ascii_art = AsciiArt(ramp=self.ramp_name, invert=self.invert)
+            self._rebuild_ascii()
         elif key in ("+", "="):
             self.processor.contrast = min(4.0, self.processor.contrast + 0.1)
         elif key in ("-", "_"):
@@ -201,8 +222,8 @@ class AsciiArtLiveCamera:
                     # A resize may also mean the font changed under us.
                     self._refresh_cell_aspect()
 
-                luma = self.camera.get_frame(timeout=1.0)
-                if luma is None:
+                frame = self.camera.get_frame(timeout=1.0)
+                if frame is None:
                     # The camera caps its own rate, so a miss here means it is
                     # still warming up (or has stalled) rather than that we are
                     # polling too fast.
@@ -212,18 +233,23 @@ class AsciiArtLiveCamera:
                         break
                     continue
 
-                cols, rows = self._grid_for(luma.shape)
+                cols, rows = self._grid_for(frame.shape)
 
                 try:
-                    processed = self.processor.process(luma, cols, rows)
+                    processed = self.processor.process(frame.luma, cols, rows)
                     ascii_lines = self.ascii_art.to_ascii_text(processed)
+                    colours = None
+                    if self.colour and self.display.colour_ok:
+                        rgb = self.processor.colour_grid(frame, processed,
+                                                        cols, rows)
+                        colours = self.ascii_art.to_colour_indices(rgb)
                 except Exception as e:
                     logger.error("Frame processing failed: %s", e, exc_info=True)
                     continue
 
                 self.frame_count += 1
                 self.frame_times.append(time.time())
-                self.display.render(ascii_lines, self._status())
+                self.display.render(ascii_lines, self._status(), colours)
 
                 if not self._drain_keys():
                     break
@@ -261,6 +287,17 @@ def parse_args(argv=None):
                         help="Camera capture height")
     parser.add_argument("--fps", type=int, default=15,
                         help="Target frame rate")
+    parser.add_argument("--colour", "--color", action="store_true",
+                        dest="colour",
+                        help="Start in colour mode (toggle live with g)")
+    parser.add_argument("--colour-levels", type=int, default=6,
+                        choices=[2, 3, 4, 5, 6],
+                        help="Palette steps per channel in colour mode. "
+                             "Fewer means longer runs of one colour and a "
+                             "cheaper redraw")
+    parser.add_argument("--colour-divisor", type=int, default=2,
+                        help="How much coarser the grid becomes in colour "
+                             "mode, on both axes")
     parser.add_argument("--fill", action="store_true",
                         help="Crop the picture to fill the whole window "
                              "instead of letterboxing it to fit")

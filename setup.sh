@@ -72,6 +72,6 @@ echo "  bash $PROJECT_DIR/run_ascii_camera.sh fit    # fills the screen, no lett
 echo "  bash $PROJECT_DIR/run_ascii_camera.sh 80x80  # exactly 80x80 characters"
 echo "  python3 $PROJECT_DIR/ascii_camera.py         # in the current terminal"
 echo
-echo "In the window: q quit, r rotate, f fill, i invert, c chars, +/- contrast,"
+echo "In the window: q quit, r rotate, f fill, i invert, c chars, g colour,"
 echo "a auto-levels.  Click the window first so it has keyboard focus."
 echo "================================"

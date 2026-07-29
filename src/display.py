@@ -18,6 +18,8 @@ import struct
 import sys
 import termios
 
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,6 +47,33 @@ class NcursesDisplay:
             pass                       # not all terminals can
         self.rows, self.cols = self.stdscr.getmaxyx()
         logger.info("Terminal size: %dx%d characters", self.cols, self.rows)
+        self.colour_ok = self._start_colour()
+
+    def _start_colour(self):
+        """
+        Allocate one curses pair per palette entry the renderer might ask for.
+
+        Returns True if colour is usable. Measured on this Pi inside lxterminal:
+        TERM=xterm-256color, 256 colours and 65,536 pairs available, so the 240
+        pairs wanted here are not close to any limit.
+        """
+        try:
+            curses.start_color()
+            if not curses.has_colors() or curses.COLORS < 256:
+                logger.info("Colour unavailable: has_colors=%s COLORS=%s",
+                            curses.has_colors(), getattr(curses, "COLORS", "?"))
+                return False
+            # -1 keeps the terminal's own background, so the page stays black
+            # without burning a palette slot on it.
+            curses.use_default_colors()
+            for index in range(16, 256):
+                curses.init_pair(index, index, -1)
+            logger.info("Colour ready: %d colours, %d pairs",
+                        curses.COLORS, curses.COLOR_PAIRS)
+            return True
+        except curses.error as e:
+            logger.info("Colour setup failed: %s", e)
+            return False
 
     @property
     def canvas_size(self):
@@ -93,35 +122,44 @@ class NcursesDisplay:
         """Force a full repaint on the next render."""
         self.stdscr.clear()
 
-    def render(self, ascii_lines, status=""):
+    def render(self, ascii_lines, status="", colours=None):
         """
         Draw one frame, centred, with a status line along the bottom.
 
         Args:
             ascii_lines: List of strings, one per grid row.
             status: Text for the reverse-video status line.
+            colours: Optional (rows, cols) array of xterm palette indices, one
+                per character. When given, each row is drawn as coloured runs.
         """
         canvas_rows = max(1, self.rows - 1)
         picture_height = min(len(ascii_lines), canvas_rows)
         top = (canvas_rows - picture_height) // 2
+        use_colour = colours is not None and self.colour_ok
 
         for screen_row in range(canvas_rows):
             index = screen_row - top
-            if 0 <= index < picture_height:
-                line = ascii_lines[index][:self.cols]
-                left = (self.cols - len(line)) // 2
+            if not 0 <= index < picture_height:
+                self._write(screen_row, 0, " " * self.cols)
+                continue
+
+            line = ascii_lines[index][:self.cols]
+            left = (self.cols - len(line)) // 2
+            if use_colour:
+                self._write(screen_row, 0, " " * left)
+                self._write_runs(screen_row, left, line, colours[index])
+                trailing = self.cols - left - len(line)
+                if trailing > 0:
+                    self._write(screen_row, left + len(line), " " * trailing)
+            else:
                 # Pad out to the full width so the previous frame's characters
                 # are overwritten without needing a clear().
-                line = " " * left + line
-            else:
-                line = ""
-            try:
-                self.stdscr.addstr(screen_row, 0, line.ljust(self.cols))
-            except curses.error:
-                # addstr on the final cell of a row is allowed to fail; the
-                # character is written regardless.
-                pass
+                self._write(screen_row, 0, (" " * left + line).ljust(self.cols))
 
+        self._write_status(status)
+        self.stdscr.refresh()
+
+    def _write_status(self, status):
         try:
             self.stdscr.addstr(self.rows - 1, 0,
                                status[:self.cols - 1].ljust(self.cols - 1),
@@ -129,7 +167,37 @@ class NcursesDisplay:
         except curses.error:
             pass
 
-        self.stdscr.refresh()
+    def _write(self, row, col, text):
+        try:
+            self.stdscr.addstr(row, col, text)
+        except curses.error:
+            # addstr on the final cell of a row is allowed to fail; the
+            # character is written regardless.
+            pass
+
+    def _write_runs(self, row, col, line, colour_row):
+        """
+        Draw one row as runs of constant colour.
+
+        One addstr per run rather than per character: at 133x50 a real scene
+        averages a dozen or so runs per row, so this is roughly an order of
+        magnitude fewer calls than colouring each cell, and it lets ncurses emit
+        a single escape sequence per run.
+        """
+        indices = np.asarray(colour_row[:len(line)])
+        if indices.size == 0:
+            return
+        # Boundaries wherever the palette index changes along the row.
+        edges = np.flatnonzero(indices[1:] != indices[:-1]) + 1
+        starts = np.concatenate(([0], edges))
+        ends = np.concatenate((edges, [indices.size]))
+
+        for start, end in zip(starts.tolist(), ends.tolist()):
+            try:
+                self.stdscr.addstr(row, col + start, line[start:end],
+                                   curses.color_pair(int(indices[start])))
+            except curses.error:
+                pass
 
     def get_key(self):
         """Return the pressed key as a string, or None. Never blocks."""

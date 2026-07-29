@@ -20,6 +20,45 @@ from picamera2 import Picamera2
 logger = logging.getLogger(__name__)
 
 
+class YuvFrame:
+    """
+    One YUV420 frame, exposing its planes as views rather than copies.
+
+    The luma plane is already an 8-bit greyscale image, which is all greyscale
+    mode needs.  Colour mode additionally reads the chroma planes, which are
+    half resolution on both axes - so a quarter the pixels each.
+
+    Plane order was verified against a reference RGB888 capture of the same
+    scene rather than assumed: U precedes V (see tests/verify_chroma.py).
+    """
+
+    __slots__ = ("_buf", "width", "height")
+
+    def __init__(self, buf, width, height):
+        self._buf = buf
+        self.width = width
+        self.height = height
+
+    @property
+    def shape(self):
+        """(height, width) of the luma plane, for grid fitting."""
+        return self.height, self.width
+
+    @property
+    def luma(self):
+        return self._buf[:self.height, :self.width]
+
+    @property
+    def chroma(self):
+        """(u, v), each (height/2, width/2)."""
+        h, w = self.height, self.width
+        flat = self._buf[h:, :w].reshape(-1)
+        plane = (h // 2) * (w // 2)
+        u = flat[:plane].reshape(h // 2, w // 2)
+        v = flat[plane:plane * 2].reshape(h // 2, w // 2)
+        return u, v
+
+
 class CameraCapture:
     """Captures greyscale frames from the Pi Camera Module 2."""
 
@@ -89,7 +128,7 @@ class CameraCapture:
                 time.sleep(min(0.05 * consecutive_errors, 1.0))
                 continue
 
-            luma = self._extract_luma(frame)
+            luma = self._wrap(frame)
             if luma is None:
                 continue
 
@@ -103,13 +142,12 @@ class CameraCapture:
             except Full:
                 pass
 
-    def _extract_luma(self, frame):
+    def _wrap(self, frame):
         """
-        Pull the Y plane out of a YUV420 buffer.
+        Wrap a raw capture as a YuvFrame, dropping any stride padding.
 
-        The full buffer is (height * 3 // 2) rows of `stride` bytes: `height`
-        rows of luma followed by the half-resolution U and V planes.  Only the
-        luma matters for greyscale ASCII.
+        The buffer is (height * 3 // 2) rows of `stride` bytes: `height` rows of
+        luma, then the two half-resolution chroma planes packed together.
         """
         h, w = self.height, self.width
         if frame.ndim == 1:
@@ -117,13 +155,16 @@ class CameraCapture:
         elif frame.ndim == 3:
             frame = frame.reshape(frame.shape[0], -1)
 
-        if frame.shape[0] < h:
-            logger.warning("Short frame: %s rows, need %d", frame.shape[0], h)
+        if frame.shape[0] < h * 3 // 2:
+            logger.warning("Short frame: %s rows, need %d",
+                           frame.shape[0], h * 3 // 2)
             return None
 
-        # np.ascontiguousarray both drops the stride padding and detaches the
-        # slice from the (much larger) full YUV buffer.
-        return np.ascontiguousarray(frame[:h, :w])
+        # One copy, which both drops the stride padding and detaches this frame
+        # from the driver's recycled buffer. Keeping the chroma costs 50% more
+        # memory than luma alone - 38 KB at 320x240 - and saves a second copy
+        # later when colour mode is on.
+        return YuvFrame(np.ascontiguousarray(frame[:h * 3 // 2, :w]), w, h)
 
     def get_frame(self, timeout=0.5):
         """Return the most recent luma frame, or None if none arrived in time."""
