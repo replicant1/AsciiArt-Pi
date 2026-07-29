@@ -248,6 +248,17 @@
   }
   tbody tr:last-child td { border-bottom: none; }
   td.hero { color: var(--petrol); font-weight: 700; }
+  td.quiet { color: var(--ink-faint); }
+  /* Grouping row above the column headers: says what each block of columns is
+     for, so a reader knows which numbers they need at the bench and which they
+     need in the editor. */
+  th.group {
+    font-size: 0.6rem;
+    color: var(--petrol);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.3rem;
+    text-align: left;
+  }
 
   /* ---------- recommendation entries ---------- */
 
@@ -797,31 +808,47 @@
             <caption><span class="num">Table 2</span>&nbsp;&mdash; ILI9341 to Raspberry Pi &mdash; all eight connections</caption>
             <thead>
               <tr>
+                <th class="group" scope="colgroup" colspan="2">Wiring &mdash; count these</th>
+                <th class="group" scope="col">What it is</th>
+                <th class="group" scope="colgroup" colspan="2">Library config &mdash; type these</th>
+              </tr>
+              <tr>
                 <th scope="col">ILI9341 pin</th>
+                <th scope="col">Pi header pin</th>
                 <th scope="col">Pi signal</th>
                 <th scope="col">Pi BCM</th>
-                <th scope="col">Pi header pin</th>
+                <th scope="col">In your code</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td>VCC</td><td>3.3&nbsp;V</td><td>&mdash;</td><td>1</td></tr>
-              <tr><td>GND</td><td>GND</td><td>&mdash;</td><td>6</td></tr>
-              <tr><td>CS</td><td>SPI0 CE0</td><td>GPIO&nbsp;8</td><td>24</td></tr>
-              <tr><td>RESET</td><td>free choice</td><td>GPIO&nbsp;24</td><td>18</td></tr>
-              <tr><td>DC / RS</td><td>free choice</td><td>GPIO&nbsp;23</td><td>16</td></tr>
-              <tr><td>SDI (MOSI)</td><td>SPI0 MOSI</td><td>GPIO&nbsp;10</td><td>19</td></tr>
-              <tr><td>SCK / CLK</td><td>SPI0 SCLK</td><td>GPIO&nbsp;11</td><td>23</td></tr>
-              <tr><td>LED</td><td>backlight</td><td>GPIO&nbsp;18</td><td>12</td></tr>
+              <tr><td>VCC</td><td>1</td><td>3.3&nbsp;V</td><td>&mdash;</td><td class="quiet">not named</td></tr>
+              <tr><td>GND</td><td>6</td><td>GND</td><td>&mdash;</td><td class="quiet">not named</td></tr>
+              <tr><td>CS</td><td>24</td><td>SPI0 CE0</td><td>GPIO&nbsp;8</td><td class="quiet">device=0</td></tr>
+              <tr><td>SDI (MOSI)</td><td>19</td><td>SPI0 MOSI</td><td>GPIO&nbsp;10</td><td class="quiet">port=0</td></tr>
+              <tr><td>SCK / CLK</td><td>23</td><td>SPI0 SCLK</td><td>GPIO&nbsp;11</td><td class="quiet">port=0</td></tr>
+              <tr><td>DC / RS</td><td>16</td><td>your choice</td><td>GPIO&nbsp;23</td><td class="hero">gpio_DC=23</td></tr>
+              <tr><td>RESET</td><td>18</td><td>your choice</td><td>GPIO&nbsp;24</td><td class="hero">gpio_RST=24</td></tr>
+              <tr><td>LED</td><td>12</td><td>backlight</td><td>GPIO&nbsp;18</td><td class="hero">optional</td></tr>
             </tbody>
           </table>
         </div>
         <p>
-          Only the SPI0 lines &mdash; CS, MOSI, SCK &mdash; are fixed by hardware. RESET, DC
-          and the backlight are ordinary GPIOs you nominate in software, which is why no two
-          published diagrams agree and none of them is wrong. <b>Leave six pins unconnected</b>
-          on a typical 14-pin module: SDO (MISO), since these drivers are write-only, and the
-          five touch pins T_CLK, T_CS, T_DIN, T_DO and T_IRQ, which belong to a separate
-          XPT2046 controller.
+          <b>Wire by header pin, configure by BCM.</b> Those are two different numbering
+          schemes for the same connector, and they overlap &mdash; this very table contains the
+          trap. RESET is BCM&nbsp;24 but goes in header pin&nbsp;18; the backlight is BCM&nbsp;18
+          but goes in header pin&nbsp;12; and header pin&nbsp;24 is where CS goes. A guide that
+          says "connect reset to 24" without naming its scheme gives you even odds of the wrong
+          hole, and the failure is silent &mdash; a blank screen, no error.
+        </p>
+        <p>
+          Only three numbers are ever typed, all of them BCM, and only the last two are yours
+          to pick: the SPI0 lines are addressed collectively as
+          <code style="font-family:var(--mono);font-size:0.85em">port=0, device=0</code>, while
+          power and ground are never named at all. RESET, DC and the backlight are ordinary
+          GPIOs you nominate, which is why no two published diagrams agree and none of them is
+          wrong. <b>Leave six pins unconnected</b> on a typical 14-pin module: SDO (MISO), since
+          these drivers are write-only, and the five touch pins T_CLK, T_CS, T_DIN, T_DO and
+          T_IRQ, which belong to a separate XPT2046 controller.
         </p>
         <p>
           Buy a 40-way ribbon of jumpers rather than eight singles &mdash; about A$5, colour
