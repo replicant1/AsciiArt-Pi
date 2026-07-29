@@ -32,10 +32,10 @@ ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
             README.md piinput.py setup_uinput.sh)
 SRC_FILES=(ascii_art.py camera.py display.py image_processor.py window_plan.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py)
-# README.md links to this, so it is kept alongside rather than repo-only:
-# otherwise the two copies of the README would reference an image that exists
-# on one side and not the other.
-DOC_FILES=(screenshot.png)
+# README.md links to these, so they are kept alongside rather than repo-only:
+# otherwise the two copies of the README would reference files that exist on one
+# side and not the other.
+DOC_FILES=(screenshot.png display-selection-guide.html)
 
 changed=0
 

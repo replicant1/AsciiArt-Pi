@@ -1,0 +1,1335 @@
+<title>Character Display Selection Guide — ASCII Camera, Sydney</title>
+
+<style>
+  :root {
+    --paper:      #E7E9E4;
+    --paper-sunk: #DEE1DB;
+    --ink:        #16191A;
+    --ink-soft:   #4A5350;
+    --ink-faint:  #77807C;
+    --rule:       #C6CAC2;
+    --rule-hard:  #A7ADA4;
+    --petrol:     #17505C;
+    --petrol-bg:  #D6E0E0;
+    --rust:       #8B3E22;
+    --rust-bg:    #E6DCD4;
+    --screen:     #0C0E0D;
+    --screen-dim: #1A1E1C;
+
+    /* Shared by the swatch text and the bezel gap, so the seam stays measured
+       in character widths however the swatch scales. */
+    --swatch-fs: clamp(5px, 0.95vw, 8px);
+
+    --measure: 34rem;
+    --gap-xs: 0.35rem;
+    --gap-s:  0.75rem;
+    --gap-m:  1.5rem;
+    --gap-l:  3rem;
+    --gap-xl: 5rem;
+
+    --sans: "Helvetica Neue", "Inter", "Segoe UI", system-ui, sans-serif;
+    --serif: "Charter", "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:      #15171A;
+      --paper-sunk: #1C1F23;
+      --ink:        #DCDFD8;
+      --ink-soft:   #9AA39E;
+      --ink-faint:  #6E7772;
+      --rule:       #2C3138;
+      --rule-hard:  #3D444C;
+      --petrol:     #6FBECE;
+      --petrol-bg:  #1B2C33;
+      --rust:       #C8785A;
+      --rust-bg:    #2B211D;
+      --screen:     #080A09;
+      --screen-dim: #121514;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #15171A;
+    --paper-sunk: #1C1F23;
+    --ink:        #DCDFD8;
+    --ink-soft:   #9AA39E;
+    --ink-faint:  #6E7772;
+    --rule:       #2C3138;
+    --rule-hard:  #3D444C;
+    --petrol:     #6FBECE;
+    --petrol-bg:  #1B2C33;
+    --rust:       #C8785A;
+    --rust-bg:    #2B211D;
+    --screen:     #080A09;
+    --screen-dim: #121514;
+  }
+
+  :root[data-theme="light"] {
+    --paper:      #E7E9E4;
+    --paper-sunk: #DEE1DB;
+    --ink:        #16191A;
+    --ink-soft:   #4A5350;
+    --ink-faint:  #77807C;
+    --rule:       #C6CAC2;
+    --rule-hard:  #A7ADA4;
+    --petrol:     #17505C;
+    --petrol-bg:  #D6E0E0;
+    --rust:       #8B3E22;
+    --rust-bg:    #E6DCD4;
+    --screen:     #0C0E0D;
+    --screen-dim: #1A1E1C;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    padding: var(--gap-m) var(--gap-m) var(--gap-xl);
+  }
+
+  .doc {
+    max-width: 60rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xl);
+  }
+
+  p, li { max-width: var(--measure); }
+
+  a {
+    color: var(--petrol);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+  a:hover { text-decoration-thickness: 2px; }
+  a:focus-visible {
+    outline: 2px solid var(--petrol);
+    outline-offset: 2px;
+    border-radius: 1px;
+  }
+
+  b, strong { font-weight: 700; }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-top: 3px solid var(--ink);
+    border-bottom: 1px solid var(--rule-hard);
+    padding-top: var(--gap-s);
+    padding-bottom: var(--gap-m);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-s);
+  }
+
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .masthead h1 {
+    font-family: var(--sans);
+    font-size: clamp(1.9rem, 5.2vw, 3.1rem);
+    font-weight: 800;
+    letter-spacing: -0.022em;
+    line-height: 1.02;
+    text-wrap: balance;
+    max-width: 22ch;
+  }
+
+  .standfirst {
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+  }
+
+  .colophon {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-xs) var(--gap-m);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    padding-top: var(--gap-s);
+    border-top: 1px solid var(--rule);
+  }
+  .colophon span { white-space: nowrap; }
+  .colophon b { color: var(--ink-soft); font-weight: 500; }
+
+  /* ---------- generic sections ---------- */
+
+  section { display: flex; flex-direction: column; gap: var(--gap-m); }
+
+  h2 {
+    font-family: var(--sans);
+    font-size: 1.02rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding-bottom: var(--gap-xs);
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: var(--gap-s);
+  }
+  h2 .h2-note {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    margin-left: auto;
+  }
+
+  .prose { display: flex; flex-direction: column; gap: var(--gap-s); }
+
+  /* ---------- the freight callout ---------- */
+
+  .callout {
+    background: var(--rust-bg);
+    border-left: 4px solid var(--rust);
+    padding: var(--gap-m);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-s);
+  }
+  .callout .eyebrow { color: var(--rust); }
+  .callout p { max-width: 48ch; }
+  .callout .rule-line {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1.12rem;
+    line-height: 1.4;
+    max-width: 40ch;
+  }
+
+  /* ---------- tables ---------- */
+
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 30rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+  }
+  caption {
+    text-align: left;
+    color: var(--ink-faint);
+    font-size: 0.76rem;
+    padding-bottom: var(--gap-s);
+  }
+  th, td {
+    text-align: right;
+    padding: 0.5rem 0.9rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  th:first-child, td:first-child { text-align: left; padding-left: 0; }
+  th {
+    font-weight: 700;
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule-hard);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.hero { color: var(--petrol); font-weight: 700; }
+
+  /* ---------- recommendation entries ---------- */
+
+  .picks { gap: var(--gap-l); }
+
+  .pick {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 0 var(--gap-m);
+    border-top: 1px solid var(--rule-hard);
+    padding-top: var(--gap-m);
+  }
+
+  .rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-s);
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--ink-soft);
+  }
+  .rank {
+    font-family: var(--sans);
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    color: var(--rule-hard);
+  }
+  .spec { display: flex; flex-direction: column; gap: 0.1rem; }
+  .spec dt {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .spec dd { font-variant-numeric: tabular-nums; }
+  .price { color: var(--petrol); font-weight: 700; font-size: 0.95rem; }
+
+  .body { display: flex; flex-direction: column; gap: var(--gap-s); }
+
+  .pick h3 {
+    font-family: var(--sans);
+    font-size: 1.28rem;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+    line-height: 1.22;
+    text-wrap: balance;
+  }
+
+  .verdict-tag {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.55rem;
+    background: var(--petrol);
+    color: var(--paper);
+    align-self: flex-start;
+  }
+  .verdict-tag.caution { background: var(--rust); }
+  .verdict-tag.quiet {
+    background: transparent;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule-hard);
+  }
+
+  .sources {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-xs) var(--gap-s);
+    padding-top: var(--gap-xs);
+  }
+  .sources span { color: var(--ink-faint); }
+
+  /* ---------- the display swatches ---------- */
+
+  figure {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    margin-top: var(--gap-xs);
+  }
+  .screen {
+    /* --ground lets a swatch carry its own panel colour: blue-negative STN,
+       or the silvery ground of a reflective LCD. */
+    background: var(--ground, var(--screen));
+    padding: 0.7rem 0.8rem;
+    overflow-x: auto;
+    border: 1px solid var(--screen-dim);
+  }
+  /* Reflective panels do not emit, so they get no phosphor bloom. */
+  .screen.reflective pre { text-shadow: none; }
+  .screen pre {
+    font-family: var(--mono);
+    font-size: var(--swatch-fs);
+    line-height: 1.0;
+    letter-spacing: 0;
+    color: var(--phosphor, #8FE6A0);
+    text-shadow: 0 0 4px color-mix(in srgb, var(--phosphor, #8FE6A0) 45%, transparent);
+    white-space: pre;
+  }
+
+  /* Two physical modules butted together, side by side or stacked. The image is
+     one logical grid; the bezel simply interrupts it, which is the whole point of
+     showing it. Facing padding is removed so the gap you see is the bezel and the
+     two module edges, nothing else. */
+  .pair-wrap { overflow-x: auto; }
+  .screen-pair, .screen-stack {
+    display: flex;
+    align-items: stretch;
+    width: max-content;
+  }
+  .screen-pair  { flex-direction: row; }
+  .screen-stack { flex-direction: column; }
+
+  .screen-pair .screen, .screen-stack .screen {
+    overflow: visible;
+    border: 2px solid var(--rule-hard);
+  }
+  .screen-pair .panel-a  { padding-right: 0; }
+  .screen-pair .panel-b  { padding-left: 0; }
+  .screen-stack .panel-a { padding-bottom: 0; }
+  .screen-stack .panel-b { padding-top: 0; }
+
+  .seam-v, .seam-h {
+    flex: none;
+    font-family: var(--mono);
+    font-size: var(--swatch-fs);
+    background: repeating-linear-gradient(
+      135deg,
+      var(--rule) 0 3px,
+      transparent 3px 6px
+    );
+  }
+  /* ~40px of dead bezel at 6px per character cell, kept in ch so it scales with
+     the swatch rather than drifting out of proportion. */
+  .seam-v {
+    width: 7ch;
+    border-top: 2px solid var(--rule-hard);
+    border-bottom: 2px solid var(--rule-hard);
+  }
+  /* Stacked modules: the vertical bezel is shallower, about three character rows
+     at 8px per row. Line height is 1.0, so a row is exactly one font-size. */
+  .seam-h {
+    height: calc(3 * var(--swatch-fs));
+    border-left: 2px solid var(--rule-hard);
+    border-right: 2px solid var(--rule-hard);
+  }
+  figcaption {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- verdict block ---------- */
+
+  .verdict {
+    background: var(--petrol-bg);
+    border-top: 3px solid var(--petrol);
+    padding: var(--gap-m);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-s);
+  }
+  .verdict .eyebrow { color: var(--petrol); }
+  .verdict h2 { border: none; padding: 0; font-size: 1.35rem; text-transform: none; letter-spacing: -0.01em; }
+
+  /* ---------- source list ---------- */
+
+  .biblio { list-style: none; display: flex; flex-direction: column; gap: var(--gap-s); }
+  .biblio li {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: var(--gap-s);
+    font-size: 0.9rem;
+    max-width: none;
+    padding-bottom: var(--gap-s);
+    border-bottom: 1px solid var(--rule);
+  }
+  .biblio .cat {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-top: 0.28rem;
+  }
+  .biblio .links { display: flex; flex-direction: column; gap: 0.15rem; }
+
+  footer.foot {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    border-top: 1px solid var(--rule);
+    padding-top: var(--gap-m);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+  }
+
+  @media (max-width: 46rem) {
+    body { font-size: 16px; padding: var(--gap-s) var(--gap-s) var(--gap-l); }
+    .pick { grid-template-columns: 1fr; gap: var(--gap-s); }
+    .rail {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: var(--gap-s) var(--gap-m);
+    }
+    .rank { font-size: 1.6rem; }
+    .biblio li { grid-template-columns: 1fr; gap: var(--gap-xs); }
+  }
+</style>
+
+<article class="doc">
+
+  <header class="masthead">
+    <div class="eyebrow">Hardware selection guide &middot; ASCII Art Live Camera</div>
+    <h1>Character displays for the Pi, sourced in Australia</h1>
+    <p class="standfirst">
+      Five ways to put the ASCII matrix on a screen with a vintage character, ranked
+      for a buyer in Sydney &mdash; where freight, not price, decides what is worth having.
+    </p>
+    <div class="colophon">
+      <span><b>Target</b> Raspberry Pi Zero 2 W</span>
+      <span><b>Prices</b> AUD</span>
+      <span><b>FX basis</b> 1.43 AUD/USD, late Jul 2026</span>
+      <span><b>Market</b> Sydney, NSW</span>
+    </div>
+  </header>
+
+  <section id="brief">
+    <h2>The brief<span class="h2-note">why this is not a monitor question</span></h2>
+    <div class="prose">
+      <p>
+        The app is a <b>curses program whose picture is built from character cells</b>.
+        So the useful measure of a display is not its resolution but <b>how many legible
+        characters it can hold</b> &mdash; and, for anything driven over a serial line, how
+        fast those characters can be pushed down the wire.
+      </p>
+      <p>
+        Every option below is shown rendering the same scene through this project's own
+        ramp, <code style="font-family:var(--mono);font-size:0.85em">&nbsp;.:-=+*#%@</code>,
+        at that display's real character grid. The difference between 80&times;24 and
+        42&times;8 is the whole argument.
+      </p>
+      <p>
+        Watch the aspect trap. <b>A character cell is not square, and how far from square
+        depends on the font.</b> Terminal cells run about 2:1; a 6&times;8 pixel font is 1.33:1.
+        So a 42&times;16 grid on a 6&times;8 font is a <em>2:1 picture</em>, not a 4:3 one, and a
+        4:3 camera frame cannot fill it &mdash; you either pillarbox the image or crop the
+        sensor. Each swatch below shows the cropped version, with the percentage of the
+        frame that survives.
+      </p>
+      <p>
+        There is a shortcut hiding in that. The font sets how many characters you get, but
+        the crop depends only on the panel's own shape:
+      </p>
+      <p style="font-family:var(--mono);font-size:0.92rem;background:var(--paper-sunk);padding:var(--gap-s) var(--gap-m);border-left:3px solid var(--petrol);max-width:none;">
+        frame kept = camera aspect (4:3) &divide; panel aspect
+      </p>
+      <p>
+        Which is why the 256&times;64 panels give away two thirds of the picture, and why a
+        plain <b>4:3 panel gives away nothing at all</b>. That single ratio explains the order
+        of this list better than resolution does.
+      </p>
+    </div>
+  </section>
+
+  <section id="freight">
+    <h2>The deciding constraint</h2>
+    <div class="callout">
+      <div class="eyebrow">Sourcing rule</div>
+      <p class="rule-line">
+        Anything with a CRT, buy locally with pickup. Anything flat, import or use an
+        Australian distributor.
+      </p>
+      <p>
+        A VT220 or Wyse terminal weighs 10&ndash;18&nbsp;kg and contains a CRT. Freighting one
+        from the United States to Sydney runs <b>A$300&ndash;600 plus real breakage risk</b> &mdash;
+        routinely more than the terminal itself. Flat modules, by contrast, ship for
+        A$20&ndash;40. That single fact reorders the entire list: the cheap local CRT beats the
+        better terminal you cannot economically get here.
+      </p>
+    </div>
+  </section>
+
+  <section id="bandwidth">
+    <h2>Serial bandwidth<span class="h2-note">the wire, not the Pi, is the limit</span></h2>
+    <div class="prose">
+      <p>
+        A full ASCII redraw costs roughly <code style="font-family:var(--mono);font-size:0.85em">W&times;H</code>
+        bytes plus about 8 per row of cursor addressing, at 10 bits per byte. That puts a
+        hard ceiling on frame rate for any serial terminal:
+      </p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <caption>Achievable frame rate by grid size and line speed</caption>
+        <thead>
+          <tr>
+            <th scope="col">Grid</th>
+            <th scope="col">Bytes/frame</th>
+            <th scope="col">19,200 baud</th>
+            <th scope="col">38,400</th>
+            <th scope="col">115,200</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>80 &times; 24</td>
+            <td>~2,100</td>
+            <td>0.9 fps</td>
+            <td>1.8 fps</td>
+            <td class="hero">5.5 fps</td>
+          </tr>
+          <tr>
+            <td>40 &times; 12</td>
+            <td>~580</td>
+            <td>3.3 fps</td>
+            <td>6.6 fps</td>
+            <td class="hero">20 fps</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>
+        A DEC VT220 tops out at 19,200 baud, so a full 80&times;24 picture is a slideshow at
+        under one frame per second. Only the <b>VT510 reaches 115,200</b>, and that is what
+        buys watchable motion at full size.
+      </p>
+    </div>
+  </section>
+
+  <section class="picks" id="picks">
+    <h2>Recommendations<span class="h2-note">ranked for Sydney</span></h2>
+
+    <p>
+      Each entry says whether it needs <b>soldering</b>, assuming the Pi already has its GPIO
+      header fitted. Practice varies by seller and it is worth checking the listing photograph
+      before ordering: cheap SPI modules usually arrive with their pins already attached,
+      whereas Adafruit-style breakouts generally ship the header loose and expect you to fit
+      it. The one certainty is the parallel STN panel, which is a genuine build either way.
+    </p>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">1</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$0&ndash;150</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>80 &times; 25</dd></div>
+        <div class="spec"><dt>Frame rate</dt><dd>15 fps</dd></div>
+        <div class="spec"><dt>Interface</dt><dd>Composite / VGA</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>None via HDMI&rarr;VGA<br>yes for composite</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag">Best value</span>
+        <h3>Vintage monochrome CRT monitor, local pickup</h3>
+        <p>
+          Green (P1) or amber (P3) phosphor, bought off Gumtree or Marketplace in Sydney.
+          These are frequently <em>free</em> locally precisely because nobody wants to freight
+          them, and there are active vintage collectors in the Hills district trading this gear.
+        </p>
+        <p>
+          Crucially there is <b>no serial bottleneck</b>: full frame rate and a large grid. Feed it
+          from the Zero 2 W's composite TV pads (unpopulated &mdash; needs soldering) or an
+          HDMI&rarr;VGA adapter, about A$15&ndash;25 from Jaycar or Altronics, both with Sydney stores.
+        </p>
+        <figure>
+          <div class="screen" style="--phosphor:#8FE6A0"><pre data-cols="80" data-rows="25" data-cell-aspect="2.0"></pre></div>
+          <figcaption>80 &times; 25 characters, P1 green &mdash; keeps 83% of the frame height. The mildest crop on this page.</figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://www.gumtree.com.au/s-monitors/sydney/computer+monitor/k0c21111l3003435">Gumtree Sydney monitors</a>
+          <a href="https://www.gumtree.com.au/s-vintage+computer+monitor/k0">Gumtree vintage monitors</a>
+          <a href="https://www.jaycar.com.au">Jaycar</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">2</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$150&ndash;350</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>80 &times; 24</dd></div>
+        <div class="spec"><dt>Frame rate</dt><dd>0.9 fps</dd></div>
+        <div class="spec"><dt>Interface</dt><dd>RS-232</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>None</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag caution">Patience required</span>
+        <h3>Vintage DEC or Wyse terminal, bought domestically</h3>
+        <p>
+          True character hardware &mdash; the real thing. The Australian market price is well
+          established: the Melbourne vintage dealer Avitech sold three DEC VT220 sets with
+          LK201 keyboards at <b>A$300, A$150 and A$150</b>, all with some screen burn but tested
+          RS232. They currently list only an LK401 keyboard at A$50.
+        </p>
+        <p>
+          Supply here is thin, so treat it as a waiting game on eBay.com.au and Gumtree rather
+          than a purchase you can plan. Mind the bandwidth ceiling: run a 40&times;12 grid for
+          about 3 fps, or hold out for a VT510 and its 115,200 baud.
+        </p>
+        <figure>
+          <div class="screen" style="--phosphor:#9FE8B4"><pre data-cols="80" data-rows="24" data-cell-aspect="2.0"></pre></div>
+          <figcaption>80 &times; 24 characters, keeping 80% of the frame &mdash; correct, but under 1 fps on a VT220</figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://avitech.com.au/?page_id=4387">Avitech, Macleod VIC</a>
+          <a href="https://www.ebay.com.au/sch/i.html?_nkw=vt220+terminal">eBay.com.au</a>
+          <a href="https://handwiki.org/wiki/VT520">VT500-series speeds</a>
+          <a href="https://www.emtec.com/zoc/wyse-terminal-emulator.html">Wyse baud limits</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">3</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$60&ndash;115</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>53 &times; 30</dd></div>
+        <div class="spec"><dt>Frame kept</dt><dd>100%</dd></div>
+        <div class="spec"><dt>Part</dt><dd>WG320240<br>NHD-320240WG</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>Yes, substantial<br>none for ILI9341</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag">Best module, no crop</span>
+        <h3>320 &times; 240 monochrome graphic LCD</h3>
+        <p>
+          The one panel on this page whose shape matches the camera. <b>320&times;240 is 4:3</b>,
+          so nothing is cropped and nothing is pillarboxed &mdash; the entire field of view
+          lands on the glass. At a 6&times;8 font that is <b>53&times;30, or 1,590 character
+          cells</b>: more than double the Noritake, and 83% of a full VT220 screen.
+        </p>
+        <p>
+          It is also the only module here you can read comfortably. These are typically
+          4.7&ndash;5.7&Prime;, so around 70&ndash;85&nbsp;ppi &mdash; a character cell is roughly
+          2 &times; 2.9&nbsp;mm, legible at arm's length. Every OLED on this page runs
+          121&ndash;172&nbsp;ppi, where you need your nose against the glass.
+        </p>
+        <p>
+          The period look is physics rather than styling. These are <b>STN</b> panels &mdash;
+          <em>super-twisted nematic</em>, where the liquid crystal twists roughly
+          180&ndash;270&deg; between the polarisers instead of the 90&deg; of plain TN. That
+          steeper twist sharpens the response enough to drive a 320&times;240 matrix with no
+          transistor per pixel, and it also leaves the cell birefringent, so it tints. The
+          characteristic yellow-green and deep blue are a by-product of the optics, not a
+          design decision, which is why they are so hard to fake. Both flavours are shown
+          below: <b>blue-negative</b>, white pixels against a deep blue ground, and
+          <b>grey-green positive</b>, dark pixels on a pale reflective one &mdash; the face of
+          1990s test equipment. (A compensating film gives <b>FSTN</b>, which neutralises the
+          tint back towards black-on-white; you will see it in the part listings.)
+        </p>
+        <p>
+          <b>The cost is wiring, and it is steeper than it first looks.</b> Most use an 8-bit
+          parallel interface (T6963C or RA8835), occupying <b>a dozen or more GPIO pins &mdash;
+          thirteen is typical</b>: eight for the data bus, plus four or five control lines for
+          write, read, chip enable, command/data and reset. The panel is 5&nbsp;V logic against
+          the Pi's 3.3&nbsp;V GPIO, so level shifting is needed as well.
+        </p>
+        <p>
+          <b>The supplies are what catch people out.</b> The reference project below runs its
+          panel from three rails: +5&nbsp;V logic, <b>&minus;15&nbsp;V</b> for the LCD bias
+          (generated from the +5&nbsp;V with a TL497), and <b>75&nbsp;V AC</b> for a CCFL
+          backlight, or a +12&nbsp;V LED alternative. Current-production modules from Winstar
+          and Newhaven generally integrate the negative-voltage generator and use LED
+          backlighting &mdash; but check the datasheet rather than assume, because the
+          difference between the two is a weekend and a project.
+        </p>
+        <p>
+          <b>There is a working reference.</b>
+          <a href="https://github.com/Orabig/Rasp-T6963C">Rasp-T6963C</a> drives exactly this
+          class of panel from a Pi, and contains a trick worth stealing: an <b>HC595 shift
+          register generates the eight data lines from three GPIOs</b>, cutting the pin count
+          well below thirteen. It also hard-wires whatever it can &mdash;
+          <code style="font-family:var(--mono);font-size:0.85em">/RD</code> to +5&nbsp;V,
+          <code style="font-family:var(--mono);font-size:0.85em">/WR</code> to ground, reset
+          through an RC network.
+        </p>
+        <p>
+          <b>If that is more project than you want</b>, a 320&times;240 <b>ILI9341 SPI TFT</b>
+          has the same resolution and the same 4:3 shape &mdash; so the same 53&times;30 grid
+          and the same 100% of frame &mdash; over five wires, for around A$20, with a mature
+          Python library that takes a PIL image straight from the app. The catch is that these
+          are 2.4&ndash;3.2&Prime; colour TFTs at 125&ndash;170&nbsp;ppi: you keep this entry's
+          grid and lose its legibility and its STN character, which were two of the four
+          reasons it ranks here. Driving it from userspace also sidesteps the
+          <code style="font-family:var(--mono);font-size:0.85em">drm/tiny</code> kernel driver,
+          where ILI9341 in particular still has initialisation trouble.
+        </p>
+        <p>
+          <b>Wiring it takes eight female-to-female DuPont jumpers</b> &mdash; both the Pi
+          header and the module present male pins. The assignment below matches luma.lcd's
+          defaults, so the library needs no reconfiguring:
+        </p>
+        <div class="table-wrap">
+          <table>
+            <caption>ILI9341 to Raspberry Pi &mdash; all eight connections</caption>
+            <thead>
+              <tr>
+                <th scope="col">Module pin</th>
+                <th scope="col">Pi signal</th>
+                <th scope="col">BCM</th>
+                <th scope="col">Header pin</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>VCC</td><td>3.3&nbsp;V</td><td>&mdash;</td><td>1</td></tr>
+              <tr><td>GND</td><td>GND</td><td>&mdash;</td><td>6</td></tr>
+              <tr><td>CS</td><td>SPI0 CE0</td><td>GPIO&nbsp;8</td><td>24</td></tr>
+              <tr><td>RESET</td><td>free choice</td><td>GPIO&nbsp;24</td><td>18</td></tr>
+              <tr><td>DC / RS</td><td>free choice</td><td>GPIO&nbsp;23</td><td>16</td></tr>
+              <tr><td>SDI (MOSI)</td><td>SPI0 MOSI</td><td>GPIO&nbsp;10</td><td>19</td></tr>
+              <tr><td>SCK / CLK</td><td>SPI0 SCLK</td><td>GPIO&nbsp;11</td><td>23</td></tr>
+              <tr><td>LED</td><td>backlight</td><td>GPIO&nbsp;18</td><td>12</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Only the SPI0 lines &mdash; CS, MOSI, SCK &mdash; are fixed by hardware. RESET, DC
+          and the backlight are ordinary GPIOs you nominate in software, which is why no two
+          published diagrams agree and none of them is wrong. <b>Leave six pins unconnected</b>
+          on a typical 14-pin module: SDO (MISO), since these drivers are write-only, and the
+          five touch pins T_CLK, T_CS, T_DIN, T_DO and T_IRQ, which belong to a separate
+          XPT2046 controller.
+        </p>
+        <p>
+          Buy a 40-way ribbon of jumpers rather than eight singles &mdash; about A$5, colour
+          coded, and it peels apart. Pin 1 on the Pi has a <b>square solder pad</b> where every
+          other pin is round; odd numbers run along one row and even along the other. There is
+          a second 3.3&nbsp;V pin at 17, so if you would rather the backlight were simply
+          always on, run LED there instead of GPIO&nbsp;18 &mdash; which is worth doing anyway
+          if you ever want I&sup2;S audio, since GPIO&nbsp;18 doubles as the PCM clock. None of
+          these pins clash with the camera, which uses the CSI connector rather than GPIO.
+        </p>
+        <p>
+          If you cross-reference other guides, expect them to differ on those three: Adafruit
+          puts DC on GPIO&nbsp;18 and reset on 23, luma.lcd uses 23 and 24 with the backlight
+          on 18, and the bare modules are usually documented as 25, 24 and 23. All are
+          equally valid &mdash; just keep the wiring and the code in step.
+        </p>
+        <p>
+          <b>Working examples to start from</b>, roughly in order of usefulness here.
+          <a href="https://github.com/titonbarua/python_ili9341">python_ili9341</a> is a pure
+          Python driver built around pushing arbitrary images with <em>automatic partial
+          updates</em> &mdash; only the changed region goes down the wire, which is the single
+          most useful property for a live feed.
+          <a href="https://github.com/rm-hull/luma.examples">luma.examples</a> holds runnable
+          demos for the library recommended above, so it is the fastest route to a lit screen.
+          <a href="https://github.com/MSSohan/Adafruit_Python_ILI9341-2.8-Inch-SPI-display-interfacing-to-Raspberry-PI--">MSSohan's
+          2.8&Prime; interfacing repo</a> is a concrete Pi build with its own wiring notes,
+          handy as a second opinion, and
+          <a href="https://learn.adafruit.com/user-space-spi-tft-python-library-ili9341-2-8/overview">Adafruit's
+          user-space guide</a> carries the matching code for their wiring page.
+        </p>
+        <p>
+          One genuinely different approach worth knowing about:
+          <a href="https://github.com/juj/fbcp-ili9341">fbcp-ili9341</a> copies the Pi's main
+          framebuffer to the SPI panel, so it shows whatever the HDMI output shows. That would
+          let this app keep running unmodified in its terminal and simply be
+          <em>mirrored</em> to the small screen &mdash; no display code at all. The caveats are
+          real: it is a C driver tuned for particular Pi models and OS versions, and it
+          competes with the compositor for CPU. But if the goal is a second screen rather than
+          a standalone build, it is the shortest path.
+        </p>
+        <p>
+          Three things catch people. <b>Check VCC before powering up</b> &mdash; some cheap
+          boards carry a regulator and want 5&nbsp;V while others are 3.3&nbsp;V only, and
+          getting that wrong destroys the board. The <em>logic</em> is 3.3&nbsp;V either way,
+          so unlike the STN panel above <b>no level shifter is needed</b>. <b>Leave SDO/MISO
+          and the five touch pins disconnected</b>: these drivers are write-only, and touch is
+          a separate XPT2046 controller you do not need. And <b>enable SPI in raspi-config</b>
+          first, confirming
+          <code style="font-family:var(--mono);font-size:0.85em">/dev/spidev0.0</code> exists,
+          before debugging anything else.
+        </p>
+        <p>
+          One caveat about the board itself: the plain <b>Zero 2 W ships with an unpopulated
+          GPIO header</b>, so it needs pins fitted before any of this applies. The
+          <b>Zero 2 WH</b> comes with them pre-soldered and is stocked in Australia by
+          <a href="https://core-electronics.com.au/raspberry-pi-zero-2-w-wireless-soldered-male-headers.html">Core
+          Electronics</a>, Little Bird and Pi Australia. If your Zero already has pins on it,
+          disregard this.
+        </p>
+        <figure>
+          <div class="screen" style="--ground:#0A1A38;--phosphor:#DCE8F5"><pre data-cols="53" data-rows="30" data-cell-aspect="1.333"></pre></div>
+          <figcaption>Blue-negative STN: 53 &times; 30 characters, the whole frame, uncropped. Compare the detail with every panel below.</figcaption>
+        </figure>
+        <figure>
+          <div class="screen reflective" style="--ground:#A7B79A;--phosphor:#1F2A24"><pre data-cols="53" data-rows="30" data-cell-aspect="1.333" data-invert="1"></pre></div>
+          <figcaption>
+            Grey-green positive STN: the same panel and the same 53 &times; 30 grid, with dark
+            ink on a pale reflective ground. Note it is rendered with the <b>ramp reversed</b>
+            &mdash; on a positive display, character density has to track darkness or the
+            picture comes out as a photographic negative. That is precisely what the app's
+            <code style="font-family:var(--mono);font-size:0.85em">i</code> key is for.
+          </figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://www.winstar.com.tw/products/graphic-lcd-display-module/320x240-lcd.html">Winstar WG320240</a>
+          <a href="https://newhavendisplay.com/320x240-graphic-lcd-module-stn-blue-display-with-white-backlight-negative-voltage/">Newhaven NHD-320240WG</a>
+          <a href="https://au.element14.com">element14 Australia</a>
+          <a href="https://au.mouser.com">Mouser Australia</a>
+          <a href="https://github.com/Orabig/Rasp-T6963C">Rasp-T6963C reference build</a>
+          <a href="https://hackaday.com/2012/04/23/driving-a-t6963c-based-graphic-lcd/">Hackaday: driving a T6963C</a>
+          <a href="https://learn.adafruit.com/user-space-spi-tft-python-library-ili9341-2-8/wiring">Adafruit ILI9341 wiring</a>
+          <a href="https://luma-lcd.readthedocs.io/en/latest/hardware.html">luma.lcd wiring table</a>
+          <a href="https://luma-lcd.readthedocs.io/en/latest/python-usage.html">luma.lcd usage</a>
+          <a href="https://learn.adafruit.com/adafruit-2-8-and-3-2-color-tft-touchscreen-breakout-v2/python-wiring-and-setup">Adafruit breakout v2</a>
+          <a href="https://github.com/nopnop2002/Raspberry-ili9340spi">Raspberry-ili9340spi</a>
+          <a href="https://github.com/titonbarua/python_ili9341">python_ili9341</a>
+          <a href="https://github.com/rm-hull/luma.examples">luma.examples</a>
+          <a href="https://github.com/juj/fbcp-ili9341">fbcp-ili9341</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">4</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$77.60</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>66 &times; 30</dd></div>
+        <div class="spec"><dt>Frame kept</dt><dd>81%</dd></div>
+        <div class="spec"><dt>Part</dt><dd>LS027B7DH01</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>Yes, 5 joints</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag">In stock now</span>
+        <h3>Sharp Memory LCD, 400 &times; 240</h3>
+        <p>
+          The largest character grid of any module here: <b>66&times;30, or 1,980 cells</b> &mdash;
+          more than a VT220's 80&times;24 screen holds. A 5:3 panel, so it keeps 81% of the frame,
+          second only to the 320&times;240. SPI over three pins, 13.5&nbsp;KB per frame, which the
+          Pi will not notice.
+        </p>
+        <p>
+          It is reflective rather than emissive: no backlight, extraordinary contrast, daylight
+          readable, and it looks like the display on a good calculator or a field instrument.
+          Whether that reads as vintage is a judgement call &mdash; it is 1990s laboratory rather
+          than 1980s home computer, and unlike everything else here it does not glow, which is
+          why the sample below is drawn dark-on-light.
+        </p>
+        <p>
+          At 2.7&Prime; it is about 172&nbsp;ppi, so the characters are small. The practical
+          advantage over everything above it: <b>it is on a shelf in Newcastle at a known
+          price</b>, not a special order with a lead time.
+        </p>
+        <figure>
+          <div class="screen reflective" style="--ground:#C9CCC3;--phosphor:#14171A"><pre data-cols="66" data-rows="30" data-cell-aspect="1.333" data-invert="1"></pre></div>
+          <figcaption>
+            66 &times; 30 characters, reflective, cropped to 5:3 &mdash; keeps 81% of the frame.
+            Like the positive LCD above, this is drawn with the ramp reversed, since dark ink
+            on a pale ground has to follow darkness rather than brightness.
+          </figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://core-electronics.com.au/adafruit-sharp-memory-display-breakout-2-7-400x240-monochrome.html">Core Electronics, A$77.60</a>
+          <a href="https://au.mouser.com/ProductDetail/Sharp-Microelectronics/LS027B7DH01?qs=muFWWzTLGEIPdePNc1A/NQ%3D%3D">Mouser Australia</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">5</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$250&ndash;500</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>42 &times; 16</dd></div>
+        <div class="spec"><dt>Frame rate</dt><dd>Parallel, fast</dd></div>
+        <div class="spec"><dt>Part</dt><dd>GU256&times;128</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>Check the module</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag quiet">New production</span>
+        <h3>Noritake vacuum fluorescent display</h3>
+        <p>
+          <b>Ranked below both LCDs above, and losing to them on every measurable axis</b> &mdash;
+          fewer characters, more crop, three to six times the price, and a special order rather
+          than shelf stock. It stays this high for one reason: it is the only thing here that
+          <em>glows</em>, and that blue-green emission is the most distinctively period object
+          on the page. If the look is the point, promote it.
+        </p>
+        <p>
+          Skip the character modules: the CU-Y series tops out around 20&times;4, or 80
+          characters total.
+        </p>
+        <p>
+          The usable parts are the graphic modules. <b>GU256&times;128</b> gives about 42&times;16
+          characters at a 6&times;8 font. Note that this is a <b>2:1 grid, not 4:3</b> &mdash; a 6&times;8
+          cell is 1.33 times taller than it is wide, so 42&times;16 covers 252&times;128 pixels. Run
+          fill mode and it crops the sensor to 2:1, keeping about two thirds of the frame
+          height; run fit mode and the picture pillarboxes to 28&times;16 with blank columns
+          either side.
+        </p>
+        <p>
+          Two further caveats: DigiKey lists it as not normally stocked, so expect a special
+          order with a long lead time to Australia, and 42 columns is a coarse picture. Used
+          GU256&times;64 modules turn up around A$60&ndash;150.
+        </p>
+        <figure>
+          <div class="screen" style="--phosphor:#86EFE0"><pre data-cols="42" data-rows="16" data-cell-aspect="1.333"></pre></div>
+          <figcaption>42 &times; 16 characters, VFD blue-green, cropped to 2:1 &mdash; keeps 68% of the frame height</figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://au.element14.com">element14 Australia</a>
+          <a href="https://au.mouser.com/c/optoelectronics/displays/vacuum-fluorescent-displays-vfd/">Mouser Australia</a>
+          <a href="https://www.noritake-elec.com/products/vfd-display-module/dot-matrix-graphic-display/gu-3000-series">Noritake GU-3000</a>
+          <a href="https://my.element14.com/noritake-itron/gu256x128c-3900b/vfd-module-256x128/dp/1495430">GU256X128C-3900B</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">6</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$50&ndash;80</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>42 &times; 16</dd></div>
+        <div class="spec"><dt>Frame rate</dt><dd>~60 fps capable</dd></div>
+        <div class="spec"><dt>Part</dt><dd>2 &times; SSD1327</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>Usually none</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag quiet">Same grid, one fifth the price</span>
+        <h3>Two 128 &times; 128 OLEDs side by side</h3>
+        <p>
+          A pair of 1.5&Prime; SSD1327 panels butted together gives 256&times;128 &mdash; <b>the same
+          42&times;16 grid as the Noritake for about a fifth of the money</b>. The Pi drives both
+          without extra hardware: SPI0 has two hardware chip selects, so they appear as
+          <code style="font-family:var(--mono);font-size:0.85em">spidev0.0</code> and
+          <code style="font-family:var(--mono);font-size:0.85em">spidev0.1</code>.
+        </p>
+        <p>
+          Bandwidth is a non-issue. At 4 bits per pixel each panel is 8,192 bytes per frame,
+          so the pair needs 246&nbsp;KB/s at 15&nbsp;fps &mdash; against 1&nbsp;MB/s from SPI at a
+          conservative 8&nbsp;MHz. Build the bitmap by pre-rendering the ten ramp glyphs once
+          into a <code style="font-family:var(--mono);font-size:0.85em">(10, 8, 6)</code> array
+          and indexing it, exactly as the app already maps brightness to characters &mdash; one
+          vectorised operation, not a per-glyph draw.
+        </p>
+        <p>
+          <b>The catch is the seam.</b> Each active area is only about 27&nbsp;mm wide, so 3&ndash;4&nbsp;mm
+          of combined bezel is 12&ndash;15% of a panel &mdash; the equivalent of 35&ndash;45 black
+          pixels straight down the middle of the image, not politely at the edge. Better to use
+          it than fight it: picture on the left panel, live status on the right, and the split
+          reads as an instrument panel rather than a defect.
+        </p>
+        <figure>
+          <div class="pair-wrap">
+            <div class="screen-pair">
+              <div class="screen panel-a" style="--phosphor:#CFE8FF"><pre data-cols="42" data-rows="16" data-cell-aspect="1.333" data-half="left"></pre></div>
+              <div class="seam-v" aria-hidden="true"></div>
+              <div class="screen panel-b" style="--phosphor:#CFE8FF"><pre data-cols="42" data-rows="16" data-cell-aspect="1.333" data-half="right"></pre></div>
+            </div>
+          </div>
+          <figcaption>
+            The same 42 &times; 16 image as the VFD above, but split across two modules with the
+            bezel drawn to scale &mdash; roughly seven character widths of dead glass through the
+            middle of the frame. Watch the light strip and the beam step across the gap.
+          </figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://core-electronics.com.au">Core Electronics</a>
+          <a href="https://www.littlebird.com.au">Little Bird</a>
+          <a href="https://www.ebay.com.au">eBay.com.au</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">7</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$30&ndash;60</dd></div>
+        <div class="spec"><dt>Pair</dt><dd class="price">A$60&ndash;120</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>42 &times; 8<br>42 &times; 16 stacked</dd></div>
+        <div class="spec"><dt>Frame rate</dt><dd>SPI, fast</dd></div>
+        <div class="spec"><dt>Part</dt><dd>SSD1322</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>Usually none</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag quiet">Cheapest retro panel</span>
+        <h3>Amber OLED, 256 &times; 64</h3>
+        <p>
+          Available from Australian eBay sellers, Core Electronics in Newcastle and Little Bird.
+          Amber-on-black reads as period-correct and it is the cheapest way to get a dedicated
+          retro-looking panel. But this is a <b>4:1 grid</b>, and that is punishing: fill mode
+          keeps barely a third of the frame height, and fit mode pillarboxes the picture into
+          just 14 of the 42 columns.
+        </p>
+        <figure>
+          <div class="screen" style="--phosphor:#F5B551"><pre data-cols="42" data-rows="8" data-cell-aspect="1.333"></pre></div>
+          <figcaption>One panel: 42 &times; 8 characters, cropped to 4:1 &mdash; only 34% of the frame survives</figcaption>
+        </figure>
+
+        <p>
+          <b>Stack two of them, though, and the arithmetic changes completely.</b> Two
+          256&times;64 panels one above the other make 256&times;128 &mdash; the same 42&times;16 grid
+          as the Noritake and the side-by-side pair, at A$60&ndash;120 for the pair. The frame
+          retained goes from 34% back up to 68%.
+        </p>
+        <p>
+          The seam runs <em>horizontally</em> here, and for this content that is the better
+          axis. A vertical join bisects every character row; a horizontal one leaves every row
+          whole on one panel or the other, and interrupts the picture once rather than in all
+          sixteen rows. The gap is shallower too &mdash; roughly three character rows against
+          seven character widths &mdash; because the bezel along a module's long edge is
+          narrower than the combined side bezels of two square panels. Mechanically it is
+          easier as well: two identical-width modules butted long-edge to long-edge only need
+          aligning on one axis.
+        </p>
+        <figure>
+          <div class="pair-wrap">
+            <div class="screen-stack">
+              <div class="screen panel-a" style="--phosphor:#F5B551"><pre data-cols="42" data-rows="16" data-cell-aspect="1.333" data-half="top"></pre></div>
+              <div class="seam-h" aria-hidden="true"></div>
+              <div class="screen panel-b" style="--phosphor:#F5B551"><pre data-cols="42" data-rows="16" data-cell-aspect="1.333" data-half="bottom"></pre></div>
+            </div>
+          </div>
+          <figcaption>
+            Two stacked: 42 &times; 16 across the pair, bezel to scale. Compare with the
+            side-by-side pair in option 4 &mdash; same grid, same 68% of frame, but the join
+            crosses the picture once instead of breaking every row.
+          </figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://core-electronics.com.au">Core Electronics</a>
+          <a href="https://www.ebay.com.au">eBay.com.au</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">8</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$10&ndash;20</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>21 &times; 8</dd></div>
+        <div class="spec"><dt>Frame rate</dt><dd>&gt;15 fps on I&sup2;C</dd></div>
+        <div class="spec"><dt>Part</dt><dd>SSD1306</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>Usually none</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag quiet">Cheapest way to try the idea</span>
+        <h3>128 &times; 64 OLED &mdash; the ubiquitous one</h3>
+        <p>
+          The 0.96&Prime; SSD1306 module every hobby shop stocks, including Jaycar over the
+          counter in Sydney. At a 6&times;8 font it is a 21&times;8 grid &mdash; the smallest thing on
+          this page that still resolves into a picture, as the sample shows. Bandwidth is
+          trivial: 1&nbsp;bit per pixel means 1,024 bytes per frame, comfortable even on I&sup2;C
+          at 400&nbsp;kHz.
+        </p>
+        <p>
+          It has one genuine argument in its favour that the bigger panels lack. The SSD1306
+          is <b>1 bit per pixel with no greyscale at all</b>, so character density is the only
+          way to suggest tone &mdash; which makes ASCII the right technique here rather than a
+          costume. Contrast that with the 128&times;128 SSD1327, whose 16 grey levels would look
+          better fed the raw greyscale frame directly.
+        </p>
+        <p>
+          Physically it is tiny: ~149&nbsp;ppi means a 6&times;8 cell is about 1.0 &times; 1.4&nbsp;mm,
+          so you read it with your nose near the glass. Best treated as a cheap proof of
+          concept, or as the status half of a two-panel build.
+        </p>
+        <figure>
+          <div class="screen" style="--phosphor:#BFE4FF"><pre data-cols="21" data-rows="8" data-cell-aspect="1.333"></pre></div>
+          <figcaption>21 &times; 8 characters, cropped to 2:1 &mdash; the floor at which a scene is still readable</figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://www.jaycar.com.au">Jaycar</a>
+          <a href="https://core-electronics.com.au">Core Electronics</a>
+          <a href="https://www.littlebird.com.au">Little Bird</a>
+        </div>
+      </div>
+    </article>
+
+    <article class="pick">
+      <div class="rail">
+        <div class="rank">9</div>
+        <div class="spec"><dt>Price</dt><dd class="price">A$20&ndash;30</dd></div>
+        <div class="spec"><dt>Grid</dt><dd>40 &times; 4</dd></div>
+        <div class="spec"><dt>Frame rate</dt><dd>n/a</dd></div>
+        <div class="spec"><dt>Part</dt><dd>HD44780</dd></div>
+        <div class="spec"><dt>Soldering</dt><dd>Usually needed</dd></div>
+      </div>
+      <div class="body">
+        <span class="verdict-tag caution">Companion only</span>
+        <h3>Character LCD &mdash; not for the picture</h3>
+        <p>
+          40&times;4 is the largest standard part: 160 characters in total. The sample below is
+          what the scene looks like at that size, which settles the question. In stock at
+          Jaycar and Altronics in Sydney, and genuinely useful as a <b>status panel</b> beside the
+          main display, showing frame rate and toggle states.
+        </p>
+        <figure>
+          <div class="screen" style="--phosphor:#8FE6A0"><pre data-cols="40" data-rows="4" data-cell-aspect="1.6"></pre></div>
+          <figcaption>40 &times; 4 characters, cropped to 6:1 &mdash; only 21% of the frame, and no longer an image</figcaption>
+        </figure>
+        <div class="sources">
+          <span>Sources:</span>
+          <a href="https://www.jaycar.com.au">Jaycar</a>
+          <a href="https://www.altronics.com.au">Altronics</a>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="verdict" id="verdict">
+    <div class="eyebrow">The call</div>
+    <h2>Get a local CRT now; wait for the terminal</h2>
+    <p>
+      Buy a local amber or green CRT off Gumtree or Marketplace for under A$100. It gives you
+      authentic phosphor, full frame rate, and a grid big enough for a genuinely recognisable
+      image &mdash; and if it turns out to be a dud you are out very little.
+    </p>
+    <p>
+      Then keep a saved search on eBay.com.au for a VT220, VT320 or VT510 and treat true
+      character hardware as the upgrade when one appears at A$150&ndash;350.
+    </p>
+    <p>
+      <b>If you would rather buy something today than wait for one to surface</b>, the
+      320&times;240 graphic LCD at rank 3 is the pick: 53&times;30 characters, the whole field of
+      view with no crop, letters big enough to read from a chair, and A$60&ndash;115. Go in
+      knowing it is a build, not a wiring job &mdash; a parallel bus, 5&nbsp;V level shifting,
+      and a bias rail your module may or may not generate for itself. If that is not the
+      weekend you had in mind, a 320&times;240 ILI9341 over SPI gives you the identical grid
+      for about A$20 and five wires, on a smaller and more modern-looking screen.
+    </p>
+  </section>
+
+  <section id="notes">
+    <h2>Two things that do not change</h2>
+    <div class="prose">
+      <p>
+        <b>The feedback loop does not need screenshots.</b> For a character display,
+        <code style="font-family:var(--mono);font-size:0.85em">grim</code> is the wrong tool
+        anyway. The app already holds the exact character matrix in memory, so a
+        <code style="font-family:var(--mono);font-size:0.85em">--dump-frame</code> option
+        writing it to a text file gives the ground truth of what the display shows &mdash;
+        better than a screenshot, and identical for a VFD, a terminal or a CRT. Mirroring to
+        HDMI would be far more awkward, since only one process can open the camera.
+      </p>
+      <p>
+        <b>None of these need code changes.</b> The app fits its grid to whatever the terminal
+        reports, which it demonstrated by tracking a live resize from 267&times;101 down to
+        123&times;50 without a stumble. Over serial,
+        <code style="font-family:var(--mono);font-size:0.85em">cell_metrics()</code> returns
+        nothing, so <code style="font-family:var(--mono);font-size:0.85em">--cell-aspect</code>
+        governs &mdash; and its default of 2.0 is about right for a VT character cell.
+      </p>
+    </div>
+  </section>
+
+  <section id="sources">
+    <h2>Sources</h2>
+    <ul class="biblio">
+      <li>
+        <span class="cat">Local supply</span>
+        <span class="links">
+          <a href="https://avitech.com.au/?page_id=4387">Avitech &mdash; Australian vintage terminal sales, with realised VT220 prices</a>
+          <a href="https://www.gumtree.com.au/s-monitors/sydney/computer+monitor/k0c21111l3003435">Gumtree Sydney &mdash; monitors</a>
+          <a href="https://www.gumtree.com.au/s-vintage+computer+monitor/k0">Gumtree &mdash; vintage computer monitors</a>
+        </span>
+      </li>
+      <li>
+        <span class="cat">Distributors</span>
+        <span class="links">
+          <a href="https://au.mouser.com/c/optoelectronics/displays/vacuum-fluorescent-displays-vfd/">Mouser Australia &mdash; VFD displays</a>
+          <a href="https://www.noritake-elec.com/products/vfd-display-module/dot-matrix-graphic-display/gu-3000-series">Noritake GU-3000 series</a>
+          <a href="https://my.element14.com/noritake-itron/gu256x128c-3900b/vfd-module-256x128/dp/1495430">GU256X128C-3900B at element14</a>
+          <a href="https://core-electronics.com.au/20x2-character-vfd-vacuum-fluorescent-display-spi-interface-20t202da2ja.html">Core Electronics &mdash; VFD modules (both lines now retired)</a>
+        </span>
+      </li>
+      <li>
+        <span class="cat">Specifications</span>
+        <span class="links">
+          <a href="https://www.emtec.com/zoc/wyse-terminal-emulator.html">Wyse WY-60 baud limits</a>
+          <a href="https://handwiki.org/wiki/VT520">DEC VT500-series serial speeds</a>
+          <a href="https://www.boundlessterminals.com/manuals/VT510%20-%20English.pdf">VT510 installation and operating information</a>
+        </span>
+      </li>
+      <li>
+        <span class="cat">Currency</span>
+        <span class="links">
+          <a href="https://www.exchangerates.org.uk/USD-AUD-spot-exchange-rates-history-2026.html">USD/AUD rate history, July 2026</a>
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    <div>Prepared for the ASCII Art Live Camera project &mdash; github.com/replicant1/AsciiArt-Pi</div>
+    <div>Price ranges are estimates from listed and realised sales; verify before purchase.</div>
+  </footer>
+
+</article>
+
+<script>
+  // Each swatch renders the same synthetic scene - a bright light strip with a dark
+  // diagonal beam, echoing the ceiling corner the camera was pointed at - through the
+  // app's own ramp, at that display's real character grid.
+  //
+  // Crucially it samples a CENTRED CROP of the 4:3 scene matching the grid's own
+  // displayed aspect, rather than stretching the scene to fill the grid. That is what
+  // fill mode actually does on the hardware, and it is the honest picture: a wide
+  // panel does not give you a wide view of the same scene, it throws frame away.
+  (function () {
+    var RAMP = " .:-=+*#%@";
+    var SRC_ASPECT = 4 / 3;
+
+    function luminance(u, v) {
+      var band = Math.exp(-Math.pow((u - 0.80) / 0.11, 2));
+      var d = Math.abs((v - 0.28) - 0.42 * (u - 0.05));
+      var beam = Math.exp(-Math.pow(d / 0.11, 2));
+      var base = 0.42 + 0.26 * u - 0.10 * v;
+      return Math.max(0, Math.min(1, base + 0.80 * band - 0.70 * beam));
+    }
+
+    // Positive-mode panels put dark ink on a pale ground, so character density
+    // has to track darkness rather than brightness or the picture comes out as a
+    // photographic negative. That is exactly what the app's 'i' key does.
+    function render(cols, rows, cellAspect, ramp) {
+      // On-screen shape of the grid: cell height is cellAspect x cell width.
+      var gridAspect = cols / (rows * cellAspect);
+      var uSpan = 1, vSpan = 1;
+      if (gridAspect > SRC_ASPECT) {
+        vSpan = SRC_ASPECT / gridAspect;   // grid wider than the frame: trim top/bottom
+      } else {
+        uSpan = gridAspect / SRC_ASPECT;   // grid taller: trim the sides
+      }
+      var u0 = (1 - uSpan) / 2, v0 = (1 - vSpan) / 2;
+
+      var lines = [];
+      for (var r = 0; r < rows; r++) {
+        var line = "";
+        for (var c = 0; c < cols; c++) {
+          var L = luminance(u0 + uSpan * (c + 0.5) / cols,
+                            v0 + vSpan * (r + 0.5) / rows);
+          line += ramp[Math.min((L * ramp.length) | 0, ramp.length - 1)];
+        }
+        lines.push(line);
+      }
+      return lines.join("\n");
+    }
+
+    var panels = document.querySelectorAll(".screen pre[data-cols]");
+    for (var i = 0; i < panels.length; i++) {
+      var p = panels[i];
+      var cols = +p.dataset.cols;
+      var ramp = p.dataset.invert ? RAMP.split("").reverse().join("") : RAMP;
+      var text = render(cols, +p.dataset.rows, +p.dataset.cellAspect, ramp);
+
+      // A tiled pair shows one logical image across two modules: render the whole
+      // grid, then give each panel its half. The bezel between them interrupts the
+      // picture rather than cropping it, so features crossing the seam are displaced
+      // - which is exactly what you would see on the bench.
+      //
+      // Side-by-side modules split by column and bisect every character row.
+      // Stacked modules split by row, so each panel keeps whole rows intact.
+      var half = p.dataset.half;
+      if (half === "left" || half === "right") {
+        var cut = Math.floor(cols / 2);
+        text = text.split("\n").map(function (line) {
+          return half === "left" ? line.slice(0, cut) : line.slice(cut);
+        }).join("\n");
+      } else if (half === "top" || half === "bottom") {
+        var rowsOut = text.split("\n");
+        var rcut = Math.floor(rowsOut.length / 2);
+        text = (half === "top" ? rowsOut.slice(0, rcut)
+                               : rowsOut.slice(rcut)).join("\n");
+      }
+
+      p.textContent = text;
+    }
+  })();
+</script>

@@ -654,6 +654,32 @@ settings are untouched. Two traps are worth recording:
   on a 1080px screen. Check the `Terminal size:` line in the log for what the
   app actually got.
 
+## Choosing a different display
+
+[`docs/display-selection-guide.html`](docs/display-selection-guide.html) is a ranked guide to
+running this app on something other than an HDMI monitor — vintage terminals, VFDs, graphic
+LCDs and OLED modules — priced in AUD and sourced for a buyer in Sydney. It is a single
+self-contained page: **download it and open it in a browser**, since GitHub shows HTML as
+source rather than rendering it.
+
+Each option carries a live sample of the same scene rendered at that display's real character
+grid, so the difference between 80x24 and 42x8 is visible rather than asserted.
+
+The finding that matters most is a single ratio:
+
+```
+frame kept = camera aspect (4:3) / panel aspect
+```
+
+The font decides how many characters you get; the panel's own shape decides how much of the
+picture survives. A 256x64 panel is 4:1, so it throws away two thirds of the frame no matter
+what font you choose, while a plain 4:3 panel keeps all of it. That one line reorders the
+whole list, and it is why a 320x240 graphic LCD beats parts costing five times as much.
+
+**None of these need code changes.** The app fits its grid to whatever the terminal reports,
+and `--cell-aspect` handles the rest. The one thing to know is that positive-mode LCDs, which
+put dark ink on a pale ground, need the ramp reversed — that is the `i` key.
+
 ## Rotation
 
 `libcamera` reports this module's mounted rotation as 180 degrees, so that is
