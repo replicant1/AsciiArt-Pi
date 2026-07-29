@@ -407,6 +407,18 @@
     color: var(--ink-faint);
   }
 
+  /* Figure and table labels. Numbered literally rather than with CSS counters,
+     so the reference survives copy-paste and plain-text extraction. Renumber
+     with the script in the repo if the order ever changes. */
+  .num {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--petrol);
+    white-space: nowrap;
+  }
+  caption .num { font-family: var(--mono); }
+
   /* ---------- verdict block ---------- */
 
   .verdict {
@@ -581,7 +593,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <caption>Achievable frame rate by grid size and line speed</caption>
+        <caption><span class="num">Table 1</span>&nbsp;&mdash; Achievable frame rate by grid size and line speed</caption>
         <thead>
           <tr>
             <th scope="col">Grid</th>
@@ -653,7 +665,7 @@
         </p>
         <figure>
           <div class="screen" style="--phosphor:#8FE6A0"><pre data-cols="80" data-rows="25" data-cell-aspect="2.0"></pre></div>
-          <figcaption>80 &times; 25 characters, P1 green &mdash; keeps 83% of the frame height. The mildest crop on this page.</figcaption>
+          <figcaption><span class="num">Figure 1</span>&nbsp;&mdash; 80 &times; 25 characters, P1 green &mdash; keeps 83% of the frame height. The mildest crop on this page.</figcaption>
         </figure>
         <div class="sources">
           <span>Sources:</span>
@@ -689,7 +701,7 @@
         </p>
         <figure>
           <div class="screen" style="--phosphor:#9FE8B4"><pre data-cols="80" data-rows="24" data-cell-aspect="2.0"></pre></div>
-          <figcaption>80 &times; 24 characters, keeping 80% of the frame &mdash; correct, but under 1 fps on a VT220</figcaption>
+          <figcaption><span class="num">Figure 2</span>&nbsp;&mdash; 80 &times; 24 characters, keeping 80% of the frame &mdash; correct, but under 1 fps on a VT220</figcaption>
         </figure>
         <div class="sources">
           <span>Sources:</span>
@@ -782,7 +794,7 @@
         </p>
         <div class="table-wrap">
           <table>
-            <caption>ILI9341 to Raspberry Pi &mdash; all eight connections</caption>
+            <caption><span class="num">Table 2</span>&nbsp;&mdash; ILI9341 to Raspberry Pi &mdash; all eight connections</caption>
             <thead>
               <tr>
                 <th scope="col">Module pin</th>
@@ -871,12 +883,12 @@
         </p>
         <figure>
           <div class="screen" style="--ground:#0A1A38;--phosphor:#DCE8F5"><pre data-cols="53" data-rows="30" data-cell-aspect="1.333"></pre></div>
-          <figcaption>Blue-negative STN: 53 &times; 30 characters, the whole frame, uncropped. Compare the detail with every panel below.</figcaption>
+          <figcaption><span class="num">Figure 3</span>&nbsp;&mdash; Blue-negative STN: 53 &times; 30 characters, the whole frame, uncropped. Compare the detail with every panel below.</figcaption>
         </figure>
         <figure>
           <div class="screen reflective" style="--ground:#A7B79A;--phosphor:#1F2A24"><pre data-cols="53" data-rows="30" data-cell-aspect="1.333" data-invert="1"></pre></div>
           <figcaption>
-            Grey-green positive STN: the same panel and the same 53 &times; 30 grid, with dark
+            <span class="num">Figure 4</span>&nbsp;&mdash; Grey-green positive STN: the same panel and the same 53 &times; 30 grid, with dark
             ink on a pale reflective ground. Note it is rendered with the <b>ramp reversed</b>
             &mdash; on a positive display, character density has to track darkness or the
             picture comes out as a photographic negative. That is precisely what the app's
@@ -936,7 +948,7 @@
         <figure>
           <div class="screen reflective" style="--ground:#C9CCC3;--phosphor:#14171A"><pre data-cols="66" data-rows="30" data-cell-aspect="1.333" data-invert="1"></pre></div>
           <figcaption>
-            66 &times; 30 characters, reflective, cropped to 5:3 &mdash; keeps 81% of the frame.
+            <span class="num">Figure 5</span>&nbsp;&mdash; 66 &times; 30 characters, reflective, cropped to 5:3 &mdash; keeps 81% of the frame.
             Like the positive LCD above, this is drawn with the ramp reversed, since dark ink
             on a pale ground has to follow darkness rather than brightness.
           </figcaption>
@@ -987,7 +999,7 @@
         </p>
         <figure>
           <div class="screen" style="--phosphor:#86EFE0"><pre data-cols="42" data-rows="16" data-cell-aspect="1.333"></pre></div>
-          <figcaption>42 &times; 16 characters, VFD blue-green, cropped to 2:1 &mdash; keeps 68% of the frame height</figcaption>
+          <figcaption><span class="num">Figure 6</span>&nbsp;&mdash; 42 &times; 16 characters, VFD blue-green, cropped to 2:1 &mdash; keeps 68% of the frame height</figcaption>
         </figure>
         <div class="sources">
           <span>Sources:</span>
@@ -1042,9 +1054,9 @@
             </div>
           </div>
           <figcaption>
-            The same 42 &times; 16 image as the VFD above, but split across two modules with the
-            bezel drawn to scale &mdash; roughly seven character widths of dead glass through the
-            middle of the frame. Watch the light strip and the beam step across the gap.
+            <span class="num">Figure 7</span>&nbsp;&mdash; The same 42 &times; 16 image as Figure 6, but split across two modules with
+            the bezel drawn to scale &mdash; roughly seven character widths of dead glass through
+            the middle of the frame. Watch the light strip and the beam step across the gap.
           </figcaption>
         </figure>
         <div class="sources">
@@ -1078,7 +1090,7 @@
         </p>
         <figure>
           <div class="screen" style="--phosphor:#F5B551"><pre data-cols="42" data-rows="8" data-cell-aspect="1.333"></pre></div>
-          <figcaption>One panel: 42 &times; 8 characters, cropped to 4:1 &mdash; only 34% of the frame survives</figcaption>
+          <figcaption><span class="num">Figure 8</span>&nbsp;&mdash; One panel: 42 &times; 8 characters, cropped to 4:1 &mdash; only 34% of the frame survives</figcaption>
         </figure>
 
         <p>
@@ -1106,9 +1118,9 @@
             </div>
           </div>
           <figcaption>
-            Two stacked: 42 &times; 16 across the pair, bezel to scale. Compare with the
-            side-by-side pair in option 4 &mdash; same grid, same 68% of frame, but the join
-            crosses the picture once instead of breaking every row.
+            <span class="num">Figure 9</span>&nbsp;&mdash; Two stacked: 42 &times; 16 across the pair, bezel to scale. Compare with
+            Figure 7, the side-by-side pair at rank 6 &mdash; same grid, same 68% of frame, but
+            the join crosses the picture once instead of breaking every row.
           </figcaption>
         </figure>
         <div class="sources">
@@ -1152,7 +1164,7 @@
         </p>
         <figure>
           <div class="screen" style="--phosphor:#BFE4FF"><pre data-cols="21" data-rows="8" data-cell-aspect="1.333"></pre></div>
-          <figcaption>21 &times; 8 characters, cropped to 2:1 &mdash; the floor at which a scene is still readable</figcaption>
+          <figcaption><span class="num">Figure 10</span>&nbsp;&mdash; 21 &times; 8 characters, cropped to 2:1 &mdash; the floor at which a scene is still readable</figcaption>
         </figure>
         <div class="sources">
           <span>Sources:</span>
@@ -1183,7 +1195,7 @@
         </p>
         <figure>
           <div class="screen" style="--phosphor:#8FE6A0"><pre data-cols="40" data-rows="4" data-cell-aspect="1.6"></pre></div>
-          <figcaption>40 &times; 4 characters, cropped to 6:1 &mdash; only 21% of the frame, and no longer an image</figcaption>
+          <figcaption><span class="num">Figure 11</span>&nbsp;&mdash; 40 &times; 4 characters, cropped to 6:1 &mdash; only 21% of the frame, and no longer an image</figcaption>
         </figure>
         <div class="sources">
           <span>Sources:</span>
