@@ -797,10 +797,10 @@
             <caption><span class="num">Table 2</span>&nbsp;&mdash; ILI9341 to Raspberry Pi &mdash; all eight connections</caption>
             <thead>
               <tr>
-                <th scope="col">Module pin</th>
+                <th scope="col">ILI9341 pin</th>
                 <th scope="col">Pi signal</th>
-                <th scope="col">BCM</th>
-                <th scope="col">Header pin</th>
+                <th scope="col">Pi BCM</th>
+                <th scope="col">Pi header pin</th>
               </tr>
             </thead>
             <tbody>
@@ -1292,9 +1292,16 @@
   <section id="glossary">
     <h2>Glossary<span class="h2-note">every abbreviation used above</span></h2>
 
-    <h3 class="subhead">Signals, buses and technologies</h3>
+    <h3 class="subhead">Signals, buses and conventions</h3>
     <ul class="glossary">
       <li><span class="term">GPIO</span><span>General Purpose Input/Output &mdash; the pins on the Pi's 40-pin header.</span></li>
+      <li><span class="term">BCM</span><span>Broadcom, who make the Pi's system-on-chip. Used here to mean <b>BCM numbering</b>: the chip's own GPIO numbers, which are <em>not</em> the physical positions on the header. GPIO&nbsp;8 in BCM numbering is header pin&nbsp;24. Confusing the two schemes is the commonest Pi wiring mistake, which is why Table&nbsp;2 gives both.</span></li>
+      <li><span class="term">ASCII</span><span>American Standard Code for Information Interchange &mdash; the character set this app draws with.</span></li>
+      <li><span class="term">VCC / GND</span><span>A module's supply and ground pins. VCC is the positive rail, GND the return.</span></li>
+      <li><span class="term">SCK / SDI / SDO</span><span>Alternative silkscreen labels for SCLK, MOSI and MISO. Same three signals, different naming convention &mdash; modules use both.</span></li>
+      <li><span class="term">/RD, /WR</span><span>Read and write strobes on a parallel bus. The leading slash means <em>active low</em>: the signal does its job when pulled down to ground rather than up.</span></li>
+      <li><span class="term">RC network</span><span>A resistor and capacitor shaping a signal &mdash; here, holding a reset line low briefly at power-up.</span></li>
+      <li><span class="term">Module</span><span>Throughout this document, the small circuit board carrying a display and its supporting parts &mdash; regulator, level shifter, connector &mdash; as distinct from the bare <em>panel</em> it is built around. Never the Pi.</span></li>
       <li><span class="term">SPI</span><span>Serial Peripheral Interface. A four-wire bus: clock, data out, data in, chip select. <b>SPI0</b> is the Pi's first such controller &mdash; that is a digit zero, an instance number, not a letter.</span></li>
       <li><span class="term">MOSI / MISO</span><span>Master Out Slave In / Master In Slave Out, the two SPI data lines. Only MOSI is used here, because these displays are write-only.</span></li>
       <li><span class="term">SCLK</span><span>Serial Clock, the SPI timing line.</span></li>
@@ -1312,6 +1319,8 @@
 
     <h3 class="subhead">Display technologies</h3>
     <ul class="glossary">
+      <li><span class="term">CRT</span><span>Cathode Ray Tube &mdash; the electron-beam display in the vintage monitors and terminals at ranks 1 and 2.</span></li>
+      <li><span class="term">P1 / P3</span><span>Phosphor designations. P1 is the green of classic terminals, P3 the amber. They name the coating, which sets both the colour and how long it glows after the beam has passed.</span></li>
       <li><span class="term">LCD</span><span>Liquid Crystal Display. Modulates light rather than emitting it, so it needs a backlight or ambient light.</span></li>
       <li><span class="term">OLED</span><span>Organic Light-Emitting Diode. Emits its own light, so no backlight and true blacks.</span></li>
       <li><span class="term">TFT</span><span>Thin-Film Transistor &mdash; an active-matrix LCD with a transistor behind every pixel.</span></li>
@@ -1335,7 +1344,19 @@
       <li><span class="term">XPT2046</span><span>The resistive touch controller fitted to most ILI9341 modules. Unused here &mdash; leave its five pins disconnected.</span></li>
       <li><span class="term">WG320240<br>NHD-320240WG</span><span>Winstar and Newhaven part numbers for 320&times;240 STN graphic modules.</span></li>
       <li><span class="term">LS027B7DH01</span><span>Sharp's 400&times;240 Memory LCD, the panel on the Adafruit breakout.</span></li>
-      <li><span class="term">GU256&times;128</span><span>Noritake graphic VFD, 256&times;128 pixels.</span></li>
+      <li><span class="term">GU256&times;128</span><span>Noritake graphic VFD, 256&times;128 pixels. The GU-3000 series is the family it belongs to.</span></li>
+      <li><span class="term">CU-Y</span><span>Noritake's <em>character</em> VFD series &mdash; 20&times;4 at most, which is why it is ruled out for the picture.</span></li>
+      <li><span class="term">HC595</span><span>A shift register. Turns a few serial pins into eight parallel outputs, which is how the T6963C reference build drives a whole data bus from three GPIOs.</span></li>
+      <li><span class="term">TL497</span><span>A switching regulator, used in that build to generate the &minus;15&nbsp;V LCD bias rail from +5&nbsp;V.</span></li>
+    </ul>
+
+    <h3 class="subhead">Models and makers</h3>
+    <ul class="glossary">
+      <li><span class="term">DEC</span><span>Digital Equipment Corporation, who made the VT terminals.</span></li>
+      <li><span class="term">VT220<br>VT320 / VT510</span><span>DEC terminal models. The number matters here: the VT500 series raised the serial ceiling to 115,200 baud, which is what makes a full 80&times;24 picture watchable rather than a slideshow.</span></li>
+      <li><span class="term">WY-60</span><span>A Wyse terminal model &mdash; the cheapest genuine vintage option on this page, but limited to 19,200 baud.</span></li>
+      <li><span class="term">LK201 / LK401</span><span>DEC keyboards for the VT terminals, sold separately as often as not.</span></li>
+      <li><span class="term">WH</span><span>The suffix on a Raspberry Pi model number meaning the GPIO header is already soldered on &mdash; as in Zero&nbsp;2&nbsp;WH.</span></li>
     </ul>
   </section>
 
