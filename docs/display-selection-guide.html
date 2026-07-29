@@ -442,6 +442,35 @@
   }
   .biblio .links { display: flex; flex-direction: column; gap: 0.15rem; }
 
+  /* ---------- glossary ---------- */
+
+  .glossary { list-style: none; display: flex; flex-direction: column; gap: 0; }
+  .glossary li {
+    display: grid;
+    grid-template-columns: 9rem 1fr;
+    gap: var(--gap-s);
+    max-width: none;
+    font-size: 0.95rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .glossary li:last-child { border-bottom: none; }
+  .glossary .term {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--ink);
+    padding-top: 0.2rem;
+  }
+  .subhead {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
   footer.foot {
     font-family: var(--mono);
     font-size: 0.72rem;
@@ -464,6 +493,7 @@
     }
     .rank { font-size: 1.6rem; }
     .biblio li { grid-template-columns: 1fr; gap: var(--gap-xs); }
+    .glossary li { grid-template-columns: 1fr; gap: 0.1rem; }
   }
 </style>
 
@@ -1244,6 +1274,56 @@
           <a href="https://www.exchangerates.org.uk/USD-AUD-spot-exchange-rates-history-2026.html">USD/AUD rate history, July 2026</a>
         </span>
       </li>
+    </ul>
+  </section>
+
+  <section id="glossary">
+    <h2>Glossary<span class="h2-note">every abbreviation used above</span></h2>
+
+    <h3 class="subhead">Signals, buses and technologies</h3>
+    <ul class="glossary">
+      <li><span class="term">GPIO</span><span>General Purpose Input/Output &mdash; the pins on the Pi's 40-pin header.</span></li>
+      <li><span class="term">SPI</span><span>Serial Peripheral Interface. A four-wire bus: clock, data out, data in, chip select. <b>SPI0</b> is the Pi's first such controller &mdash; that is a digit zero, an instance number, not a letter.</span></li>
+      <li><span class="term">MOSI / MISO</span><span>Master Out Slave In / Master In Slave Out, the two SPI data lines. Only MOSI is used here, because these displays are write-only.</span></li>
+      <li><span class="term">SCLK</span><span>Serial Clock, the SPI timing line.</span></li>
+      <li><span class="term">CS / CE0</span><span>Chip Select, also written Chip Enable. Tells one device on a shared bus that the traffic is meant for it. Two names for the same signal.</span></li>
+      <li><span class="term">DC / RS</span><span>Data/Command, sometimes Register Select or A0. A single wire that tells the display whether the bytes now arriving are a command or pixel data &mdash; SPI itself has no way to mark the difference.</span></li>
+      <li><span class="term">I&sup2;C</span><span>Inter-Integrated Circuit. A two-wire bus, slower than SPI; the smaller OLEDs often offer it as an alternative.</span></li>
+      <li><span class="term">I&sup2;S / PCM</span><span>Inter-IC Sound / Pulse Code Modulation &mdash; digital audio. Relevant here only because GPIO&nbsp;18 serves both it and the backlight.</span></li>
+      <li><span class="term">CSI</span><span>Camera Serial Interface, the camera's own ribbon connector. Entirely separate from the GPIO header, which is why none of this wiring conflicts with the camera.</span></li>
+      <li><span class="term">HDMI / VGA</span><span>High-Definition Multimedia Interface / Video Graphics Array &mdash; the modern and legacy monitor connections.</span></li>
+      <li><span class="term">RS-232</span><span>The classic serial port standard, how the vintage terminals connect.</span></li>
+      <li><span class="term">DuPont</span><span>The common name for 0.1-inch jumper leads used in prototype wiring.</span></li>
+      <li><span class="term">PIL</span><span>Python Imaging Library (now Pillow). Several of the display libraries accept a PIL image directly, which is convenient here.</span></li>
+      <li><span class="term">drm/tiny</span><span>The Linux kernel's driver family for small SPI displays, successor to the deprecated fbtft.</span></li>
+    </ul>
+
+    <h3 class="subhead">Display technologies</h3>
+    <ul class="glossary">
+      <li><span class="term">LCD</span><span>Liquid Crystal Display. Modulates light rather than emitting it, so it needs a backlight or ambient light.</span></li>
+      <li><span class="term">OLED</span><span>Organic Light-Emitting Diode. Emits its own light, so no backlight and true blacks.</span></li>
+      <li><span class="term">TFT</span><span>Thin-Film Transistor &mdash; an active-matrix LCD with a transistor behind every pixel.</span></li>
+      <li><span class="term">STN</span><span>Super-Twisted Nematic, a passive-matrix LCD whose crystal twists 180&ndash;270&deg;. See option 3: the twist is what makes the panel drivable, and also what tints it.</span></li>
+      <li><span class="term">FSTN</span><span>Film-compensated STN, which adds a retardation film to cancel that tint back towards black-on-white.</span></li>
+      <li><span class="term">VFD</span><span>Vacuum Fluorescent Display &mdash; phosphor excited in a vacuum, the blue-green glow of 1980s instruments.</span></li>
+      <li><span class="term">CCFL</span><span>Cold Cathode Fluorescent Lamp, the backlight type that preceded LEDs and needs a high-voltage inverter.</span></li>
+      <li><span class="term">Positive / negative</span><span>Positive mode is dark pixels on a pale ground; negative is light pixels on a dark ground. It decides which way the character ramp must run.</span></li>
+      <li><span class="term">ppi</span><span>Pixels per inch. Panel density, which sets how physically large a character is &mdash; the reason a 5.7&Prime; panel is readable where a 1.5&Prime; one is not.</span></li>
+      <li><span class="term">fps</span><span>Frames per second.</span></li>
+    </ul>
+
+    <h3 class="subhead">Controllers and part numbers</h3>
+    <ul class="glossary">
+      <li><span class="term">ILI9341</span><span>The controller in most 320&times;240 colour SPI TFT modules.</span></li>
+      <li><span class="term">SSD1306</span><span>Controller for the ubiquitous 128&times;64 monochrome OLED. One bit per pixel &mdash; no greyscale at all.</span></li>
+      <li><span class="term">SSD1322</span><span>Controller for 256&times;64 OLEDs, 16 grey levels.</span></li>
+      <li><span class="term">SSD1327</span><span>Controller for 128&times;128 OLEDs, 16 grey levels.</span></li>
+      <li><span class="term">T6963C / RA8835</span><span>The two common controllers in parallel-interface monochrome graphic LCDs.</span></li>
+      <li><span class="term">HD44780</span><span>The ubiquitous character-LCD controller. Maxes out at 40&times;4.</span></li>
+      <li><span class="term">XPT2046</span><span>The resistive touch controller fitted to most ILI9341 modules. Unused here &mdash; leave its five pins disconnected.</span></li>
+      <li><span class="term">WG320240<br>NHD-320240WG</span><span>Winstar and Newhaven part numbers for 320&times;240 STN graphic modules.</span></li>
+      <li><span class="term">LS027B7DH01</span><span>Sharp's 400&times;240 Memory LCD, the panel on the Adafruit breakout.</span></li>
+      <li><span class="term">GU256&times;128</span><span>Noritake graphic VFD, 256&times;128 pixels.</span></li>
     </ul>
   </section>
 
