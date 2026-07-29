@@ -563,7 +563,7 @@
   </header>
 
   <section id="brief">
-    <h2>The brief<span class="h2-note">why this is not a monitor question</span></h2>
+    <h2>The brief<span class="h2-note">why resolution is the wrong measure</span></h2>
     <div class="prose">
       <p>
         The app is a <b>curses program whose picture is built from character cells</b>.
@@ -768,13 +768,13 @@
           cells</b>: more than double the Noritake, and 83% of a full VT220 screen.
         </p>
         <p>
-          It is also the only module here you can read comfortably. These are typically
+          The 320&times;240 is also the only module here you can read comfortably. These panels are typically
           4.7&ndash;5.7&Prime;, so around 70&ndash;85&nbsp;ppi &mdash; a character cell is roughly
           2 &times; 2.9&nbsp;mm, legible at arm's length. Every OLED on this page runs
           121&ndash;172&nbsp;ppi, where you need your nose against the glass.
         </p>
         <p>
-          The period look is physics rather than styling. These are <b>STN</b> panels &mdash;
+          The period look is physics rather than styling. The 320&times;240 modules are <b>STN</b> panels &mdash;
           <em>super-twisted nematic</em>, where the liquid crystal twists roughly
           180&ndash;270&deg; between the polarisers instead of the 90&deg; of plain TN. That
           steeper twist sharpens the response enough to drive a 320&times;240 matrix with no
@@ -838,9 +838,9 @@
             </colgroup>
             <thead>
               <tr>
-                <th class="group g-wire" scope="colgroup" colspan="2">Wiring &mdash; count these</th>
-                <th class="group g-what" scope="col">What it is</th>
-                <th class="group g-code" scope="colgroup" colspan="2">Library config &mdash; type these</th>
+                <th class="group g-wire" scope="colgroup" colspan="2">Needed to wire the cable</th>
+                <th class="group g-what" scope="col">What each wire carries</th>
+                <th class="group g-code" scope="colgroup" colspan="2">Needed to configure the library</th>
               </tr>
               <tr>
                 <th scope="col">ILI9341 pin</th>
@@ -971,7 +971,7 @@ device = ili9341(serial, width=320, height=240)</pre>
           <div class="screen reflective" style="--ground:#A7B79A;--phosphor:#1F2A24"><pre data-cols="53" data-rows="30" data-cell-aspect="1.333" data-invert="1"></pre></div>
           <figcaption>
             <span class="num">Figure 4</span>&nbsp;&mdash; Grey-green positive STN: the same panel and the same 53 &times; 30 grid, with dark
-            ink on a pale reflective ground. Note it is rendered with the <b>ramp reversed</b>
+            ink on a pale reflective ground. Note the sample is rendered with the <b>ramp reversed</b>
             &mdash; on a positive display, character density has to track darkness or the
             picture comes out as a photographic negative. That is precisely what the app's
             <code style="font-family:var(--mono);font-size:0.85em">i</code> key is for.
@@ -1016,7 +1016,7 @@ device = ili9341(serial, width=320, height=240)</pre>
           Pi will not notice.
         </p>
         <p>
-          It is reflective rather than emissive: no backlight, extraordinary contrast, daylight
+          The Sharp panel is reflective rather than emissive: no backlight, extraordinary contrast, daylight
           readable, and it looks like the display on a good calculator or a field instrument.
           Whether that reads as vintage is a judgement call &mdash; it is 1990s laboratory rather
           than 1980s home computer, and unlike everything else here it does not glow, which is
@@ -1031,7 +1031,7 @@ device = ili9341(serial, width=320, height=240)</pre>
           <div class="screen reflective" style="--ground:#C9CCC3;--phosphor:#14171A"><pre data-cols="66" data-rows="30" data-cell-aspect="1.333" data-invert="1"></pre></div>
           <figcaption>
             <span class="num">Figure 5</span>&nbsp;&mdash; 66 &times; 30 characters, reflective, cropped to 5:3 &mdash; keeps 81% of the frame.
-            Like the positive LCD above, this is drawn with the ramp reversed, since dark ink
+            Like Figure 4, this sample is drawn with the ramp reversed, since dark ink
             on a pale ground has to follow darkness rather than brightness.
           </figcaption>
         </figure>
@@ -1058,7 +1058,7 @@ device = ili9341(serial, width=320, height=240)</pre>
         <p>
           <b>Ranked below both LCDs above, and losing to them on every measurable axis</b> &mdash;
           fewer characters, more crop, three to six times the price, and a special order rather
-          than shelf stock. It stays this high for one reason: it is the only thing here that
+          than shelf stock. The VFD holds rank 5 for one reason: it is the only thing here that
           <em>glows</em>, and that blue-green emission is the most distinctively period object
           on the page. If the look is the point, promote it.
         </p>
@@ -1233,7 +1233,7 @@ device = ili9341(serial, width=320, height=240)</pre>
           at 400&nbsp;kHz.
         </p>
         <p>
-          It has one genuine argument in its favour that the bigger panels lack. The SSD1306
+          The SSD1306 has one genuine argument in its favour that the bigger panels lack. The SSD1306
           is <b>1 bit per pixel with no greyscale at all</b>, so character density is the only
           way to suggest tone &mdash; which makes ASCII the right technique here rather than a
           costume. Contrast that with the 128&times;128 SSD1327, whose 16 grey levels would look
