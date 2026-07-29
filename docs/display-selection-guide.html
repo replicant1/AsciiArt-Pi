@@ -840,20 +840,20 @@
               <tr>
                 <th class="group g-wire" scope="colgroup" colspan="2">Needed to wire the cable</th>
                 <th class="group g-what" scope="col">What each wire carries</th>
-                <th class="group g-code" scope="colgroup" colspan="2">Needed to configure the library</th>
+                <th class="group g-code" scope="colgroup" colspan="2">Needed to configure luma.lcd</th>
               </tr>
               <tr>
                 <th scope="col">ILI9341 pin</th>
                 <th scope="col">Pi header pin</th>
                 <th scope="col">Pi signal</th>
                 <th scope="col">Pi BCM</th>
-                <th scope="col">In your code</th>
+                <th scope="col">luma.lcd argument</th>
               </tr>
             </thead>
             <tbody>
-              <tr><td>VCC</td><td>1</td><td>3.3&nbsp;V</td><td>&mdash;</td><td class="quiet" rowspan="2">nothing to set</td></tr>
-              <tr><td>GND</td><td>6</td><td>GND</td><td>&mdash;</td></tr>
-              <tr><td>CS</td><td>24</td><td>SPI0 CE0</td><td>GPIO&nbsp;8</td><td class="quiet" rowspan="3">all three covered by<br>port=0, device=0</td></tr>
+              <tr><td>VCC</td><td>1</td><td>3.3&nbsp;V</td><td>&mdash;</td><td class="quiet">&mdash;</td></tr>
+              <tr><td>GND</td><td>6</td><td>GND</td><td>&mdash;</td><td class="quiet">&mdash;</td></tr>
+              <tr><td>CS</td><td>24</td><td>SPI0 CE0</td><td>GPIO&nbsp;8</td><td class="hero" rowspan="3">port=0<br>device=0</td></tr>
               <tr><td>SDI (MOSI)</td><td>19</td><td>SPI0 MOSI</td><td>GPIO&nbsp;10</td></tr>
               <tr><td>SCK / CLK</td><td>23</td><td>SPI0 SCLK</td><td>GPIO&nbsp;11</td></tr>
               <tr><td>DC / RS</td><td>16</td><td>your choice</td><td>GPIO&nbsp;23</td><td class="hero">gpio_DC=23</td></tr>
@@ -863,9 +863,11 @@
           </table>
         </div>
         <p>
-          The last column holds <b>literal keyword arguments</b>, not defaults you can assume
-          and not pin numbers. They are what you pass to the library's constructor, and the
-          whole of the configuration is this:
+          The last column holds <b>literal keyword arguments to luma.lcd</b> &mdash; the Python
+          driver library recommended above &mdash; not defaults you can assume and not pin
+          numbers. Those arguments go to the
+          <code style="font-family:var(--mono);font-size:0.85em">spi()</code> constructor, and
+          the whole of the configuration is this:
         </p>
         <pre class="code">from luma.core.interface.serial import spi
 from luma.lcd.device import ili9341
@@ -886,6 +888,14 @@ device = ili9341(serial, width=320, height=240)</pre>
         <p>
           The only GPIO numbers you ever type are the last two, and both are BCM. Change the
           wiring, change those numbers &mdash; nothing else in the code moves.
+        </p>
+        <p>
+          <b>The argument names belong to luma.lcd</b>, so Table&nbsp;2's last column is
+          specific to that library. Other drivers spell the same three settings differently
+          &mdash; Adafruit's library takes positional
+          <code style="font-family:var(--mono);font-size:0.85em">dc</code> and
+          <code style="font-family:var(--mono);font-size:0.85em">rst</code> pin objects, for
+          instance. The BCM numbers themselves do not change, only the names they are handed to.
         </p>
         <p>
           <b>Wire by header pin, configure by BCM.</b> Those are two different numbering
