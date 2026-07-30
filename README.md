@@ -69,6 +69,42 @@ narrow to hold them; the readouts on the left always stay.
 A literal `--ramp` string (rather than one of the three names) reads out as
 `chr:custom`.
 
+### Command-line arguments
+
+| Argument | Values | Default | Effect |
+|---|---|---|---|
+| `-h`, `--help` | — | — | Print usage and exit |
+| `--width` | integer | `320` | Camera capture width. The ISP downscales in hardware, so smaller is much cheaper than resizing on the CPU |
+| `--height` | integer | `240` | Camera capture height |
+| `--fps` | integer | `15` | Target frame rate. The sensor is capped to this, which saves real CPU |
+| `--colour`, `--color` | flag | off | Start in colour mode. Toggle live with `g` |
+| `--colour-levels` | 2–6 | `6` | Palette steps per channel. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding |
+| `--colour-divisor` | integer | `2` | How much coarser the grid becomes in colour mode, on both axes |
+| `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
+| `--rotation` | 0, 90, 180, 270 | `180` | Camera rotation. The default matches the mounting rotation libcamera reports for this module. Cycle with `r` |
+| `--contrast` | float | `1.0` | Contrast multiplier about mid-grey. Adjust with `+`/`-` |
+| `--no-auto-levels` | flag | off | Disable per-frame brightness normalisation. Toggle with `a` |
+| `--ramp` | `standard`, `fine`, `blocks`, or a literal string | `standard` | Character ramp, ordered light to dark. Cycle with `c` |
+| `--invert` | flag | off | Invert the ramp, for light-background terminals and positive-mode LCDs. Toggle with `i` |
+| `--cell-aspect` | float | `2.0` | Terminal character height/width ratio, which keeps the picture from looking squashed |
+| `--log` | path | `ascii_camera.log` beside the app | Log file. stderr is redirected here too, since nothing may reach the terminal while curses owns the screen |
+| `--verbose` | flag | off | Debug-level logging |
+
+Two things the table does not show on its own.
+
+**Eight of these arguments have live equivalents** — `f`, `r`, `+`/`-`, `a`, `c`,
+`i` and `g` — so those flags mostly just set a starting state. The arguments
+fixed at startup are `--width`, `--height`, `--fps`, `--log`, `--verbose`, and
+`--colour-levels`/`--colour-divisor`, which are read as settings rather than
+toggled.
+
+**`run_ascii_camera.sh` supplies two of these arguments for you.** The launcher
+always passes `--cell-aspect`, computed from real Pango font metrics for the font
+the launcher chose, and injects `--colour-divisor 1` alongside `--colour` because
+by then the window has been shrunk instead. Anything given to the launcher after
+the geometry is forwarded through, so `bash run_ascii_camera.sh 120 --fps 10
+--rotation 0` works as expected.
+
 ## How this project is built: agent on the Mac, app on the Pi
 
 This code was written by an AI agent (Claude Code) that never ran on the
