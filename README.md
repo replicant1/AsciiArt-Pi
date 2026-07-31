@@ -60,7 +60,7 @@ Every toggle reads out its current state on the left of the status bar, so
 nothing is hidden:
 
 ```
- 15.0fps 267x100 rot180 con1.0 mode:grey chr:standard auto:on fill:off inv:off | q:quit ...
+ 15.0fps 267x100 rot180 con1.0 sch:grey chr:standard auto:on fill:off inv:off | q:quit ...
 ```
 
 The key hints on the right are dropped in whole groups when the window is too
@@ -77,7 +77,8 @@ A literal `--ramp` string (rather than one of the three names) reads out as
 | `--width` | integer | `320` | Camera capture width. The ISP downscales in hardware, so smaller is much cheaper than resizing on the CPU |
 | `--height` | integer | `240` | Camera capture height |
 | `--fps` | integer | `15` | Target frame rate. The sensor is capped to this, which saves real CPU |
-| `--colour`, `--color` | flag | off | Start in colour mode. Toggle live with `g` |
+| `--scheme` | `grey`, `live`, `green`, `amber`, `cyan`, `navy`, `azure`, `lime`, `paper` | `grey` | Colour scheme to start in. Step through them live with `s`. See [Colour schemes](#colour-schemes) |
+| `--colour`, `--color` | flag | off | Shorthand for `--scheme live`, kept because the launcher reads it to size the window. Ignored if `--scheme` is given |
 | `--colour-levels` | 2–6 | `6` | Palette steps per channel. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding |
 | `--colour-divisor` | integer | `2` | How much coarser the grid becomes in colour mode, on both axes |
 | `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
@@ -87,16 +88,23 @@ A literal `--ramp` string (rather than one of the three names) reads out as
 | `--ramp` | `standard`, `fine`, `blocks`, or a literal string | `standard` | Character ramp, ordered light to dark. Cycle with `c` |
 | `--invert` | flag | off | Invert the ramp, for light-background terminals and positive-mode LCDs. Toggle with `i` |
 | `--cell-aspect` | float | `2.0` | Terminal character height/width ratio, which keeps the picture from looking squashed |
+| `--lcd` | flag | off | Also render to the ILI9341 SPI panel, alongside the terminal. See [The ILI9341 SPI panel](#the-ili9341-spi-panel) |
+| `--lcd-font-size` | integer | `8` | Glyph size, which sets the panel's grid. `8` gives 64x24; `6` gives 80x30 and `9` gives 64x20. All three tile 320x240 exactly and match the camera's 4:3 |
+| `--lcd-portrait` | flag | off | Run the panel as 240x320 instead of 320x240 |
+| `--lcd-spi-hz` | integer | `40000000` | SPI clock. Lower it if the wiring is long or on a breadboard |
+| `--lcd-brightness` | 0–100 | `100` | Backlight duty cycle, driven as PWM |
 | `--log` | path | `ascii_camera.log` beside the app | Log file. stderr is redirected here too, since nothing may reach the terminal while curses owns the screen |
 | `--verbose` | flag | off | Debug-level logging |
 
 Two things the table does not show on its own.
 
-**Eight of these arguments have live equivalents** — `f`, `r`, `+`/`-`, `a`, `c`,
-`i` and `g` — so those flags mostly just set a starting state. The arguments
-fixed at startup are `--width`, `--height`, `--fps`, `--log`, `--verbose`, and
-`--colour-levels`/`--colour-divisor`, which are read as settings rather than
-toggled.
+**Eight of these arguments have live equivalents** — `--fill`, `--rotation`,
+`--contrast`, `--no-auto-levels`, `--ramp`, `--invert`, `--scheme` and
+`--colour`, reachable as `f`, `r`, `+`/`-`, `a`, `c`, `i` and `s` — so those
+flags mostly just set a starting state. The arguments fixed at startup are
+`--width`, `--height`, `--fps`, `--log`, `--verbose`, the five `--lcd*`
+arguments, and `--colour-levels`/`--colour-divisor`, which are read as settings
+rather than toggled.
 
 **`run_ascii_camera.sh` supplies two of these arguments for you.** The launcher
 always passes `--cell-aspect`, computed from real Pango font metrics for the font
@@ -104,6 +112,97 @@ the launcher chose, and injects `--colour-divisor 1` alongside `--colour` becaus
 by then the window has been shrunk instead. Anything given to the launcher after
 the geometry is forwarded through, so `bash run_ascii_camera.sh 120 --fps 10
 --rotation 0` works as expected.
+
+## Colour schemes
+
+`s` steps through nine looks, each imitating a real screen. There are no names
+on screen — press `s` until you like what you see and stop. The active one
+reads out in the status bar as `sch:amber`.
+
+| # | Name | Ink | Screen | Imitates |
+|---|------|-----|--------|----------|
+| 1 | `grey` | `#FFFFFF` | `#000000` | Plain greyscale: characters only, no colour |
+| 2 | `live` | from the camera | `#000000` | Live colour from the scene |
+| 3 | `green` | `#33FF33` | `#001A00` | Green phosphor terminal |
+| 4 | `amber` | `#FFB733` | `#1A0D00` | Amber CRT |
+| 5 | `cyan` | `#66E6FF` | `#001419` | Ice-blue vacuum fluorescent |
+| 6 | `navy` | `#EAF6FF` | `#0B3FBF` | White on a blue-backlit character LCD |
+| 7 | `azure` | `#123A9E` | `#DFE6E2` | Blue STN LCD on grey-white |
+| 8 | `lime` | `#14210A` | `#C4DC1E` | Black on an acid-lime backlight |
+| 9 | `paper` | `#2B2B28` | `#E9E7DF` | E-ink on paper |
+
+`grey` and `live` are the two original modes, kept unchanged and placed next to
+each other at the head of the cycle. Schemes 3 to 6 have dark screens, 7 to 9
+light ones, so cycling walks a deliberate arc rather than jumping about.
+
+### Why these nine
+
+They come from photographs of real displays, but not one scheme per photograph:
+twelve reference images collapsed to fewer distinct *looks* than files. Three
+were amber or yellow CRTs, two were green screens, two were black on a lime
+backlight. A plain yellow-on-black was dropped outright for sitting only 25
+degrees of hue from `amber` — near enough that nobody cycling past would be
+sure which one they were looking at.
+
+Being unmistakable matters more here than being numerous, and it is checked
+rather than asserted. `tests/palette_test.py` compares every pair of schemes by
+redmean perceptual distance and **fails the run** if any two are closer than
+150. The closest surviving pair is `azure`/`paper` at 223. That is what stops
+someone later adding a second amber that differs in the third hex digit.
+
+### How a scheme is drawn
+
+`grey` and `live` work as they always did. The other seven are *tinted*: each
+cell blends from the scheme's screen colour to its ink, by how dense a character
+the ramp chose for that cell. A bright part of the scene gets both a denser
+glyph and fuller-strength ink, which is how a brighter patch of a real CRT
+actually behaves.
+
+The blend has to track how much ink the glyph lays down, **not** how bright the
+scene was. Those are the same thing until `i` is pressed. `AsciiArt` reverses
+its character string on invert but still indexes it from brightness, so a bright
+cell keeps a high index while picking a *sparse* glyph. Tinting by that raw
+index left bright cells at full-strength ink while drawing them nearly empty —
+the characters went negative and the colour did not. The blend table is
+reversed to match, so both halves of the picture invert together. This was
+caught by the test, not by reading the code.
+
+### Light-screen schemes and the terminal background
+
+`azure`, `lime` and `paper` need one thing the others do not.
+
+The LCD panel is straightforward: the app writes every one of its 76,800
+pixels, so "the screen is lime" just means writing lime into the ones no glyph
+covers. A terminal does not work that way. You place characters, and each
+character carries only its *ink* colour — whatever lies behind the glyph stays
+whatever the window already was, which is black.
+
+Setting only the ink for `paper` would therefore give dark grey characters on
+black, and the picture would all but vanish. So each scheme's screen colour is
+attached to every colour pair as its **background**, and to the window itself,
+which covers the padding around the picture and any cell not written that frame.
+
+### Cost
+
+Tinted schemes are cheaper than `live`, because neighbouring cells of equal
+brightness get the *same* colour, so runs stay long and ncurses emits fewer
+escape sequences. Only `live` needs the coarser grid; the tinted schemes keep
+the full one. All nine hold 15.0 fps on the HDMI terminal at 120x43.
+
+On the ILI9341 panel, measured on the Zero 2:
+
+| LCD path | Frame time |
+|----------|------------|
+| `grey` | 35.7 ms (28 fps) |
+| `live` | 46.8 ms (21 fps) |
+| tinted, light screen | 54.0 ms (18 fps) |
+
+Schemes with a black screen take a `uint16` fast path in the packer. Making
+that code general enough for arbitrary screen colours had cost `live` about
+7 ms a frame, so the special case earns its keep.
+
+If a terminal cannot manage 256 colours, `s` skips every scheme but `grey` and
+logs the fact.
 
 ## How this project is built: agent on the Mac, app on the Pi
 
@@ -603,11 +702,13 @@ Resizing uses PIL's `BOX` filter (area averaging) rather than `LANCZOS`: each
 ASCII cell should hold the *mean* brightness of the region it covers, which is
 exactly what area averaging computes, and it is faster besides.
 
-### Colour mode
+### The live colour scheme
 
-`s` steps through the colour schemes; `live` is the one that takes its colour
-from the camera's chroma, with the character still coming from the luma so the
-two agree.
+`s` steps through the colour schemes; this section is about `live`, the one that
+takes its colour from the camera's chroma, with the character still coming from
+the luma so the two agree. The other schemes are described under
+[Colour schemes](#colour-schemes); they cost less than `live` does, because
+their colours repeat along a row.
 
 Measured in lxterminal on this Pi, redrawing the same scene with and without
 per-character colour:
@@ -663,7 +764,7 @@ a cheaper redraw, at the cost of banding — the main lever if colour feels slow
 Terminal support was checked rather than assumed: inside lxterminal, curses
 reports `TERM=xterm-256color`, 256 colours and 65,536 pairs, so the 240 pairs
 this uses are nowhere near a limit. If a terminal cannot manage 256 colours,
-`g` logs the fact and stays in greyscale.
+`s` skips every scheme but `grey` and logs the fact.
 
 Greyscale mode costs nothing for the feature — the chroma planes are sliced from
 the buffer that already had to be copied, and no conversion runs.
@@ -770,6 +871,105 @@ settings are untouched. Two traps are worth recording:
   on a 1080px screen. Check the `Terminal size:` line in the log for what the
   app actually got.
 
+## The ILI9341 SPI panel
+
+A 2.4 inch 240x320 ILI9341 LCD, 65K colours over SPI, runs **alongside** the
+terminal on the HDMI screen rather than instead of it:
+
+```bash
+bash run_ascii_camera.sh fit --lcd
+bash run_ascii_camera.sh fit --lcd --scheme amber
+```
+
+The panel shows only the picture — no status bar, no border, no window
+furniture.
+
+### Wiring
+
+Taken from the manufacturer's own working example, and confirmed by running it.
+`CS` is driven by the SPI peripheral itself, not by this code.
+
+| Panel | Pi | Panel | Pi |
+|-------|----|-------|----|
+| VCC | 3.3V | SDI/MOSI | GPIO 10 |
+| GND | GND | SCK | GPIO 11 |
+| CS | GPIO 8 (CE0) | RESET | GPIO 27 |
+| DC/RS | GPIO 25 | LED/BL | GPIO 18 (PWM) |
+
+The panel is on `/dev/spidev0.0`. SPI is enabled with `dtparam=spi=on`, and
+there is deliberately **no kernel driver bound to it** — no `fbtft`, no
+`mipi-dbi-spi` overlay. It is driven from userspace with `spidev`, which is
+what `src/lcd.py` does. `/dev/fb0` is the HDMI framebuffer and has nothing to
+do with this panel.
+
+### It is an independent display, not a mirror
+
+The panel's grid is fixed by its font, so **resizing the terminal window leaves
+it alone**. Observed while testing: the terminal went 267x100 to 133x50 while
+the panel stayed 64x24. The status bar shows the panel's own grid as
+`lcd:64x24`, which makes the independence visible.
+
+| Setting | Follows the main display? |
+|---------|---------------------------|
+| Colour scheme (`s`) | Yes |
+| Invert (`i`) | Yes |
+| Character ramp (`c`) | Yes |
+| Rotation (`r`), contrast (`+`/`-`), auto-levels (`a`) | Yes |
+| Fill (`f`) | **No** — the panel is always fully occupied |
+| Grid size | **No** — fixed by `--lcd-font-size` |
+
+Font sizes 6, 8 and 9 each tile 320x240 exactly *and* give a character grid
+whose on-screen aspect is exactly 4:3 — the same as the camera. So filling the
+panel crops nothing at all. Other sizes leave a few pixels over, which are left
+black with the picture centred in them.
+
+### How it is drawn
+
+Every glyph in the ramp is rendered once into an atlas, and a frame becomes a
+single numpy gather: index the atlas with the whole grid at once, then transpose
+the cell axes into place and reshape. The obvious alternative — one
+`draw.text()` per cell — would be 1,536 PIL calls per frame at 64x24, far beyond
+this hardware.
+
+The SPI write is kept off the main render loop by a worker thread that takes the
+latest frame and drops anything it falls behind on. That only pays off if
+`spidev` releases the GIL during the transfer, which `tests/lcd_concurrency.py`
+measures rather than assumes: **the main thread keeps 93% of its throughput**
+while the panel renders at 27 fps.
+
+| Stage | Cost per frame |
+|-------|----------------|
+| Blit glyphs from the atlas | 1.2 ms |
+| Pack RGB565 | 2.5 ms |
+| SPI transfer | ~32 ms |
+
+The panel is transfer-bound, not CPU-bound. `/sys/module/spidev/parameters/bufsiz`
+is 4096, so a full 153,600-byte frame is 38 writes, and that syscall count
+dominates rather than the clock rate — `spidev.bufsiz=65536` on the kernel
+command line would help if refresh rate ever mattered more than memory.
+
+### You cannot verify this panel in software
+
+Two facts combine, and they are worth knowing before trying:
+
+- `grim` captures the Wayland/HDMI output. An SPI panel is not part of that
+  output, so **no screenshot ever shows what is on the panel.**
+- This module does not wire SDO usefully. Register read-back was tried — `0x04`
+  RDDID, `0x09` RDDST, `0x0A` power mode, `0x0C` pixel format — and every one
+  returns all `00`.
+
+So nothing can confirm what is actually lit except looking at it. The tests are
+built accordingly: they check everything up to the SPI boundary with assertions
+that can genuinely fail — hand-computed RGB565 values, geometry, and whether the
+panel path picks the same glyph the terminal would — and then say plainly that
+the rest needs a human.
+
+```bash
+python3 tests/lcd_selftest.py       # colour bars and the RGB565 maths
+python3 tests/lcd_render_bench.py   # render path correctness and timing
+python3 tests/lcd_concurrency.py    # proves the SPI write does not stall the app
+```
+
 ## Choosing a different display
 
 [`docs/display-selection-guide.html`](docs/display-selection-guide.html) is a ranked guide to
@@ -795,6 +995,13 @@ whole list, and it is why a 320x240 graphic LCD beats parts costing five times a
 **None of these need code changes.** The app fits its grid to whatever the terminal reports,
 and `--cell-aspect` handles the rest. The one thing to know is that positive-mode LCDs, which
 put dark ink on a pale ground, need the ramp reversed — that is the `i` key.
+
+The guide's own conclusion has since been acted on: the 320x240 graphic LCD it
+ranks first is the ILI9341 now wired to this Pi and documented above. It bore
+the prediction out — being a true 4:3 panel, it keeps the whole frame, and at
+`--lcd-font-size 8` the grid comes out at exactly 4:3 as well, so nothing is
+cropped or letterboxed. Driving it *did* need code, but only because it is a
+second simultaneous display rather than a terminal the app could fit itself to.
 
 ## Rotation
 
