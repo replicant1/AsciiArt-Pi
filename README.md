@@ -85,7 +85,8 @@ rejected, listing the names that do work.
 | `--colour-levels` | 2–6 | `6` | Palette steps per channel. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding |
 | `--colour-divisor` | integer | `2` | How much coarser the grid becomes in colour mode, on both axes |
 | `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
-| `--rotation` | 0, 90, 180, 270 | `180` | Camera rotation. The default matches the mounting rotation libcamera reports for this module. Cycle with `r` |
+| `--rotation` | 0, 90, 180, 270 | `0` | Camera rotation. Cycle with `r`. See [Rotation and handedness](#rotation-and-handedness) |
+| `--mirror` | flag | off | Flip the picture left to right, after any rotation |
 | `--contrast` | float | `1.0` | Contrast multiplier about mid-grey. Adjust with `+`/`-` |
 | `--no-auto-levels` | flag | off | Disable per-frame brightness normalisation. Toggle with `a` |
 | `--ramp` | `coarse`, `fine` | `coarse` | Character ramp, ordered light to dark. Cycle with `c` |
@@ -1072,11 +1073,31 @@ the prediction out — being a true 4:3 panel, it keeps the whole frame, and at
 cropped or letterboxed. Driving it *did* need code, but only because it is a
 second simultaneous display rather than a terminal the app could fit itself to.
 
-## Rotation
+## Rotation and handedness
 
-`libcamera` reports this module's mounted rotation as 180 degrees, so that is
-the default. If the picture is upside down for how your camera is physically
-mounted, press `r` to cycle, then make it permanent with `--rotation`.
+Two settings between them reach any orientation: `--rotation` (0, 90, 180, 270)
+and `--mirror`, a left-to-right flip applied after the rotation. Four rotations
+times the flip covers all eight possible orientations, so no third control is
+needed.
+
+Both default to off — as currently mounted, this camera delivers the picture
+the right way round and the correction is the identity. If yours is mounted
+differently, press `r` to cycle rotation live, then make it permanent with
+`--rotation`; add `--mirror` if the picture comes out as a mirror image.
+
+That default was arrived at by looking, not by deriving, and it took three
+goes. `libcamera` reports this module's mounted rotation as 180 degrees, which
+was the original default — but a 180 degree rotation flips *both* axes, so the
+picture came out correctly inverted and **silently mirrored**. Adding the
+horizontal flip gave a net vertical flip, which was confirmed correct. The
+camera was then remounted, and the identity became right.
+
+The lesson worth keeping is that a mirrored picture is very hard to spot: it is
+not upside down and not squashed, and on a roughly symmetrical scene it looks
+perfectly fine. It shows only on something with a handedness — text, a face, a
+hand. `tests/orientation_test.py` therefore checks orientation with a frame of
+numbered quadrants, where left and right are distinguishable by construction
+rather than by eye.
 
 ## Logging
 

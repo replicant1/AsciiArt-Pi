@@ -461,15 +461,14 @@ def parse_args(argv=None):
     parser.add_argument("--fill", action="store_true",
                         help="Crop the picture to fill the whole window "
                              "instead of letterboxing it to fit")
-    parser.add_argument("--no-mirror", action="store_false", dest="mirror",
-                        help="Do not flip the picture left to right. The flip "
-                             "is on by default because this camera's mounting "
-                             "needs it: the sensor is upside down, and a 180 "
-                             "degree rotation corrects that but mirrors the "
-                             "picture as a side effect")
-    parser.add_argument("--rotation", type=int, default=180,
+    parser.add_argument("--mirror", action="store_true",
+                        help="Flip the picture left to right, after any "
+                             "rotation. Off by default: the sensor is "
+                             "delivering the picture the right way round as "
+                             "currently mounted")
+    parser.add_argument("--rotation", type=int, default=0,
                         choices=[0, 90, 180, 270],
-                        help="Camera rotation in degrees")
+                        help="Camera rotation in degrees. Cycle with r")
     parser.add_argument("--contrast", type=float, default=1.0,
                         help="Contrast multiplier about mid-grey")
     parser.add_argument("--no-auto-levels", action="store_true",

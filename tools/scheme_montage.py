@@ -145,8 +145,8 @@ def colours_for(scheme, indices, art, processor, frame, processed, cols, rows):
     return (palettes.rgb_table(scheme, len(art.chars))[indices], scheme.screen)
 
 
-def build(frame, ramp="coarse", invert=False, rotation=180, verify=True,
-          mirror=True):
+def build(frame, ramp="coarse", invert=False, rotation=0, verify=True,
+          mirror=False):
     """Render every scheme from one frame and return the tiles, in order."""
     art = AsciiArt(ramp=ramp, invert=invert)
     atlas = GlyphAtlas(art.chars, DEFAULT_FONT, FONT_SIZE)
@@ -265,10 +265,9 @@ def main():
                                              "so the montage can be remade")
     parser.add_argument("--ramp", default="coarse", choices=list(RAMPS))
     parser.add_argument("--invert", action="store_true")
-    parser.add_argument("--rotation", type=int, default=180)
-    parser.add_argument("--no-mirror", action="store_false", dest="mirror",
-                        help="Do not flip left to right; see "
-                             "ImageProcessor.rotate for why the flip exists")
+    parser.add_argument("--rotation", type=int, default=0)
+    parser.add_argument("--mirror", action="store_true",
+                        help="Flip left to right; see ImageProcessor.rotate")
     parser.add_argument("--no-verify", action="store_true")
     args = parser.parse_args()
 

@@ -64,30 +64,34 @@ def corners(frame):
 
 
 def test_default():
-    print("\n1. The default: rotation 180 with the flip on")
-    out = ImageProcessor(rotation=180, mirror=True).rotate(marked())
+    print("\n1. The default: no rotation, no flip")
+    out = ImageProcessor().rotate(marked())
 
-    # Upside down but NOT mirrored: top-left should hold what was bottom-left,
-    # i.e. a pure vertical flip of the original.
-    check("it is a pure vertical flip", corners(out) == (3, 4, 1, 2),
-          f"corners {corners(out)}")
-
-    expected = np.flipud(marked())
-    check("it equals flipud exactly", np.array_equal(out, expected))
-    check("it is not the unmirrored 180 rotation",
-          not np.array_equal(out, np.rot90(marked(), k=2)))
+    # The sensor delivers the picture the right way round as currently
+    # mounted, so the correction is the identity.
+    check("it passes the frame through unchanged",
+          np.array_equal(out, marked()), f"corners {corners(out)}")
+    check("corners are untouched", corners(out) == (1, 2, 3, 4),
+          f"{corners(out)}")
 
 
-def test_the_old_behaviour_was_mirrored():
-    print("\n2. The old behaviour, for comparison")
-    out = ImageProcessor(rotation=180, mirror=False).rotate(marked())
+def test_the_settings_it_replaced():
+    print("\n2. The two settings this replaced, for comparison")
 
-    check("without the flip it is rot90(k=2)",
-          np.array_equal(out, np.rot90(marked(), k=2)))
-    check("which is the vertical flip, mirrored",
-          np.array_equal(out, np.fliplr(np.flipud(marked()))))
-    check("and so differs from what is wanted",
-          not np.array_equal(out, np.flipud(marked())))
+    # Each was confirmed wrong by eye, and each is one composition away from
+    # the next, so keeping them here makes the sequence auditable.
+    rotated = ImageProcessor(rotation=180, mirror=False).rotate(marked())
+    check("rotation 180 alone is rot90(k=2)",
+          np.array_equal(rotated, np.rot90(marked(), k=2)))
+    check("which is a vertical flip AND a mirror",
+          np.array_equal(rotated, np.fliplr(np.flipud(marked()))))
+
+    flipped = ImageProcessor(rotation=180, mirror=True).rotate(marked())
+    check("rotation 180 with the flip is a pure flipud",
+          np.array_equal(flipped, np.flipud(marked())),
+          f"corners {corners(flipped)}")
+    check("the default is that turned back up the right way",
+          np.array_equal(np.flipud(flipped), ImageProcessor().rotate(marked())))
 
 
 def test_every_rotation():
@@ -105,7 +109,9 @@ def test_every_rotation():
 
 def test_planes_stay_in_register():
     print("\n4. Luma and chroma get the same treatment")
-    processor = ImageProcessor(rotation=180, mirror=True, fill=False)
+    # Deliberately not the default: a non-identity transform is the only one
+    # that can catch the planes being treated differently.
+    processor = ImageProcessor(rotation=90, mirror=True, fill=False)
 
     # Chroma is half resolution on both axes, which is exactly the case that
     # would go wrong if the flip were applied per-plane at the wrong stage.
@@ -117,8 +123,10 @@ def test_planes_stay_in_register():
     check("both planes agree on which corner is which",
           np.array_equal(got_luma, got_chroma),
           f"luma {corners(got_luma)} chroma {corners(got_chroma)}")
-    check("and that agreement is the corrected orientation",
-          corners(got_luma) == (3, 4, 1, 2), f"{corners(got_luma)}")
+    check("and that agreement is the transform asked for",
+          corners(got_luma) == corners(
+              ImageProcessor(rotation=90, mirror=True).rotate(marked(8))),
+          f"{corners(got_luma)}")
 
 
 def test_source_size_unaffected():
@@ -136,7 +144,7 @@ def main():
     print("=" * 62)
 
     test_default()
-    test_the_old_behaviour_was_mirrored()
+    test_the_settings_it_replaced()
     test_every_rotation()
     test_planes_stay_in_register()
     test_source_size_unaffected()
