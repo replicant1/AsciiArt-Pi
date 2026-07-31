@@ -98,6 +98,12 @@ class AsciiArt:
         levels = np.arange(256)
         indices = np.minimum(levels * n // 256, n - 1)
 
+        # Same mapping, but left as ramp positions rather than characters.  The
+        # LCD backend draws glyphs from a pre-rendered atlas and so wants the
+        # index, not the character; deriving it here keeps the two outputs
+        # choosing identically, including when `invert` has reversed the ramp.
+        self.index_lut = indices.astype(np.uint16)
+
         encoded = self.chars.encode("utf-8")
         self.is_ascii = len(encoded) == n
         if self.is_ascii:
@@ -106,6 +112,18 @@ class AsciiArt:
             table = np.array(list(self.chars), dtype="U1")
 
         return table[indices]
+
+    def to_indices(self, grayscale_frame):
+        """
+        Convert a greyscale array to ramp positions instead of characters.
+
+        Args:
+            grayscale_frame: uint8 array of shape (rows, cols).
+
+        Returns:
+            uint16 array of shape (rows, cols), each value indexing `chars`.
+        """
+        return self.index_lut[grayscale_frame]
 
     def to_ascii_text(self, grayscale_frame):
         """

@@ -81,6 +81,51 @@ class AsciiArtLiveCamera:
         self.frame_times = deque(maxlen=20)
         self.is_running = False
 
+        self._lcd_config_type = None
+        self.lcd = self._start_lcd() if args.lcd else None
+
+    def _start_lcd(self):
+        """
+        Bring the SPI panel up as a second, independent output.
+
+        Deliberately not fatal on failure.  The terminal is the primary display
+        and a missing, unwired or misbehaving panel should cost a log line, not
+        the whole app.  The imports are done here rather than at module level so
+        that spidev and RPi.GPIO are only required when the panel is asked for.
+        """
+        try:
+            from lcd_display import LcdDisplay
+            from lcd_worker import LcdConfig, LcdWorker
+
+            display = LcdDisplay(
+                ramp=self.ascii_art.chars,
+                font_size=self.args.lcd_font_size,
+                landscape=not self.args.lcd_portrait,
+                spi_freq=self.args.lcd_spi_hz,
+                brightness=self.args.lcd_brightness,
+            )
+            worker = LcdWorker(display)
+            worker.start()
+            self._lcd_config_type = LcdConfig
+            logger.info("LCD enabled: %dx%d grid", *display.grid_size)
+            return worker
+        except Exception as e:
+            logger.error("LCD unavailable, continuing without it: %s", e,
+                         exc_info=True)
+            return None
+
+    def _lcd_config(self):
+        """Snapshot of the settings the LCD mirrors from this display."""
+        return self._lcd_config_type(
+            rotation=self.processor.rotation,
+            contrast=self.processor.contrast,
+            auto_levels=self.processor.auto_levels,
+            invert=self.invert,
+            ramp=self.ramp_name,
+            colour=self.colour,
+            colour_levels=self.colour_levels,
+        )
+
     def _rebuild_ascii(self):
         """Rebuild the generator, carrying every current setting."""
         self.ascii_art = AsciiArt(ramp=self.ramp_name, invert=self.invert,
@@ -160,6 +205,12 @@ class AsciiArtLiveCamera:
                  f" fill:{_on_off(self.processor.fill)}"
                  f" inv:{_on_off(self.invert)}")
 
+        if self.lcd is not None:
+            # Showing the panel's own grid makes its independence from the
+            # terminal's visible: resizing the window moves one and not the
+            # other.
+            stats += " lcd:%dx%d" % self.lcd.display.grid_size
+
         width = self.display.cols - 1
         for keys in (" | q:quit r:rotate f:fill i:invert c:chars +/-:contrast"
                      " a:auto g:colour",
@@ -233,6 +284,11 @@ class AsciiArtLiveCamera:
                         break
                     continue
 
+                # Hand the panel the frame before doing any work for the
+                # terminal, so the two renders overlap instead of queueing.
+                if self.lcd is not None:
+                    self.lcd.submit(frame, self._lcd_config())
+
                 cols, rows = self._grid_for(frame.shape)
 
                 try:
@@ -261,6 +317,8 @@ class AsciiArtLiveCamera:
             elapsed = time.time() - started
             avg = self.frame_count / elapsed if elapsed > 0 else 0
             self.camera.stop()
+            if self.lcd is not None:
+                self.lcd.stop()
             logger.info("Rendered %d frames in %.1fs (%.1f avg fps), "
                         "%d camera timeouts", self.frame_count, elapsed,
                         avg, self.dropped)
@@ -316,6 +374,26 @@ def parse_args(argv=None):
     parser.add_argument("--cell-aspect", type=float, default=2.0,
                         help="Terminal character height/width ratio, used to "
                              "keep the picture from looking squashed")
+    lcd = parser.add_argument_group(
+        "ILI9341 SPI panel",
+        "A second, independent output. Its grid is fixed by the font and is "
+        "unaffected by the terminal window's size; it always fills the panel, "
+        "so --fill is not mirrored. Colour, invert, ramp, rotation, contrast "
+        "and auto-levels are.")
+    lcd.add_argument("--lcd", action="store_true",
+                     help="Also render to the SPI panel")
+    lcd.add_argument("--lcd-font-size", type=int, default=8,
+                     help="Glyph size, which sets the panel's grid. 8 gives "
+                          "64x24, 6 gives 80x30 and 9 gives 64x20; all three "
+                          "tile 320x240 exactly and match the camera's 4:3, so "
+                          "nothing is cropped or letterboxed")
+    lcd.add_argument("--lcd-portrait", action="store_true",
+                     help="Run the panel as 240x320 instead of 320x240")
+    lcd.add_argument("--lcd-spi-hz", type=int, default=40_000_000,
+                     help="SPI clock. Lower it if the wiring is long or on a "
+                          "breadboard")
+    lcd.add_argument("--lcd-brightness", type=int, default=100,
+                     help="Backlight duty cycle, 0-100")
     parser.add_argument("--log", default=str(Path(__file__).resolve().parent
                                              / "ascii_camera.log"),
                         help="Log file (stderr is redirected here too)")
