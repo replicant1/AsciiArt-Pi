@@ -30,15 +30,21 @@ MODE="${1:-pull}"
 
 ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
             README.md piinput.py setup_uinput.sh)
-SRC_FILES=(ascii_art.py camera.py display.py image_processor.py window_plan.py
-           lcd.py lcd_display.py lcd_worker.py palettes.py)
+SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
+           window_plan.py lcd.py lcd_display.py lcd_worker.py palettes.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_selftest.py lcd_render_bench.py lcd_concurrency.py
-            palette_test.py keymap_test.py)
+            palette_test.py keymap_test.py display_modes_test.py
+            orientation_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
-DOC_FILES=(screenshot.png screenshot-colour.png display-selection-guide.html)
+DOC_FILES=(screenshot.png screenshot-colour.png scheme-montage.png
+           display-selection-guide.html)
+# Most of tools/ is documentation maintenance that runs on the Mac and has no
+# business on the Pi. scheme_montage.py is the exception: it needs the camera,
+# so it has to live on both sides.
+TOOL_FILES=(scheme_montage.py)
 
 changed=0
 
@@ -147,6 +153,13 @@ sweep() {
             transfer "$REPO/docs/$name" "$PI/docs/$name" "docs/$name"
         fi
     done
+    for name in "${TOOL_FILES[@]}"; do
+        if [ "$direction" = pull ]; then
+            transfer "$PI/tools/$name" "$REPO/tools/$name" "tools/$name"
+        else
+            transfer "$REPO/tools/$name" "$PI/tools/$name" "tools/$name"
+        fi
+    done
 }
 
 case "$MODE" in
@@ -159,7 +172,7 @@ case "$MODE" in
         ;;
     push)
         require_mount
-        mkdir -p "$PI/src" "$PI/tests" "$PI/docs"
+        mkdir -p "$PI/src" "$PI/tests" "$PI/docs" "$PI/tools"
         echo "repo -> Pi:"
         sweep push
         # CLAUDE.md is deliberately never pushed: the repo's copy is redacted,
