@@ -45,6 +45,7 @@ class LcdConfig(NamedTuple):
     ramp: str
     scheme: str
     colour_levels: int
+    mirror: bool
 
 
 class LcdWorker(threading.Thread):
@@ -153,6 +154,7 @@ class LcdWorker(threading.Thread):
         self.processor.rotation = config.rotation
         self.processor.contrast = config.contrast
         self.processor.auto_levels = config.auto_levels
+        self.processor.mirror = config.mirror
 
         # The ramp string is what the atlas is built from, and `invert` reverses
         # it, so either changing means both the mapping and the glyphs are stale.
