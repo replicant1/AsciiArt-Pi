@@ -122,9 +122,12 @@ def test_other_keys_intact():
     app._handle_key("f")
     check("f toggles fill", app.processor.fill)
 
+    # Relative to wherever it started, so this does not have to be revisited
+    # every time the default rotation changes.
+    before = app.processor.rotation
     app._handle_key("r")
-    check("r rotates", app.processor.rotation == 270,
-          str(app.processor.rotation))
+    check("r rotates by 90", app.processor.rotation == (before + 90) % 360,
+          f"{before} -> {app.processor.rotation}")
 
     app._handle_key("a")
     check("a toggles auto-levels", not app.processor.auto_levels)
