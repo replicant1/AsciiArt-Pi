@@ -20,7 +20,15 @@ import termios
 
 import numpy as np
 
+import palettes
+
 logger = logging.getLogger(__name__)
+
+# Pair numbers 16..255 are spoken for - each carries the ink of the palette
+# colour with the same number - so the pair used for cells that hold no
+# character, and therefore only need the screen colour, is taken from below
+# that range.
+BACKGROUND_PAIR = 1
 
 
 class NcursesDisplay:
@@ -49,13 +57,17 @@ class NcursesDisplay:
         logger.info("Terminal size: %dx%d characters", self.cols, self.rows)
         self.colour_ok = self._start_colour()
 
+        self.scheme = None
+        self._pad_attr = curses.A_NORMAL
+        self.set_scheme(palettes.SCHEMES[0])
+
     def _start_colour(self):
         """
-        Allocate one curses pair per palette entry the renderer might ask for.
+        Decide whether the terminal can do 256-colour work at all.
 
         Returns True if colour is usable. Measured on this Pi inside lxterminal:
         TERM=xterm-256color, 256 colours and 65,536 pairs available, so the 240
-        pairs wanted here are not close to any limit.
+        pairs the schemes want are not close to any limit.
         """
         try:
             curses.start_color()
@@ -63,17 +75,61 @@ class NcursesDisplay:
                 logger.info("Colour unavailable: has_colors=%s COLORS=%s",
                             curses.has_colors(), getattr(curses, "COLORS", "?"))
                 return False
-            # -1 keeps the terminal's own background, so the page stays black
-            # without burning a palette slot on it.
+            # Permits -1 as a colour, meaning "whatever the terminal already is".
             curses.use_default_colors()
-            for index in range(16, 256):
-                curses.init_pair(index, index, -1)
             logger.info("Colour ready: %d colours, %d pairs",
                         curses.COLORS, curses.COLOR_PAIRS)
             return True
         except curses.error as e:
             logger.info("Colour setup failed: %s", e)
             return False
+
+    def set_scheme(self, scheme):
+        """
+        Adopt a colour scheme, re-colouring the whole canvas.
+
+        A terminal only ever paints a character's ink; whatever lies behind the
+        glyph stays whatever the window already was.  That is fine for the
+        dark-screen schemes, whose background is roughly the black already
+        there, but a light-screen one (paper, lime, azure) would come out as
+        near-black ink on black and all but vanish.  So the screen colour is
+        attached to every pair as its *background*, and to the window itself,
+        which covers the padding around the picture and any cell not written
+        this frame.
+        """
+        self.scheme = scheme
+        if not self.colour_ok or scheme.kind == "grey":
+            # -1 keeps the terminal's own background, which is what greyscale
+            # has always done and all a colourless terminal can manage.
+            self._paint_pairs(-1)
+            self._pad_attr = curses.A_NORMAL
+        else:
+            background = palettes.nearest_xterm(scheme.screen)
+            self._paint_pairs(background)
+            try:
+                curses.init_pair(BACKGROUND_PAIR,
+                                 palettes.nearest_xterm(scheme.ink), background)
+                self._pad_attr = curses.color_pair(BACKGROUND_PAIR)
+            except curses.error:
+                self._pad_attr = curses.A_NORMAL
+
+        try:
+            # Applies to blanks and to anything not explicitly written.
+            self.stdscr.bkgd(" ", self._pad_attr)
+        except curses.error:
+            pass
+        self.stdscr.clear()
+        logger.info("Scheme: %s (%s)", scheme.name, scheme.note)
+
+    def _paint_pairs(self, background):
+        """Point every colour pair at `background`, each keeping its own ink."""
+        if not self.colour_ok:
+            return
+        for index in range(16, 256):
+            try:
+                curses.init_pair(index, index, background)
+            except curses.error:
+                pass
 
     @property
     def canvas_size(self):
@@ -140,21 +196,24 @@ class NcursesDisplay:
         for screen_row in range(canvas_rows):
             index = screen_row - top
             if not 0 <= index < picture_height:
-                self._write(screen_row, 0, " " * self.cols)
+                self._write(screen_row, 0, " " * self.cols, self._pad_attr)
                 continue
 
             line = ascii_lines[index][:self.cols]
             left = (self.cols - len(line)) // 2
             if use_colour:
-                self._write(screen_row, 0, " " * left)
+                self._write(screen_row, 0, " " * left, self._pad_attr)
                 self._write_runs(screen_row, left, line, colours[index])
                 trailing = self.cols - left - len(line)
                 if trailing > 0:
-                    self._write(screen_row, left + len(line), " " * trailing)
+                    self._write(screen_row, left + len(line),
+                                " " * trailing, self._pad_attr)
             else:
                 # Pad out to the full width so the previous frame's characters
                 # are overwritten without needing a clear().
-                self._write(screen_row, 0, (" " * left + line).ljust(self.cols))
+                self._write(screen_row, 0,
+                            (" " * left + line).ljust(self.cols),
+                            self._pad_attr)
 
         self._write_status(status)
         self.stdscr.refresh()
@@ -167,9 +226,9 @@ class NcursesDisplay:
         except curses.error:
             pass
 
-    def _write(self, row, col, text):
+    def _write(self, row, col, text, attr=curses.A_NORMAL):
         try:
-            self.stdscr.addstr(row, col, text)
+            self.stdscr.addstr(row, col, text, attr)
         except curses.error:
             # addstr on the final cell of a row is allowed to fail; the
             # character is written regardless.
@@ -216,10 +275,6 @@ class NcursesDisplay:
     def message(self, text):
         """Show a single centred line - used while the camera warms up."""
         self.stdscr.erase()
-        try:
-            self.stdscr.addstr(self.rows // 2,
-                               max(0, (self.cols - len(text)) // 2),
-                               text[:self.cols - 1])
-        except curses.error:
-            pass
+        self._write(self.rows // 2, max(0, (self.cols - len(text)) // 2),
+                    text[:self.cols - 1], self._pad_attr)
         self.stdscr.refresh()

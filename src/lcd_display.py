@@ -152,7 +152,7 @@ class LcdDisplay:
         """Character cell height/width, for correcting the picture's shape."""
         return self.atlas.cell_h / self.atlas.cell_w
 
-    def render(self, indices, colours=None):
+    def render(self, indices, colours=None, screen=(0, 0, 0)):
         """
         Draw one frame.
 
@@ -161,17 +161,19 @@ class LcdDisplay:
                 AsciiArt.to_indices.
             colours: Optional (rows, cols, 3) uint8 array, one RGB per cell.
                 When None the picture is drawn white-on-black.
+            screen: RGB behind the glyphs - a colour scheme's unlit screen.
+                Every pixel a glyph does not cover becomes this.
 
         Note the colours are used at full RGB565 depth rather than being
-        quantised to the xterm-256 cube the terminal is limited to - the panel
-        has no such limit, and skipping the quantisation is cheaper as well.
+        quantised to the xterm-256 palette the terminal is limited to - the
+        panel has no such limit, and skipping the quantisation is cheaper too.
         """
         coverage = self._blit(indices)
 
         if colours is None:
             self._pack_grey(coverage)
         else:
-            self._pack_colour(coverage, colours)
+            self._pack_colour(coverage, colours, screen)
 
         self.lcd.show_packed(self._frame.tobytes())
 
@@ -196,19 +198,36 @@ class LcdDisplay:
         self._region[..., 0] = (coverage & 0xF8) | (coverage >> 5)
         self._region[..., 1] = ((coverage << 3) & 0xE0) | (coverage >> 3)
 
-    def _pack_colour(self, coverage, colours):
-        """Write RGB565 with each glyph tinted by its cell's colour."""
+    def _pack_colour(self, coverage, colours, screen=(0, 0, 0)):
+        """
+        Write RGB565, fading from the screen colour to each cell's own colour.
+
+        Glyph coverage is the fade: a pixel the glyph misses entirely comes out
+        as the unlit screen, one the glyph fully covers as the cell's colour,
+        and the antialiased edge in between. With a black screen this reduces
+        to the old "tint the glyph, leave the rest black" behaviour.
+        """
         # One colour per cell, stretched to one per pixel.
         cell_h, cell_w = self.atlas.cell_h, self.atlas.cell_w
         big = np.repeat(np.repeat(colours, cell_h, axis=0), cell_w, axis=1)
 
-        # Modulate the cell colour by glyph coverage. The >> 8 rather than
-        # / 255 costs one count of brightness at full white and saves a divide
-        # over 76,800 pixels.
-        cov = coverage.astype(np.uint16)
-        r = (cov * big[..., 0]) >> 8
-        g = (cov * big[..., 1]) >> 8
-        b = (cov * big[..., 2]) >> 8
+        if not any(screen):
+            # A black screen - the live and greyscale schemes - collapses the
+            # blend to a plain modulate, which stays in uint16 and so skips the
+            # int32 promotion the general case needs. Worth the special case:
+            # it is about 7 ms a frame on this Pi.
+            cov = coverage.astype(np.uint16)
+            r, g, b = ((cov * big[..., i]) >> 8 for i in range(3))
+        else:
+            # (coverage + 1) >> 8 rather than / 255: exact at both ends - 0
+            # gives the screen colour, 255 the cell's colour - and saves a
+            # divide over 76,800 pixels.
+            weight = coverage.astype(np.int32) + 1
+            # int32 because the product reaches 255*256, well past int16. No
+            # clipping needed: delta >= -base bounds the result to 0..255.
+            r, g, b = (base
+                       + (((big[..., i].astype(np.int32) - base) * weight) >> 8)
+                       for i, base in enumerate(screen))
 
         self._region[..., 0] = ((r & 0xF8) | (g >> 5)).astype(np.uint8)
         self._region[..., 1] = (((g << 3) & 0xE0) | (b >> 3)).astype(np.uint8)
