@@ -34,6 +34,10 @@ BACKGROUND_PAIR = 1
 class NcursesDisplay:
     """Renders ASCII art frames to the terminal."""
 
+    # True unlike HeadlessDisplay: the render loop reads this to decide whether
+    # building the ASCII text and colour grid is worth doing at all.
+    draws = True
+
     def __init__(self, stdscr):
         """
         Args:
@@ -271,6 +275,9 @@ class NcursesDisplay:
         if 0 <= ch < 256:
             return chr(ch)
         return None
+
+    def close(self):
+        """Nothing to release - curses.wrapper restores the terminal."""
 
     def message(self, text):
         """Show a single centred line - used while the camera warms up."""

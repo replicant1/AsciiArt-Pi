@@ -6,12 +6,12 @@ the Android ASCII Art app.
 
 ![The ASCII Art Camera window running on a Raspberry Pi Zero 2](docs/screenshot.png)
 
-*Greyscale, running on the Pi at 14.9 fps. The status bar along the bottom
-reports the frame rate, ASCII grid size, and the current state of every
-toggle — rotation, contrast, colour mode, character ramp, auto-levels, fill
-and invert.*
+*Greyscale, running on the Pi at 15.0 fps in a 120 by 43 window. The status bar
+along the bottom reports the frame rate, ASCII grid size, and the current state
+of every toggle — rotation, contrast, colour scheme, character ramp,
+auto-levels, fill and invert.*
 
-![The same app in colour mode, 140 by 52 characters at 15 fps](docs/screenshot-colour.png)
+![The same app in the live colour scheme, 133 by 50 characters at 14.9 fps](docs/screenshot-colour.png)
 
 *Colour, at the full 15 fps. Press `s` to switch, or pass `--colour` at launch
 to have the window sized for colour automatically. The character still comes
@@ -88,6 +88,7 @@ A literal `--ramp` string (rather than one of the three names) reads out as
 | `--ramp` | `standard`, `fine`, `blocks`, or a literal string | `standard` | Character ramp, ordered light to dark. Cycle with `c` |
 | `--invert` | flag | off | Invert the ramp, for light-background terminals and positive-mode LCDs. Toggle with `i` |
 | `--cell-aspect` | float | `2.0` | Terminal character height/width ratio, which keeps the picture from looking squashed |
+| `--no-terminal` | flag | off | Draw nothing on the HDMI screen: no curses, no window. Needs `--lcd`. Keys still work when stdin is a terminal, as it is over SSH |
 | `--lcd` | flag | off | Also render to the ILI9341 SPI panel, alongside the terminal. See [The ILI9341 SPI panel](#the-ili9341-spi-panel) |
 | `--lcd-font-size` | integer | `8` | Glyph size, which sets the panel's grid. `8` gives 64x24; `6` gives 80x30 and `9` gives 64x20. All three tile 320x240 exactly and match the camera's 4:3 |
 | `--lcd-portrait` | flag | off | Run the panel as 240x320 instead of 320x240 |
@@ -134,6 +135,22 @@ reads out in the status bar as `sch:amber`.
 `grey` and `live` are the two original modes, kept unchanged and placed next to
 each other at the head of the cycle. Schemes 3 to 6 have dark screens, 7 to 9
 light ones, so cycling walks a deliberate arc rather than jumping about.
+
+![The nine colour schemes, all rendering one frame](docs/scheme-montage.png)
+
+*All nine schemes, and the comparison is a fair one: every tile is the same
+picture. One frame was captured, the character grid computed from it once, and
+each tile then reuses that identical grid of ramp positions — only the colour
+lookup differs. Nothing else can vary, because nothing else is recomputed.*
+
+Regenerate it with `python3 tools/scheme_montage.py`, which renders through the
+panel's own glyph atlas and blend, so the tiles show what the app really draws
+rather than an impression of it. It asserts its own claim before writing the
+file: each tile is reduced to which pixels a glyph covers, and those masks must
+agree. Eight of the nine are checked that way. `live` is checked structurally
+instead, because its ink comes from the scene — a cell the camera saw as nearly
+black renders nearly black whether a glyph covers it or not, so "is a glyph
+here" genuinely cannot be recovered from its pixels.
 
 ### Why these nine
 
@@ -883,6 +900,48 @@ bash run_ascii_camera.sh fit --lcd --scheme amber
 
 The panel shows only the picture — no status bar, no border, no window
 furniture.
+
+### Which displays to run
+
+The two outputs are independent, so there are four combinations and three of
+them are useful:
+
+| Terminal | Panel | How | Notes |
+|----------|-------|-----|-------|
+| yes | no | `bash run_ascii_camera.sh fit` | The default |
+| yes | yes | `bash run_ascii_camera.sh fit --lcd` | Both at once, independently sized |
+| no | yes | `python3 ascii_camera.py --lcd --no-terminal` | Headless: no window, no curses |
+| no | no | — | Refused, with exit code 2 |
+
+The last row is refused rather than allowed, because it would open the camera,
+render frames and show them to nobody — which is indistinguishable from a hang.
+The check happens before the log file is even opened, so the complaint lands on
+the terminal you are standing at.
+
+Headless mode is the reason the app can run without a desktop session at all.
+The launcher script is not used, since there is no window to size or profile to
+write; run `ascii_camera.py` directly. A status line goes to stdout every five
+seconds instead of being redrawn in place:
+
+```
+15.0fps headless rot180 con1.0 sch:amber chr:standard auto:on fill:off inv:off lcd:64x24
+```
+
+`headless` stands where the terminal grid usually reads, and `lcd:64x24` is the
+panel's own grid — the only one there is in this mode.
+
+**The single-key controls still work over SSH.** stdin is put in cbreak mode
+and polled without blocking, so `s`, `i`, `c` and the rest behave as they do in
+the window. When stdin is *not* a terminal — a systemd unit, a cron job, output
+piped elsewhere — key reading is disabled and the run uses whatever the command
+line asked for. Which it is gets logged either way.
+
+**Stopping it.** With no terminal on stdin there is no `q` to press, so a signal
+is the normal way a headless run ends. `SIGTERM` and `SIGINT` are both handled:
+the loop is asked to stop, and the camera and panel are released on the way out.
+Without that, Python's default `SIGTERM` exits without unwinding, leaving the
+panel lit with a frozen frame and its GPIO pins still claimed — which then
+breaks the next run.
 
 ### Wiring
 

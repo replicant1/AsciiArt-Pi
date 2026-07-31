@@ -50,7 +50,7 @@ class ImageProcessor:
     """Turns a raw greyscale camera frame into an ASCII-grid-sized array."""
 
     def __init__(self, contrast=1.0, auto_levels=True, rotation=180,
-                 fill=False, cell_aspect=DEFAULT_CELL_ASPECT):
+                 fill=False, cell_aspect=DEFAULT_CELL_ASPECT, mirror=True):
         """
         Args:
             contrast: Multiplier applied about mid-grey (1.0 = unchanged).
@@ -63,21 +63,40 @@ class ImageProcessor:
             fill: Crop the frame to fill the whole grid instead of letterboxing
                 it.  Fills the window at the cost of some field of view.
             cell_aspect: Terminal character height/width ratio.
+            mirror: Flip left to right after rotating. On by default because
+                this camera's mounting needs it - see rotate() for why a
+                rotation alone cannot express the correction.
         """
         self.contrast = contrast
         self.auto_levels = auto_levels
         self.rotation = rotation
         self.fill = fill
         self.cell_aspect = cell_aspect
+        self.mirror = mirror
 
     def rotate(self, frame):
-        """Rotate to correct for how the camera module is mounted."""
+        """
+        Put the frame the right way up and the right way round.
+
+        Rotation alone could not fix this module's mounting. The sensor is
+        upside down, which wants a vertical flip, but the only tool here was
+        np.rot90 - and a 180 degree rotation flips *both* axes. So the picture
+        came out correctly inverted and silently mirrored left to right, which
+        is hard to notice on a symmetrical scene and obvious on text or a face.
+
+        The horizontal flip corrects that. It is applied after the rotation and
+        to every plane, since to_grid() routes luma and chroma both through
+        here - any difference between them would show as colour fringing.
+        """
         if self.rotation == 90:
-            return np.rot90(frame, k=3)
-        if self.rotation == 180:
-            return np.rot90(frame, k=2)
-        if self.rotation == 270:
-            return np.rot90(frame, k=1)
+            frame = np.rot90(frame, k=3)
+        elif self.rotation == 180:
+            frame = np.rot90(frame, k=2)
+        elif self.rotation == 270:
+            frame = np.rot90(frame, k=1)
+
+        if self.mirror:
+            frame = np.fliplr(frame)
         return frame
 
     def crop_to_aspect(self, frame, target_aspect):
