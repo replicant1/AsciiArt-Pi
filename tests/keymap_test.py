@@ -60,7 +60,7 @@ def make_app():
     app.display = StubDisplay()
     app.processor = ImageProcessor()
     app.invert = False
-    app.ramp_name = "standard"
+    app.ramp_name = "coarse"
     app.ramp_index = 0
     app.colour_levels = 6
     app.scheme_index = 0
@@ -116,7 +116,7 @@ def test_other_keys_intact():
     check("i inverts", app.invert)
 
     app._handle_key("c")
-    check("c changes the character ramp", app.ramp_name != "standard",
+    check("c changes the character ramp", app.ramp_name != "coarse",
           app.ramp_name)
 
     app._handle_key("f")

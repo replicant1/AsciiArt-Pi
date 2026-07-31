@@ -51,7 +51,7 @@ Click the window first so it has keyboard focus.
 | `r`   | Rotate 90 degrees | `rot180` |
 | `f`   | Toggle fill (crop to fill the window) vs fit (whole field of view) | `fill:on` / `fill:off` |
 | `i`   | Invert the character ramp | `inv:on` / `inv:off` |
-| `c`   | Cycle character ramp: standard / fine / blocks | `chr:standard` |
+| `c`   | Cycle character ramp: coarse / fine | `chr:coarse` |
 | `s`   | Cycle colour scheme: grey / live / green / amber / cyan / navy / azure / lime / paper | `sch:grey` / `sch:green` |
 | `+` `-` | Contrast | `con1.0` |
 | `a`   | Toggle per-frame auto-levels | `auto:on` / `auto:off` |
@@ -60,14 +60,17 @@ Every toggle reads out its current state on the left of the status bar, so
 nothing is hidden:
 
 ```
- 15.0fps 267x100 rot180 con1.0 sch:grey chr:standard auto:on fill:off inv:off | q:quit ...
+ 15.0fps 267x100 rot180 con1.0 sch:grey chr:coarse auto:on fill:off inv:off | q:quit ...
 ```
 
 The key hints on the right are dropped in whole groups when the window is too
 narrow to hold them; the readouts on the left always stay.
 
-A literal `--ramp` string (rather than one of the three names) reads out as
-`chr:custom`.
+`--ramp` takes a name and nothing else — there is no way to supply the ramp
+characters yourself. It used to accept an arbitrary string, which meant a
+mistyped name was silently taken as a literal ramp: `--ramp standard` drew the
+picture out of the eight letters of the word rather than complaining. It is now
+rejected, listing the names that do work.
 
 ### Command-line arguments
 
@@ -85,7 +88,7 @@ A literal `--ramp` string (rather than one of the three names) reads out as
 | `--rotation` | 0, 90, 180, 270 | `180` | Camera rotation. The default matches the mounting rotation libcamera reports for this module. Cycle with `r` |
 | `--contrast` | float | `1.0` | Contrast multiplier about mid-grey. Adjust with `+`/`-` |
 | `--no-auto-levels` | flag | off | Disable per-frame brightness normalisation. Toggle with `a` |
-| `--ramp` | `standard`, `fine`, `blocks`, or a literal string | `standard` | Character ramp, ordered light to dark. Cycle with `c` |
+| `--ramp` | `coarse`, `fine` | `coarse` | Character ramp, ordered light to dark. Cycle with `c` |
 | `--invert` | flag | off | Invert the ramp, for light-background terminals and positive-mode LCDs. Toggle with `i` |
 | `--cell-aspect` | float | `2.0` | Terminal character height/width ratio, which keeps the picture from looking squashed |
 | `--no-terminal` | flag | off | Draw nothing on the HDMI screen: no curses, no window. Needs `--lcd`. Keys still work when stdin is a terminal, as it is over SSH |
@@ -792,19 +795,26 @@ At the full 267x100 grid, `c` (cycle ramp) is not free:
 
 | Ramp | Chars | Observed |
 |------|-------|----------|
-| `standard` | 10 | 15.1 fps |
+| `coarse` | 10 | 15.1 fps |
 | `fine` | 70 | 6.5 fps |
 
 This is **terminal I/O, not the pipeline** — generating the text costs 1.3 ms
 either way. With a 10-character ramp, large areas of the picture map to the
 same character between frames and ncurses only redraws what changed; with 70
 characters, nearly every cell differs every frame and the whole screen is
-rewritten. Use a smaller grid or the standard ramp if you want the frame rate.
+rewritten. Use a smaller grid or the coarse ramp if you want the frame rate.
 
-The `blocks` ramp contains non-ASCII glyphs. Mapping those with the obvious
-`"".join(chr(c) for c in row)` costs 40 ms per frame at this grid size — more
+A ramp may contain non-ASCII glyphs. Neither of the two does today, but the
+fast path for them is kept because adding one back would otherwise be
+expensive: mapping such a ramp with the obvious
+`"".join(chr(c) for c in row)` costs 40 ms per frame at this grid size, more
 than the entire rest of the pipeline. It instead uses a numpy `U1` table whose
 buffer decodes directly as UTF-32-LE, which brings it to 4.3 ms.
+
+There used to be a third built-in ramp, `blocks` — `coarse` plus `▓` and `█`.
+It was removed. Its appeal was contrast rather than detail: those two glyphs
+were the only ones in the project that came near a filled cell, reaching an ink
+coverage of 227 out of 255 where `coarse` tops out at 71.
 
 ## Window sizing and aspect ratio
 
@@ -924,7 +934,7 @@ write; run `ascii_camera.py` directly. A status line goes to stdout every five
 seconds instead of being redrawn in place:
 
 ```
-15.0fps headless rot180 con1.0 sch:amber chr:standard auto:on fill:off inv:off lcd:64x24
+15.0fps headless rot180 con1.0 sch:amber chr:coarse auto:on fill:off inv:off lcd:64x24
 ```
 
 `headless` stands where the terminal grid usually reads, and `lcd:64x24` is the

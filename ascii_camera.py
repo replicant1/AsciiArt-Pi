@@ -39,7 +39,10 @@ from image_processor import ImageProcessor, fit_grid  # noqa: E402
 
 logger = logging.getLogger("ascii_camera")
 
-RAMP_CYCLE = ["standard", "fine", "blocks"]
+# Derived from RAMPS rather than repeated, so adding or removing a ramp is a
+# one-line change in ascii_art.py and cannot leave the c key cycling through a
+# name that no longer exists.
+RAMP_CYCLE = list(RAMPS)
 
 
 def _on_off(flag):
@@ -66,11 +69,10 @@ class AsciiArtLiveCamera:
             cell_aspect=args.cell_aspect,
             mirror=args.mirror,
         )
-        # Track the ramp by name, not just by index into RAMP_CYCLE: --ramp
-        # also accepts a literal character string, which is not in the cycle.
+        # argparse has already restricted --ramp to a name in the cycle, so the
+        # index is always found and the two can never disagree.
         self.ramp_name = args.ramp
-        self.ramp_index = (RAMP_CYCLE.index(args.ramp)
-                           if args.ramp in RAMP_CYCLE else 0)
+        self.ramp_index = RAMP_CYCLE.index(args.ramp)
         self.invert = args.invert
         self.colour_levels = args.colour_levels
         # --scheme wins; --colour is kept as the old way of asking for the
@@ -267,8 +269,7 @@ class AsciiArtLiveCamera:
 
         cols, rows = self.grid or (0, 0)
         geometry = f"{cols}x{rows}" if self.display.draws else "headless"
-        # A literal --ramp string has no name to show, so label it "custom".
-        ramp = self.ramp_name if self.ramp_name in RAMPS else "custom"
+        ramp = self.ramp_name
         stats = (f" {fps:4.1f}fps {geometry} rot{self.processor.rotation}"
                  f" con{self.processor.contrast:.1f}"
                  f" sch:{self.scheme.name}"
@@ -473,9 +474,9 @@ def parse_args(argv=None):
                         help="Contrast multiplier about mid-grey")
     parser.add_argument("--no-auto-levels", action="store_true",
                         help="Disable per-frame brightness normalisation")
-    parser.add_argument("--ramp", default="standard",
-                        help=f"Character ramp: {', '.join(RAMPS)}, or a "
-                             f"literal string ordered light to dark")
+    parser.add_argument("--ramp", default="coarse", choices=RAMP_CYCLE,
+                        help="Character ramp, ordered light to dark. Cycle "
+                             "with c")
     parser.add_argument("--invert", action="store_true",
                         help="Invert the ramp (for light-background terminals)")
     parser.add_argument("--cell-aspect", type=float, default=2.0,

@@ -54,7 +54,7 @@ def main():
     print("LCD / main-loop contention")
     print("=" * 62)
 
-    art = AsciiArt(ramp="standard")
+    art = AsciiArt(ramp="coarse")
     display = LcdDisplay(ramp=art.chars, font_size=8)
     cols, rows = display.grid_size
 
