@@ -13,7 +13,7 @@ and invert.*
 
 ![The same app in colour mode, 140 by 52 characters at 15 fps](docs/screenshot-colour.png)
 
-*Colour, at the full 15 fps. Press `g` to switch, or pass `--colour` at launch
+*Colour, at the full 15 fps. Press `s` to switch, or pass `--colour` at launch
 to have the window sized for colour automatically. The character still comes
 from the brightness, so the two modes draw the same shapes; the colour comes
 from the camera's chroma, which greyscale mode discards.*
@@ -30,7 +30,7 @@ bash run_ascii_camera.sh fit            # biggest window the picture fills exact
 bash run_ascii_camera.sh 120            # 120 columns, rows chosen to match
 bash run_ascii_camera.sh 80x80          # exactly 80x80 (picture is letterboxed)
 bash run_ascii_camera.sh 80x80 --fill   # 80x80, cropped to fill the window
-bash run_ascii_camera.sh fit --colour   # start in colour (or press g)
+bash run_ascii_camera.sh fit --colour   # start in colour (or press s)
 bash run_ascii_camera.sh 120 --fps 10 --rotation 0
 python3 ascii_camera.py                 # in the terminal you are already in
 python3 ascii_camera.py --help          # all options
@@ -52,7 +52,7 @@ Click the window first so it has keyboard focus.
 | `f`   | Toggle fill (crop to fill the window) vs fit (whole field of view) | `fill:on` / `fill:off` |
 | `i`   | Invert the character ramp | `inv:on` / `inv:off` |
 | `c`   | Cycle character ramp: standard / fine / blocks | `chr:standard` |
-| `g`   | Toggle greyscale / colour | `mode:grey` / `mode:colour` |
+| `s`   | Cycle colour scheme: grey / live / green / amber / cyan / navy / azure / lime / paper | `sch:grey` / `sch:green` |
 | `+` `-` | Contrast | `con1.0` |
 | `a`   | Toggle per-frame auto-levels | `auto:on` / `auto:off` |
 
@@ -605,8 +605,9 @@ exactly what area averaging computes, and it is faster besides.
 
 ### Colour mode
 
-`g` switches between greyscale and colour. The colour comes from the camera's
-chroma, and the character still comes from the luma, so the two agree.
+`s` steps through the colour schemes; `live` is the one that takes its colour
+from the camera's chroma, with the character still coming from the luma so the
+two agree.
 
 Measured in lxterminal on this Pi, redrawing the same scene with and without
 per-character colour:
@@ -631,13 +632,16 @@ fills exactly, a larger font, and the full frame rate — and it passes
 bash run_ascii_camera.sh fit --colour     # 133x51 window, Monospace 11, 15 fps
 ```
 
-**The `g` key is a different matter.** Toggling colour on in a window that was
-sized for greyscale cannot enlarge the font, so the grid halves and the picture
-ends up occupying a quarter of the area, centred in black. That is deliberate:
-the alternative is full-grid colour at about 4 fps, which reads as broken rather
-than merely smaller. Press `g` again and full-size greyscale returns.
+**Reaching the `live` scheme with `s` is a different matter.** Switching to it
+in a window that was sized for greyscale cannot enlarge the font, so the grid
+halves and the picture ends up occupying a quarter of the area, centred in
+black. That is deliberate: the alternative is full-grid colour at about 4 fps,
+which reads as broken rather than merely smaller. Step `s` on and the full-size
+grid returns. Only `live` does this - the tinted schemes give neighbouring
+cells of equal brightness the same colour, so their runs stay long and they
+keep the full grid.
 
-If you would rather `g` never changed the picture size, launch with
+If you would rather `live` never changed the picture size, launch with
 `--colour-divisor 1` and accept roughly 4 fps whenever colour is on in a
 full-screen window.
 

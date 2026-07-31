@@ -23,6 +23,7 @@ import threading
 from queue import Empty, Full, Queue
 from typing import NamedTuple
 
+import palettes
 from ascii_art import AsciiArt
 from image_processor import ImageProcessor
 
@@ -42,7 +43,7 @@ class LcdConfig(NamedTuple):
     auto_levels: bool
     invert: bool
     ramp: str
-    colour: bool
+    scheme: str
     colour_levels: int
 
 
@@ -69,6 +70,7 @@ class LcdWorker(threading.Thread):
         )
         self._ascii = None
         self._config = None
+        self._scheme = palettes.SCHEMES[0]
 
         self.frames = 0
         self.dropped = 0
@@ -122,15 +124,22 @@ class LcdWorker(threading.Thread):
         """Downscale, map to characters and push one frame to the panel."""
         self._apply(config)
         cols, rows = self.display.grid_size
+        scheme = self._scheme
 
         grey = self.processor.process(frame.luma, cols, rows)
         indices = self._ascii.to_indices(grey)
 
         colours = None
-        if config.colour:
+        if scheme.kind == "live":
             colours = self.processor.colour_grid(frame, grey, cols, rows)
+        elif scheme.kind == "tint":
+            # One gather: ramp position -> the scheme's blend from screen to
+            # ink. Full RGB here, not the terminal's palette approximation.
+            table = palettes.rgb_table(scheme, len(self._ascii.chars),
+                                       config.invert)
+            colours = table[indices]
 
-        self.display.render(indices, colours)
+        self.display.render(indices, colours, scheme.screen)
 
     def _apply(self, config):
         """Adopt the main display's settings, rebuilding only what changed."""
@@ -139,6 +148,7 @@ class LcdWorker(threading.Thread):
 
         previous = self._config
         self._config = config
+        self._scheme = palettes.by_name(config.scheme)
 
         self.processor.rotation = config.rotation
         self.processor.contrast = config.contrast

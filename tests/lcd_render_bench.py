@@ -19,6 +19,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+import palettes                                    # noqa: E402
 from ascii_art import AsciiArt                     # noqa: E402
 from lcd_display import LcdDisplay                 # noqa: E402
 
@@ -92,8 +93,14 @@ def test_render(hold):
     colours[..., 1] = 255 - grey
     colours[..., 2] = 128
 
+    # "paper" is the worst case: a light screen means every pixel a glyph
+    # misses still has to be written, so nothing is saved on the blank areas.
+    paper = palettes.by_name("paper")
+    tint = palettes.rgb_table(paper, len(art.chars))[indices]
+
     for label, args in [("greyscale", (indices, None)),
-                        ("colour", (indices, colours))]:
+                        ("colour", (indices, colours)),
+                        ("tint/paper", (indices, tint, paper.screen))]:
         display.render(*args)                       # warm up allocations
         start = time.perf_counter()
         for _ in range(20):

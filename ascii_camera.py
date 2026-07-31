@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 import curses  # noqa: E402
 
+import palettes  # noqa: E402
 from ascii_art import RAMPS, AsciiArt  # noqa: E402
 from camera import CameraCapture  # noqa: E402
 from display import NcursesDisplay  # noqa: E402
@@ -68,8 +69,14 @@ class AsciiArtLiveCamera:
         self.ramp_index = (RAMP_CYCLE.index(args.ramp)
                            if args.ramp in RAMP_CYCLE else 0)
         self.invert = args.invert
-        self.colour = args.colour
         self.colour_levels = args.colour_levels
+        # --scheme wins; --colour is kept as the old way of asking for the
+        # live-colour scheme, since run_ascii_camera.sh reads it to size the
+        # window.
+        start = args.scheme or ("live" if args.colour else "grey")
+        self.scheme_index = palettes.SCHEME_NAMES.index(palettes.by_name(
+            start).name)
+        self.display.set_scheme(self.scheme)
         self._rebuild_ascii()
 
         self.grid = None            # (cols, rows), recomputed lazily
@@ -122,9 +129,60 @@ class AsciiArtLiveCamera:
             auto_levels=self.processor.auto_levels,
             invert=self.invert,
             ramp=self.ramp_name,
-            colour=self.colour,
+            scheme=self.scheme.name,
             colour_levels=self.colour_levels,
         )
+
+    @property
+    def scheme(self):
+        """The active colour scheme."""
+        return palettes.SCHEMES[self.scheme_index]
+
+    @property
+    def colour(self):
+        """
+        True when the picture's colour comes from the camera.
+
+        Only the live scheme pays the coarser grid: it needs a different colour
+        for every cell, whereas a tinted scheme gives neighbouring cells of
+        equal brightness the same colour, so its runs stay long and its redraw
+        cheap.
+        """
+        return self.scheme.kind == "live"
+
+    def _cycle_scheme(self):
+        """Step to the next scheme, skipping any this terminal cannot show."""
+        count = len(palettes.SCHEMES)
+        for step in range(1, count + 1):
+            candidate = palettes.SCHEMES[(self.scheme_index + step) % count]
+            if candidate.kind == "grey" or self.display.colour_ok:
+                self.scheme_index = (self.scheme_index + step) % count
+                break
+        else:
+            return
+
+        self.display.set_scheme(self.scheme)
+        self.grid_key = None        # the live scheme uses a coarser grid
+        logger.info("Scheme: %s (%s)", self.scheme.name, self.scheme.note)
+
+    def _colours_for(self, frame, processed, cols, rows):
+        """
+        Per-cell terminal palette indices for the active scheme, or None.
+
+        None means "draw in the terminal's own foreground colour", which is
+        what greyscale wants and is also the cheapest path.
+        """
+        scheme = self.scheme
+        if not self.display.colour_ok or scheme.kind == "grey":
+            return None
+        if scheme.kind == "live":
+            rgb = self.processor.colour_grid(frame, processed, cols, rows)
+            return self.ascii_art.to_colour_indices(rgb)
+        # Tinted: one gather straight from ramp position to palette index.
+        indices = self.ascii_art.to_indices(processed)
+        table = palettes.index_table(scheme, len(self.ascii_art.chars),
+                                     self.invert)
+        return table[indices]
 
     def _rebuild_ascii(self):
         """Rebuild the generator, carrying every current setting."""
@@ -199,7 +257,7 @@ class AsciiArtLiveCamera:
         ramp = self.ramp_name if self.ramp_name in RAMPS else "custom"
         stats = (f" {fps:4.1f}fps {cols}x{rows} rot{self.processor.rotation}"
                  f" con{self.processor.contrast:.1f}"
-                 f" mode:{'colour' if self.colour else 'grey'}"
+                 f" sch:{self.scheme.name}"
                  f" chr:{ramp}"
                  f" auto:{_on_off(self.processor.auto_levels)}"
                  f" fill:{_on_off(self.processor.fill)}"
@@ -213,9 +271,9 @@ class AsciiArtLiveCamera:
 
         width = self.display.cols - 1
         for keys in (" | q:quit r:rotate f:fill i:invert c:chars +/-:contrast"
-                     " a:auto g:colour",
-                     " | q:quit r:rotate f:fill i:invert c:chars",
-                     " | q:quit r:rotate f:fill",
+                     " a:auto s:scheme",
+                     " | q:quit r:rotate f:fill i:invert c:chars s:scheme",
+                     " | q:quit r:rotate f:fill s:scheme",
                      " | q:quit",
                      ""):
             if len(stats) + len(keys) <= width:
@@ -233,13 +291,8 @@ class AsciiArtLiveCamera:
         elif key in ("r", "R"):
             self.processor.rotation = (self.processor.rotation + 90) % 360
             self.grid_key = None
-        elif key in ("g", "G"):
-            if self.display.colour_ok:
-                self.colour = not self.colour
-                self.grid_key = None
-                self.display.clear()
-            else:
-                logger.info("Colour asked for, but the terminal lacks 256 colours")
+        elif key in ("s", "S"):
+            self._cycle_scheme()
         elif key in ("f", "F"):
             self.processor.fill = not self.processor.fill
             self.grid_key = None
@@ -294,11 +347,7 @@ class AsciiArtLiveCamera:
                 try:
                     processed = self.processor.process(frame.luma, cols, rows)
                     ascii_lines = self.ascii_art.to_ascii_text(processed)
-                    colours = None
-                    if self.colour and self.display.colour_ok:
-                        rgb = self.processor.colour_grid(frame, processed,
-                                                        cols, rows)
-                        colours = self.ascii_art.to_colour_indices(rgb)
+                    colours = self._colours_for(frame, processed, cols, rows)
                 except Exception as e:
                     logger.error("Frame processing failed: %s", e, exc_info=True)
                     continue
@@ -345,9 +394,15 @@ def parse_args(argv=None):
                         help="Camera capture height")
     parser.add_argument("--fps", type=int, default=15,
                         help="Target frame rate")
+    parser.add_argument("--scheme", choices=palettes.SCHEME_NAMES,
+                        help="Colour scheme to start in; step through them "
+                             "live with s. "
+                             + "; ".join(f"{s.name}: {s.note}"
+                                         for s in palettes.SCHEMES))
     parser.add_argument("--colour", "--color", action="store_true",
                         dest="colour",
-                        help="Start in colour mode (toggle live with g)")
+                        help="Shorthand for --scheme live. Ignored if "
+                             "--scheme is given")
     parser.add_argument("--colour-levels", type=int, default=6,
                         choices=[2, 3, 4, 5, 6],
                         help="Palette steps per channel in colour mode. "
