@@ -15,6 +15,7 @@ Press 'q' to quit; other live controls are listed in the status line.
 import argparse
 import logging
 import os
+import signal
 import sys
 import time
 from collections import deque
@@ -33,6 +34,7 @@ import palettes  # noqa: E402
 from ascii_art import RAMPS, AsciiArt  # noqa: E402
 from camera import CameraCapture  # noqa: E402
 from display import NcursesDisplay  # noqa: E402
+from headless import HeadlessDisplay  # noqa: E402
 from image_processor import ImageProcessor, fit_grid  # noqa: E402
 
 logger = logging.getLogger("ascii_camera")
@@ -62,6 +64,7 @@ class AsciiArtLiveCamera:
             rotation=args.rotation,
             fill=args.fill,
             cell_aspect=args.cell_aspect,
+            mirror=args.mirror,
         )
         # Track the ramp by name, not just by index into RAMP_CYCLE: --ramp
         # also accepts a literal character string, which is not in the cycle.
@@ -90,6 +93,15 @@ class AsciiArtLiveCamera:
 
         self._lcd_config_type = None
         self.lcd = self._start_lcd() if args.lcd else None
+
+        # Losing the panel is survivable when there is a terminal to fall back
+        # on, and _start_lcd deliberately treats it that way. With no terminal
+        # either, the app would run the camera and show the result to nobody,
+        # so that combination is refused rather than left looking like a hang.
+        if not display.draws and self.lcd is None:
+            raise RuntimeError(
+                "no output: the terminal is switched off and the LCD panel "
+                f"did not start. See {args.log} for why.")
 
     def _start_lcd(self):
         """
@@ -131,6 +143,7 @@ class AsciiArtLiveCamera:
             ramp=self.ramp_name,
             scheme=self.scheme.name,
             colour_levels=self.colour_levels,
+            mirror=self.processor.mirror,
         )
 
     @property
@@ -253,9 +266,10 @@ class AsciiArtLiveCamera:
             fps = 0.0
 
         cols, rows = self.grid or (0, 0)
+        geometry = f"{cols}x{rows}" if self.display.draws else "headless"
         # A literal --ramp string has no name to show, so label it "custom".
         ramp = self.ramp_name if self.ramp_name in RAMPS else "custom"
-        stats = (f" {fps:4.1f}fps {cols}x{rows} rot{self.processor.rotation}"
+        stats = (f" {fps:4.1f}fps {geometry} rot{self.processor.rotation}"
                  f" con{self.processor.contrast:.1f}"
                  f" sch:{self.scheme.name}"
                  f" chr:{ramp}"
@@ -312,8 +326,32 @@ class AsciiArtLiveCamera:
             self.processor.auto_levels = not self.processor.auto_levels
         return True
 
+    def _install_signal_handlers(self):
+        """
+        Stop cleanly when signalled, not just when 'q' is pressed.
+
+        This matters most headless. With no terminal on stdin there is no 'q'
+        to press, so a signal is the only way such a run ever ends - and
+        Python's default SIGTERM handling exits without unwinding, so the
+        `finally` that stops the camera and releases the panel never runs. The
+        panel is left lit with a frozen frame and its GPIO pins still claimed,
+        which then breaks the next run.
+        """
+        def stop(signum, _frame):
+            logger.info("Signal %d received; shutting down", signum)
+            self.is_running = False
+
+        for received in (signal.SIGTERM, signal.SIGINT):
+            try:
+                signal.signal(received, stop)
+            except ValueError:
+                # Only the main thread may install handlers; a caller running
+                # this elsewhere keeps the default behaviour.
+                logger.info("Could not handle signal %d here", received)
+
     def run(self):
         """Main loop."""
+        self._install_signal_handlers()
         self.display.message("Starting camera, please wait...")
         self.camera.start()
         self.is_running = True
@@ -342,15 +380,23 @@ class AsciiArtLiveCamera:
                 if self.lcd is not None:
                     self.lcd.submit(frame, self._lcd_config())
 
-                cols, rows = self._grid_for(frame.shape)
-
-                try:
-                    processed = self.processor.process(frame.luma, cols, rows)
-                    ascii_lines = self.ascii_art.to_ascii_text(processed)
-                    colours = self._colours_for(frame, processed, cols, rows)
-                except Exception as e:
-                    logger.error("Frame processing failed: %s", e, exc_info=True)
-                    continue
+                if self.display.draws:
+                    cols, rows = self._grid_for(frame.shape)
+                    try:
+                        processed = self.processor.process(frame.luma,
+                                                           cols, rows)
+                        ascii_lines = self.ascii_art.to_ascii_text(processed)
+                        colours = self._colours_for(frame, processed,
+                                                    cols, rows)
+                    except Exception as e:
+                        logger.error("Frame processing failed: %s", e,
+                                     exc_info=True)
+                        continue
+                else:
+                    # No terminal: the panel does its own downscale and
+                    # character mapping on its own thread, so building a
+                    # picture here would be work nothing ever looks at.
+                    ascii_lines, colours = (), None
 
                 self.frame_count += 1
                 self.frame_times.append(time.time())
@@ -414,6 +460,12 @@ def parse_args(argv=None):
     parser.add_argument("--fill", action="store_true",
                         help="Crop the picture to fill the whole window "
                              "instead of letterboxing it to fit")
+    parser.add_argument("--no-mirror", action="store_false", dest="mirror",
+                        help="Do not flip the picture left to right. The flip "
+                             "is on by default because this camera's mounting "
+                             "needs it: the sensor is upside down, and a 180 "
+                             "degree rotation corrects that but mirrors the "
+                             "picture as a side effect")
     parser.add_argument("--rotation", type=int, default=180,
                         choices=[0, 90, 180, 270],
                         help="Camera rotation in degrees")
@@ -429,6 +481,11 @@ def parse_args(argv=None):
     parser.add_argument("--cell-aspect", type=float, default=2.0,
                         help="Terminal character height/width ratio, used to "
                              "keep the picture from looking squashed")
+    parser.add_argument("--no-terminal", action="store_true",
+                        help="Draw nothing on the HDMI screen: no curses, no "
+                             "window. Needs --lcd, since otherwise there is "
+                             "no output at all. The single-key controls still "
+                             "work when stdin is a terminal, as it is over SSH")
     lcd = parser.add_argument_group(
         "ILI9341 SPI panel",
         "A second, independent output. Its grid is fixed by the font and is "
@@ -481,6 +538,15 @@ def setup_logging(path, verbose):
 
 def main(argv=None):
     args = parse_args(argv)
+
+    # Caught before the log is even opened: this one is a usage mistake, not a
+    # runtime failure, and the message belongs on the terminal the user is
+    # standing at rather than in a file.
+    if args.no_terminal and not args.lcd:
+        print("--no-terminal needs --lcd: together they would produce no "
+              "output at all.\nEither drop --no-terminal, or add --lcd.")
+        return 2
+
     setup_logging(args.log, args.verbose)
     logger.info("=== ASCII Art Live Camera starting: %s ===", vars(args))
 
@@ -489,7 +555,14 @@ def main(argv=None):
         AsciiArtLiveCamera(display, args).run()
 
     try:
-        curses.wrapper(bootstrap)
+        if args.no_terminal:
+            # No curses.wrapper here: there is no screen to put into a special
+            # mode and restore afterwards. HeadlessDisplay still has stdin to
+            # give back, which is what the context manager is for.
+            with HeadlessDisplay() as display:
+                AsciiArtLiveCamera(display, args).run()
+        else:
+            curses.wrapper(bootstrap)
     except Exception as e:
         # The terminal has been restored by now, so this is safe to print.
         logger.error("Fatal error: %s", e, exc_info=True)
