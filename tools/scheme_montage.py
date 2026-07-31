@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import palettes                                  # noqa: E402
-from ascii_art import AsciiArt                   # noqa: E402
+from ascii_art import RAMPS, AsciiArt            # noqa: E402
 from image_processor import ImageProcessor       # noqa: E402
 from lcd_display import DEFAULT_FONT, GlyphAtlas  # noqa: E402
 
@@ -145,7 +145,7 @@ def colours_for(scheme, indices, art, processor, frame, processed, cols, rows):
     return (palettes.rgb_table(scheme, len(art.chars))[indices], scheme.screen)
 
 
-def build(frame, ramp="standard", invert=False, rotation=180, verify=True,
+def build(frame, ramp="coarse", invert=False, rotation=180, verify=True,
           mirror=True):
     """Render every scheme from one frame and return the tiles, in order."""
     art = AsciiArt(ramp=ramp, invert=invert)
@@ -263,7 +263,7 @@ def main():
                                         "capturing a new frame")
     parser.add_argument("--save-frame", help="Write the captured frame here, "
                                              "so the montage can be remade")
-    parser.add_argument("--ramp", default="standard")
+    parser.add_argument("--ramp", default="coarse", choices=list(RAMPS))
     parser.add_argument("--invert", action="store_true")
     parser.add_argument("--rotation", type=int, default=180)
     parser.add_argument("--no-mirror", action="store_false", dest="mirror",

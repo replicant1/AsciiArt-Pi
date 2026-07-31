@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import palettes                                    # noqa: E402
-from ascii_art import AsciiArt                     # noqa: E402
+from ascii_art import RAMPS, AsciiArt              # noqa: E402
 from lcd_display import LcdDisplay                 # noqa: E402
 
 failures = []
@@ -38,7 +38,9 @@ def test_index_agreement():
     print("\n1. Character choice agrees between terminal and panel")
 
     probe = np.arange(256, dtype=np.uint8).reshape(16, 16)
-    for ramp in ("standard", "fine", "blocks"):
+    # Every built-in ramp, taken from RAMPS rather than listed here, so this
+    # cannot quietly stop covering one that was added or removed.
+    for ramp in RAMPS:
         for invert in (False, True):
             art = AsciiArt(ramp=ramp, invert=invert)
             text = art.to_ascii_text(probe)
@@ -63,7 +65,7 @@ def gradient_grid(cols, rows):
 def test_render(hold):
     print("\n2. Panel bring-up and geometry")
 
-    art = AsciiArt(ramp="standard")
+    art = AsciiArt(ramp="coarse")
     display = LcdDisplay(ramp=art.chars, font_size=8)
     cols, rows = display.grid_size
     panel_w, panel_h = display.lcd.width, display.lcd.height

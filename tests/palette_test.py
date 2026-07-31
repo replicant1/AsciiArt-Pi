@@ -158,8 +158,8 @@ def test_invert():
     scheme = palettes.by_name("green")
     probe = np.array([[0, 128, 255]], dtype=np.uint8)
 
-    plain = AsciiArt(ramp="standard", invert=False)
-    flipped = AsciiArt(ramp="standard", invert=True)
+    plain = AsciiArt(ramp="coarse", invert=False)
+    flipped = AsciiArt(ramp="coarse", invert=True)
     n = len(plain.chars)
 
     bright_plain = palettes.rgb_table(scheme, n, False)[

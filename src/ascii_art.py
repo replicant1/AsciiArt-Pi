@@ -15,9 +15,8 @@ logger = logging.getLogger(__name__)
 
 # Characters ordered light -> dark (i.e. by increasing ink coverage).
 RAMPS = {
-    "standard": " .:-=+*#%@",
+    "coarse": " .:-=+*#%@",
     "fine": " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
-    "blocks": " .:-=+*#%@▓█",
 }
 
 # xterm-256 puts a 6x6x6 colour cube at indices 16..231, with these intensities
@@ -45,18 +44,24 @@ def _level_lut(levels):
 class AsciiArt:
     """Generates ASCII art from a greyscale array."""
 
-    def __init__(self, ramp="standard", invert=False, colour_levels=6):
+    def __init__(self, ramp="coarse", invert=False, colour_levels=6):
         """
         Args:
-            ramp: Key into RAMPS, or a literal character ramp (light -> dark).
+            ramp: Key into RAMPS. There is deliberately no way to supply the
+                characters directly - see the check below.
             invert: Swap the ramp.  The default suits light-on-dark terminals,
                 where a bright part of the scene should be drawn with a dense
                 character (more lit pixels).  Invert for a light background.
             colour_levels: Cube steps per channel used in colour mode, 2 to 6.
         """
-        self.chars = RAMPS.get(ramp, ramp)
-        if not self.chars:
-            raise ValueError("ASCII ramp must not be empty")
+        # A name only. This used to fall back to treating an unrecognised value
+        # as a literal ramp, which meant a mistyped name silently drew the
+        # picture out of the letters of the typo - "--ramp standard" rendered
+        # an eight-character ramp spelling the word - rather than complaining.
+        if ramp not in RAMPS:
+            raise ValueError(f"unknown ramp {ramp!r}; choose from "
+                             f"{', '.join(RAMPS)}")
+        self.chars = RAMPS[ramp]
         if invert:
             self.chars = self.chars[::-1]
 
@@ -87,8 +92,10 @@ class AsciiArt:
         single tobytes()/decode() and no Python-level loop:
 
           * Pure-ASCII ramp -> uint8 table, decoded as ASCII (1 byte/char).
-          * Ramp with non-ASCII glyphs (e.g. the block characters) -> numpy
-            'U1' table, whose buffer is UCS-4 and so decodes as UTF-32-LE.
+          * Ramp with non-ASCII glyphs -> numpy 'U1' table, whose buffer is
+            UCS-4 and so decodes as UTF-32-LE.  No ramp in RAMPS needs this
+            today - the block ramp that did has been removed - but adding one
+            back would otherwise cost 40 ms a frame, so the path is kept.
 
         The obvious fallback for the second case, "".join(chr(c) for c in row),
         costs one interpreter round trip per character - at 267x100 that is
