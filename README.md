@@ -18,7 +18,7 @@ auto-levels, fill and invert.*
 modes draw the same shapes; the colour comes from the camera's chroma, which
 greyscale mode discards. Colour costs roughly three times the redraw, and the
 grid is no longer shrunk to hide that — at a full-screen 267x100 the same scene
-runs closer to 4 fps.*
+runs at about 3 fps.*
 
 ![The HDMI monitor and the 2.4 inch SPI panel both showing the ASCII camera, with the camera module and breadboard in front](docs/both-displays.jpg)
 
@@ -755,8 +755,10 @@ per-character colour:
 **That cost is now simply paid.** The grid follows the window and the camera,
 and nothing else — switching scheme with `s` never resizes the picture, and
 `--colour` gets no special window sizing at launch. Colour in a full-screen
-267x100 window therefore runs at roughly 4 fps, and that is the intended
-behaviour rather than a regression.
+267x100 window therefore runs at about **3 fps** — measured on the Pi at 3.3,
+3.4, 3.5, 2.5 and 3.0 — and that is the intended behaviour rather than a
+regression. The table above is a synthetic render benchmark; the live app is
+slightly slower again, since it is also capturing and driving curses.
 
 This used to work the other way. The app halved the grid on both axes whenever
 the `live` scheme was on, and the launcher halved the planned window to match so

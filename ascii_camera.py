@@ -165,7 +165,9 @@ class AsciiArtLiveCamera:
             return
 
         self.display.set_scheme(self.scheme)
-        self.grid_key = None        # the live scheme uses a coarser grid
+        # No grid invalidation here on purpose: the grid does not depend on the
+        # scheme any more, so recomputing it would only produce the same answer
+        # and log a line claiming a change that did not happen.
         logger.info("Scheme: %s (%s)", self.scheme.name, self.scheme.note)
 
     def _colours_for(self, frame, processed, cols, rows):
