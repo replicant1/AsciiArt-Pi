@@ -356,25 +356,61 @@ only files that actually differ. Two things it does that are worth knowing:
 
 ## Architecture
 
-```
-Camera thread                     Main thread
-     |                                 |
-capture_array()                        |
-     |                                 |
-  Y plane  --- 1-slot queue --->  rotate / crop
- (greyscale)   (drops stale)           |
-                                  resize to grid  (PIL BOX)
-                                       |
-                                  auto-levels
-                                       |
-                                  256-entry LUT  -> ASCII rows
-                                       |
-                                  curses render
+```mermaid
+flowchart TB
+    subgraph camthread["camera.py — capture thread"]
+        CAP["picam2.capture_array"]
+        WRAP["_wrap to YuvFrame<br/>luma plane, stride padding sliced off"]
+        CAP --> WRAP
+    end
+
+    Q(["frame_queue<br/>maxsize 1, drop oldest"])
+    WRAP --> Q
+
+    subgraph mainthread["ascii_camera.py — main thread"]
+        GET["camera.get_frame"]
+        PROC["ImageProcessor.process<br/>rotate, crop, resize BOX, auto-levels"]
+        ART["AsciiArt.to_ascii_text<br/>256-entry LUT"]
+        REND["NcursesDisplay.render<br/>xterm-256 colour pairs"]
+        GET --> PROC --> ART --> REND
+    end
+
+    Q --> GET
+
+    subgraph lcdthread["lcd_worker.py — LCD thread, only with --lcd"]
+        INBOX(["_inbox<br/>maxsize 1, drop oldest"])
+        LPROC["ImageProcessor, fill=True<br/>its own grid, from the panel font"]
+        LART["AsciiArt.to_indices"]
+        LREND["LcdDisplay.render<br/>GlyphAtlas gather, pack to RGB565"]
+        LSPI["ILI9341.show_packed<br/>spidev, 153600 bytes a frame"]
+        INBOX --> LPROC --> LART --> LREND --> LSPI
+    end
+
+    GET -->|"submit(frame, LcdConfig)"| INBOX
+
+    REND --> TERM(["HDMI terminal window"])
+    LSPI --> PANEL(["2.4 inch ILI9341 panel"])
 ```
 
-The camera thread keeps a **one-frame queue and drops the previous frame** on
-every capture, so a slow render never accumulates a backlog of stale frames —
-the picture stays current rather than falling progressively further behind.
+**Both queues hold one frame and drop the older one.** The camera thread
+overwrites the pending frame on every capture, so a slow render never
+accumulates a backlog — the picture stays current rather than falling
+progressively further behind. `LcdWorker.submit()` does the same thing for the
+panel, and neither blocks nor raises, so a slow SPI write can never stall the
+main loop.
+
+**The LCD is a second pipeline, not a copy of the first.** It takes the same
+`YuvFrame` and redoes the work: its own `ImageProcessor` with `fill=True`, its
+own `AsciiArt`, and a grid it derives from its own font rather than the
+terminal's. It has to. The panel is 64x24 where the window might be 267x100, it
+always fills rather than letterboxing, and it can use full RGB where curses is
+limited to the xterm-256 palette. What it copies instead is the *settings* —
+`LcdConfig` is a snapshot of rotation, contrast, ramp, scheme and the rest,
+taken every frame, so pressing `s` or `c` changes both displays together.
+
+With `--no-terminal` the `NcursesDisplay` branch is replaced by
+`HeadlessDisplay`, which renders nothing and only logs — the panel then carries
+the picture alone.
 
 ### Classes
 
@@ -416,10 +452,16 @@ classDiagram
         +Thread capture_thread
         +bool is_running
         +start()
-        +get_frame(timeout) ndarray
+        +get_frame(timeout) YuvFrame
         +stop()
         -_capture_loop()
-        -_extract_luma(frame) ndarray
+        -_wrap(frame) YuvFrame
+    }
+
+    class YuvFrame {
+        +tuple shape
+        +ndarray luma
+        +ndarray chroma
     }
 
     class ImageProcessor {
@@ -427,8 +469,11 @@ classDiagram
         +bool auto_levels
         +int rotation
         +bool fill
+        +bool mirror
         +float cell_aspect
         +process(luma, cols, rows) ndarray
+        +to_grid(plane, cols, rows) ndarray
+        +colour_grid(frame, grey, cols, rows) ndarray
         +rotate(frame) ndarray
         +crop_to_aspect(frame, target_aspect) ndarray
         +resize(frame, cols, rows) ndarray
@@ -439,23 +484,121 @@ classDiagram
     class AsciiArt {
         +str chars
         +ndarray lut
-        +bool is_ascii
+        +int colour_levels
         +to_ascii_text(grayscale_frame) list
+        +to_indices(grayscale_frame) ndarray
+        +to_colour_indices(rgb) ndarray
         -_build_lut() ndarray
     }
 
     class NcursesDisplay {
+        +bool draws
         +window stdscr
         +int rows
         +int cols
         +tuple canvas_size
         +cell_metrics() tuple
         +refresh_size() bool
-        +render(ascii_lines, status)
+        +set_scheme(scheme)
+        +render(ascii_lines, status, colours)
         +get_key() str
         +message(text)
         +clear()
+        +close()
         -_configure()
+        -_start_colour()
+        -_write_runs(row, col, line, colour_row)
+    }
+
+    class HeadlessDisplay {
+        +bool draws
+        +float status_interval
+        +cell_metrics() tuple
+        +refresh_size() bool
+        +set_scheme(scheme)
+        +render(ascii_lines, status, colours)
+        +get_key() str
+        +message(text)
+        +clear()
+        +close()
+    }
+
+    class Scheme {
+        <<NamedTuple>>
+        +str name
+        +str kind
+        +tuple ink
+        +tuple screen
+        +str note
+    }
+
+    class LcdWorker {
+        <<threading.Thread>>
+        +LcdDisplay display
+        +ImageProcessor processor
+        +int frames
+        +int dropped
+        +int errors
+        +submit(frame, config)
+        +run()
+        +stop(timeout)
+        -_draw(frame, config)
+        -_apply(config)
+    }
+
+    class LcdConfig {
+        <<NamedTuple>>
+        +int rotation
+        +float contrast
+        +bool auto_levels
+        +bool invert
+        +str ramp
+        +str scheme
+        +int colour_levels
+        +bool mirror
+    }
+
+    class LcdDisplay {
+        +ILI9341 lcd
+        +GlyphAtlas atlas
+        +int cols
+        +int rows
+        +tuple grid_size
+        +float cell_aspect
+        +set_ramp(ramp)
+        +render(indices, colours, screen)
+        +clear()
+        +close()
+        -_blit(indices)
+        -_pack_grey(coverage)
+        -_pack_colour(coverage, colours, screen)
+    }
+
+    class GlyphAtlas {
+        +str chars
+        +FreeTypeFont font
+        +int cell_w
+        +int cell_h
+        +ndarray tiles
+        -_render() ndarray
+    }
+
+    class ILI9341 {
+        +int width
+        +int height
+        +bool landscape
+        +SpiDev spi
+        +int dc
+        +int rst
+        +int bl
+        +reset()
+        +init()
+        +set_window(x0, y0, x1, y1)
+        +fill(colour)
+        +show(image)
+        +show_packed(packed)
+        +backlight(percent)
+        +close()
     }
 
     class Mouse {
@@ -480,14 +623,43 @@ classDiagram
     AsciiArtLiveCamera *-- ImageProcessor : rotate, crop, resize, levels
     AsciiArtLiveCamera *-- AsciiArt : brightness to characters
     AsciiArtLiveCamera o-- NcursesDisplay : render, keys
+    AsciiArtLiveCamera o-- LcdWorker : only with --lcd
+
+    CameraCapture ..> YuvFrame : produces
+    NcursesDisplay ..|> HeadlessDisplay : same duck type, draws=False
+    NcursesDisplay ..> Scheme : colour pairs
+    AsciiArtLiveCamera ..> LcdConfig : one snapshot per frame
+
+    LcdWorker *-- LcdDisplay : owns once started
+    LcdWorker *-- ImageProcessor : its own, fill=True
+    LcdWorker *-- AsciiArt : its own, panel grid
+    LcdWorker ..> LcdConfig : adopts settings
+    LcdWorker ..> Scheme : live, tint or grey
+
+    LcdDisplay *-- GlyphAtlas : pre-rendered glyph tiles
+    LcdDisplay *-- ILI9341 : packed RGB565 over SPI
 
     Keyboard ..> NcursesDisplay : synthetic keys, via the kernel
 ```
 
-Five classes make up the app itself. `AsciiArtLiveCamera` constructs the
-camera, processor and renderer, hence composition; `NcursesDisplay` is
-aggregation instead, because `curses.wrapper()` owns the screen and hands the
-window in.
+The app core is `AsciiArtLiveCamera`, which constructs the camera, processor and
+renderer, hence composition; `NcursesDisplay` is aggregation instead, because
+`curses.wrapper()` owns the screen and hands the window in. `LcdWorker` is
+aggregation for a different reason — it only exists when `--lcd` is passed, so
+`self.lcd` is `None` on an ordinary run and every use of it is guarded.
+
+**The LCD half of the diagram is deliberately a parallel of the top half.**
+`LcdWorker` owns its *own* `ImageProcessor` and `AsciiArt`, which is why those
+two classes appear on both sides of the picture. Nothing is shared but the
+`YuvFrame` itself and an immutable `LcdConfig` snapshot, and that is what makes
+the thread safe: once `start()` is called the worker owns its `LcdDisplay`
+outright and the main loop never touches it again. The one channel between them
+is `submit()`, which drops rather than blocks.
+
+Underneath, `LcdDisplay` is where the ASCII grid becomes pixels — `GlyphAtlas`
+pre-renders every character in the ramp once, so a frame is a single numpy
+gather rather than 1,536 `draw.text()` calls — and `ILI9341` is the bare panel
+driver, speaking RGB565 over `spidev` with no kernel framebuffer involved.
 
 `Mouse` and `Keyboard` (`piinput.py`) are **test tooling, not part of the
 app** — they create a virtual input device under `/dev/uinput` so the running
@@ -496,10 +668,13 @@ nothing imports them. Events travel out to the kernel, through the compositor,
 and arrive at `NcursesDisplay.get_key()` indistinguishable from a real
 keypress, which is what makes them useful for testing the live controls.
 
-Two parts of the codebase hold no classes and so do not appear above:
-`fit_grid()` in `image_processor.py`, and all of `window_plan.py`
-(`cell_size()`, `plan()`), which is called by `run_ascii_camera.sh` when
-sizing the window and is never imported by the app at runtime.
+Three parts of the codebase are mostly or entirely functions, so they barely
+appear above: `fit_grid()` in `image_processor.py`; all of `window_plan.py`
+(`cell_size()`, `plan()`), which `run_ascii_camera.sh` calls when sizing the
+window and which the app never imports at runtime; and `palettes.py`, which is
+the `Scheme` tuple above plus the lookup tables built from it — `rgb_table()`
+for the panel's full RGB and `index_table()` for the terminal's xterm-256
+approximation, which is the one place the two displays genuinely diverge.
 
 ### Startup
 
@@ -603,14 +778,16 @@ sequenceDiagram
     participant P as ImageProcessor
     participant A as AsciiArt
     participant D as NcursesDisplay
+    participant L as LcdWorker<br/>background thread
+    participant Pan as LcdDisplay<br/>ILI9341
 
     Note over T,Q: started by camera.start(), runs until stop()
 
     loop every sensor frame, rate capped by --fps
         T->>T: picam2.capture_array(main)
-        T->>T: _extract_luma, Y plane with stride padding removed
+        T->>T: _wrap, YuvFrame with stride padding removed
         T->>Q: get_nowait, discard the previous frame
-        T->>Q: put_nowait(luma)
+        T->>Q: put_nowait(frame)
     end
 
     Note over App,D: one pass per rendered frame
@@ -633,7 +810,12 @@ sequenceDiagram
             App->>App: dropped += 1
             App->>D: message, waiting for camera
         else frame ready
-            Q-->>App: luma, h x w uint8
+            Q-->>App: YuvFrame, luma h x w uint8
+
+            opt --lcd
+                App->>L: submit(frame, _lcd_config())
+                Note right of App: never blocks, never raises,<br/>replaces any frame still pending
+            end
 
             App->>App: _grid_for(luma.shape), fit_grid unless cached
 
@@ -664,7 +846,20 @@ sequenceDiagram
         end
     end
 
+    Note over L,Pan: concurrently, at its own pace — spidev drops the GIL<br/>during the transfer, so this genuinely overlaps
+
+    loop while frames keep arriving
+        L->>L: _apply(config), rebuilding ramp and atlas only if changed
+        L->>L: ImageProcessor.process to the panel's own grid
+        L->>L: AsciiArt.to_indices
+        L->>Pan: render(indices, colours, screen)
+        Pan->>Pan: GlyphAtlas gather, then pack to RGB565
+        Pan->>Pan: show_packed, 153600 bytes as 38 spidev writes
+    end
+
     App->>T: camera.stop()
+    App->>L: stop(), join then close the panel
+    L->>Pan: clear() then close(), backlight left off
 ```
 
 The two loops are independent, which is the point of the one-slot queue. The
@@ -690,16 +885,37 @@ pi/
 ├── ascii_camera.py            # entry point, main loop, CLI, live controls
 ├── run_ascii_camera.sh        # launches it in a sized window on the HDMI screen
 ├── setup.sh                   # dependency / camera check
+├── lcd_blank.py               # blank the panel when the app is not running
+├── piinput.py                 # test tooling: synthetic mouse and keyboard
+├── setup_uinput.sh            # one-time /dev/uinput permissions for piinput
 ├── src/
-│   ├── camera.py              # picamera2 capture thread, YUV420 luma extraction
+│   ├── camera.py              # picamera2 capture thread, YuvFrame, luma+chroma
 │   ├── image_processor.py     # rotate, crop, resize, levels, grid fitting
 │   ├── ascii_art.py           # brightness -> character lookup table
+│   ├── palettes.py            # the nine schemes, xterm-256 and full-RGB tables
 │   ├── display.py             # curses rendering
-│   └── window_plan.py         # window/font sizing from real Pango cell metrics
+│   ├── headless.py            # stand-in for display.py under --no-terminal
+│   ├── window_plan.py         # window/font sizing from real Pango cell metrics
+│   ├── lcd.py                 # ILI9341 driver over spidev, RGB565
+│   ├── lcd_display.py         # ASCII grid -> panel, via a pre-rendered atlas
+│   └── lcd_worker.py          # background thread, keeps SPI off the main loop
 └── tests/
     ├── bench_pipeline.py      # sustained frame rate at various targets
-    └── capture_reference.py   # ordinary photo, to compare against the ASCII
+    ├── capture_reference.py   # ordinary photo, to compare against the ASCII
+    ├── display_modes_test.py  # terminal vs headless vs panel combinations
+    ├── keymap_test.py         # the live controls
+    ├── orientation_test.py    # rotation and handedness
+    ├── palette_test.py        # scheme tables and quantisation
+    ├── lcd_selftest.py        # colour bars, hand-computed RGB565
+    ├── lcd_render_bench.py    # panel render correctness and timing
+    └── lcd_concurrency.py     # proves the SPI write does not stall the loop
 ```
+
+The three `lcd_*` modules are a deliberate stack rather than one file:
+`lcd_worker.py` deals only in threading and settings, `lcd_display.py` only in
+turning a character grid into pixels, and `lcd.py` only in what the ILI9341
+wants to hear. Only the bottom one knows about SPI, which is what lets
+`tests/lcd_render_bench.py` exercise the render path without a panel attached.
 
 ## Performance
 
