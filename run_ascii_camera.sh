@@ -11,7 +11,7 @@
 #   bash run_ascii_camera.sh fit
 #   bash run_ascii_camera.sh 120
 #   bash run_ascii_camera.sh 80x80
-#   bash run_ascii_camera.sh fit --colour   # window auto-sized for colour
+#   bash run_ascii_camera.sh fit --colour   # start in the live colour scheme
 #   bash run_ascii_camera.sh 120 --fps 10 --rotation 0
 #
 # Environment:
@@ -62,35 +62,11 @@ if [ -z "$PLAN" ]; then
 fi
 read -r COLS ROWS FONT_SIZE CELL_ASPECT <<< "$PLAN"
 
-# --- colour mode wants a window it can actually fill -------------------------
-#
-# Per-character colour costs roughly three times the redraw at a full-screen
-# grid, so the app coarsens the grid when colour is on. That keeps the frame
-# rate but leaves the picture filling only a quarter of a full-screen window,
-# centred in black. Sizing the window for the colour grid instead gives the same
-# frame rate, a filled window and a larger, more legible font - so when --colour
-# is asked for at launch, re-plan at half the linear size and let the app use
-# every cell of it.
-COLOUR=0
-case " $* " in *" --colour "*|*" --color "*) COLOUR=1 ;; esac
-
-EXTRA_ARGS=""
-if [ "$COLOUR" = 1 ]; then
-    case " $* " in
-        *" --colour-divisor "*) : ;;               # caller has chosen already
-        *) EXTRA_ARGS="--colour-divisor 1" ;;
-    esac
-    if [ "$GEOMETRY" = fit ]; then
-        HALF=$(( COLS / 2 ))
-        REPLAN=$(python3 "$PROJECT_DIR/src/window_plan.py" \
-                 "$HALF" "$SCREEN_W" "$SCREEN_H" "$ASPECT" 2>/dev/null)
-        if [ -n "$REPLAN" ]; then
-            read -r COLS ROWS FONT_SIZE CELL_ASPECT <<< "$REPLAN"
-            echo "Colour mode: window re-planned to ${COLS} columns so the" \
-                 "picture fills it"
-        fi
-    fi
-fi
+# Colour gets no special treatment here. The app used to coarsen the grid when
+# the live scheme was on, and this script used to halve the planned window to
+# match, so the picture still filled it. Both are gone: the grid now follows the
+# window and the camera alone, whatever the scheme, and colour simply costs
+# frame rate. One geometry, one grid, whichever scheme you land on.
 
 [ -n "${ASCII_FONT:-}" ] && FONT_SIZE="$ASCII_FONT"
 
@@ -127,12 +103,12 @@ lxterminal --no-remote \
            --profile="$PROFILE" \
            --geometry="${COLS}x${ROWS}" \
            --title="ASCII Art Camera" \
-           -e "python3 $PROJECT_DIR/ascii_camera.py --cell-aspect $CELL_ASPECT $EXTRA_ARGS $*" \
+           -e "python3 $PROJECT_DIR/ascii_camera.py --cell-aspect $CELL_ASPECT $*" \
            >/dev/null 2>&1 &
 
 echo "Launched ASCII camera"
 echo "  window   ${COLS}x${ROWS} characters, Monospace $FONT_SIZE"
 echo "  cell     aspect $CELL_ASPECT (height/width)"
 echo "  screen   ${SCREEN_W}x${SCREEN_H} px"
-echo "  args     ${EXTRA_ARGS:+$EXTRA_ARGS }${*:-none}"
+echo "  args     ${*:-none}"
 echo "  log      $PROJECT_DIR/ascii_camera.log"

@@ -153,18 +153,6 @@ class AsciiArtLiveCamera:
         """The active colour scheme."""
         return palettes.SCHEMES[self.scheme_index]
 
-    @property
-    def colour(self):
-        """
-        True when the picture's colour comes from the camera.
-
-        Only the live scheme pays the coarser grid: it needs a different colour
-        for every cell, whereas a tinted scheme gives neighbouring cells of
-        equal brightness the same colour, so its runs stay long and its redraw
-        cheap.
-        """
-        return self.scheme.kind == "live"
-
     def _cycle_scheme(self):
         """Step to the next scheme, skipping any this terminal cannot show."""
         count = len(palettes.SCHEMES)
@@ -232,8 +220,11 @@ class AsciiArtLiveCamera:
         width, height = self.processor.source_size(src_w, src_h)
         max_cols, max_rows = self.display.canvas_size
 
+        # The colour scheme is deliberately not part of this key. The grid
+        # depends on the window and the camera, and on nothing else, so
+        # switching scheme with `s` never resizes the picture.
         key = (width, height, max_cols, max_rows, self.cell_aspect,
-               self.processor.fill, self.colour)
+               self.processor.fill)
         if key != self.grid_key:
             if self.processor.fill:
                 # Use every cell; process() crops the frame to suit.
@@ -241,12 +232,6 @@ class AsciiArtLiveCamera:
             else:
                 self.grid = fit_grid(width, height, max_cols, max_rows,
                                      self.cell_aspect)
-            if self.colour:
-                # Colour redraw costs several times greyscale, so coarsen the
-                # grid. Dividing both axes equally keeps the aspect correct.
-                d = max(1, self.args.colour_divisor)
-                self.grid = (max(8, self.grid[0] // d),
-                             max(4, self.grid[1] // d))
             self.grid_key = key
             logger.info("ASCII grid: %dx%d characters (source %dx%d, "
                         "terminal %dx%d, fill=%s)", self.grid[0], self.grid[1],
@@ -455,9 +440,6 @@ def parse_args(argv=None):
                         help="Palette steps per channel in colour mode. "
                              "Fewer means longer runs of one colour and a "
                              "cheaper redraw")
-    parser.add_argument("--colour-divisor", type=int, default=2,
-                        help="How much coarser the grid becomes in colour "
-                             "mode, on both axes")
     parser.add_argument("--fill", action="store_true",
                         help="Crop the picture to fill the whole window "
                              "instead of letterboxing it to fit")

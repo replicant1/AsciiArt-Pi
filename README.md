@@ -13,10 +13,12 @@ auto-levels, fill and invert.*
 
 ![The same app in the live colour scheme, 133 by 50 characters at 14.9 fps](docs/screenshot-colour.png)
 
-*Colour, at the full 15 fps. Press `s` to switch, or pass `--colour` at launch
-to have the window sized for colour automatically. The character still comes
-from the brightness, so the two modes draw the same shapes; the colour comes
-from the camera's chroma, which greyscale mode discards.*
+*Colour, in a 133x50 window at the full 15 fps. Press `s` to switch, or pass
+`--colour` at launch. The character still comes from the brightness, so the two
+modes draw the same shapes; the colour comes from the camera's chroma, which
+greyscale mode discards. Colour costs roughly three times the redraw, and the
+grid is no longer shrunk to hide that — at a full-screen 267x100 the same scene
+runs closer to 4 fps.*
 
 ![The HDMI monitor and the 2.4 inch SPI panel both showing the ASCII camera, with the camera module and breadboard in front](docs/both-displays.jpg)
 
@@ -92,9 +94,8 @@ rejected, listing the names that do work.
 | `--height` | integer | `240` | Camera capture height |
 | `--fps` | integer | `15` | Target frame rate. The sensor is capped to this, which saves real CPU |
 | `--scheme` | `grey`, `live`, `green`, `amber`, `cyan`, `navy`, `azure`, `lime`, `paper` | `grey` | Colour scheme to start in. Step through them live with `s`. See [Colour schemes](#colour-schemes) |
-| `--colour`, `--color` | flag | off | Shorthand for `--scheme live`, kept because the launcher reads it to size the window. Ignored if `--scheme` is given |
+| `--colour`, `--color` | flag | off | Shorthand for `--scheme live`. Ignored if `--scheme` is given |
 | `--colour-levels` | 2–6 | `6` | Palette steps per channel. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding |
-| `--colour-divisor` | integer | `2` | How much coarser the grid becomes in colour mode, on both axes |
 | `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
 | `--rotation` | 0, 90, 180, 270 | `0` | Camera rotation. Cycle with `r`. See [Rotation and handedness](#rotation-and-handedness) |
 | `--mirror` | flag | off | Flip the picture left to right, after any rotation |
@@ -119,15 +120,15 @@ Two things the table does not show on its own.
 `--colour`, reachable as `f`, `r`, `+`/`-`, `a`, `c`, `i` and `s` — so those
 flags mostly just set a starting state. The arguments fixed at startup are
 `--width`, `--height`, `--fps`, `--log`, `--verbose`, the five `--lcd*`
-arguments, and `--colour-levels`/`--colour-divisor`, which are read as settings
-rather than toggled.
+arguments, and `--colour-levels`, which is read as a setting rather than
+toggled.
 
-**`run_ascii_camera.sh` supplies two of these arguments for you.** The launcher
-always passes `--cell-aspect`, computed from real Pango font metrics for the font
-the launcher chose, and injects `--colour-divisor 1` alongside `--colour` because
-by then the window has been shrunk instead. Anything given to the launcher after
-the geometry is forwarded through, so `bash run_ascii_camera.sh 120 --fps 10
---rotation 0` works as expected.
+**`run_ascii_camera.sh` supplies one of these arguments for you.** The launcher
+always passes `--cell-aspect`, computed from real Pango font metrics for the
+font the launcher chose. Anything given to the launcher after the geometry is
+forwarded through, so `bash run_ascii_camera.sh 120 --fps 10 --rotation 0` works
+as expected. It does nothing special for `--colour` — the window is planned the
+same way whatever scheme you start in.
 
 ## Colour schemes
 
@@ -751,32 +752,31 @@ per-character colour:
 | 133x50 | 32 ms (31.6 fps) | 61 ms (16.3 fps) | 1.9x |
 | 80x30 | 6 ms (169 fps) | 28 ms (35 fps) | 4.8x |
 
-Colour therefore **halves the grid on both axes** — `--colour-divisor` changes
-that — which is why full-window colour runs at 133x50 and holds the full 15 fps
-rather than the 4 fps a full-size grid would give. Halving both axes keeps the
-aspect correct, so the picture is coarser but not distorted.
+**That cost is now simply paid.** The grid follows the window and the camera,
+and nothing else — switching scheme with `s` never resizes the picture, and
+`--colour` gets no special window sizing at launch. Colour in a full-screen
+267x100 window therefore runs at roughly 4 fps, and that is the intended
+behaviour rather than a regression.
 
-**Passing `--colour` at launch sizes the window for colour automatically.** The
-launcher re-plans at half the linear size, which gives a window the colour grid
-fills exactly, a larger font, and the full frame rate — and it passes
-`--colour-divisor 1` so the app uses every cell:
+This used to work the other way. The app halved the grid on both axes whenever
+the `live` scheme was on, and the launcher halved the planned window to match so
+the smaller grid still filled it. It held 15 fps, but at the price of the
+picture changing size underneath you when you pressed `s`, a resolution that
+depended on which scheme you happened to be in, and two different notions of
+"the grid" that had to be kept in step. A steady picture that slows down is
+easier to reason about than a fast one that changes shape.
+
+If you want colour *and* frame rate, ask for a smaller window rather than
+relying on the app to shrink one for you — the grid is yours to choose:
 
 ```bash
-bash run_ascii_camera.sh fit --colour     # 133x51 window, Monospace 11, 15 fps
+bash run_ascii_camera.sh 133 --colour     # 133x51, colour, back to about 15 fps
+bash run_ascii_camera.sh fit --colour     # full window, colour, about 4 fps
 ```
 
-**Reaching the `live` scheme with `s` is a different matter.** Switching to it
-in a window that was sized for greyscale cannot enlarge the font, so the grid
-halves and the picture ends up occupying a quarter of the area, centred in
-black. That is deliberate: the alternative is full-grid colour at about 4 fps,
-which reads as broken rather than merely smaller. Step `s` on and the full-size
-grid returns. Only `live` does this - the tinted schemes give neighbouring
-cells of equal brightness the same colour, so their runs stay long and they
-keep the full grid.
-
-If you would rather `live` never changed the picture size, launch with
-`--colour-divisor 1` and accept roughly 4 fps whenever colour is on in a
-full-screen window.
+`--colour-levels` is the other lever, and it does not touch the grid: fewer
+palette steps mean longer runs of one colour and a cheaper redraw, at the cost
+of banding.
 
 Two things make it affordable:
 
