@@ -18,6 +18,17 @@ to have the window sized for colour automatically. The character still comes
 from the brightness, so the two modes draw the same shapes; the colour comes
 from the camera's chroma, which greyscale mode discards.*
 
+![The HDMI monitor and the 2.4 inch SPI panel both showing the ASCII camera, with the camera module and breadboard in front](docs/both-displays.jpg)
+
+*Both displays at once, with `--lcd`. This is a photograph rather than a screen
+capture because it has to be: `grim` records the Wayland/HDMI output, and the
+ILI9341 is driven from userspace over SPI with no kernel framebuffer, so nothing
+on that panel can be screenshotted. On the monitor is a 67 by 25 grid with the
+fine ramp — `sch:grey chr:fine` on the status bar — and the 2.4 inch panel at
+bottom right is rendering the same camera frames on its own 64 by 24 grid. The
+camera module is on the stand in the middle, wired back to the Pi through the
+breadboard.*
+
 Choosing hardware to run this on? **[`docs/display-selection-guide.html`](docs/display-selection-guide.html)**
 is a ranked guide to vintage terminals, VFDs, graphic LCDs and OLED modules,
 priced in AUD and sourced for a buyer in Sydney. Download it and open it in a
