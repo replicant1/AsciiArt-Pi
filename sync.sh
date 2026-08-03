@@ -29,7 +29,7 @@ LOCAL="${ASCIIART_LOCAL:-$PARENT/local}"
 MODE="${1:-pull}"
 
 ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
-            README.md piinput.py setup_uinput.sh)
+            README.md piinput.py setup_uinput.sh lcd_blank.py)
 SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
            window_plan.py lcd.py lcd_display.py lcd_worker.py palettes.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py

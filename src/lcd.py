@@ -218,7 +218,17 @@ class ILI9341:
         self._pwm.ChangeDutyCycle(max(0, min(100, percent)))
 
     def close(self):
-        """Blank the panel and release SPI and the GPIO pins."""
+        """
+        Blank the panel, and leave it blank, releasing SPI and the data pins.
+
+        The backlight pin is deliberately NOT released. Handing it back with
+        GPIO.cleanup() makes it an input, and the module's own pull-up then
+        relights the backlight - so the panel sat there uniformly lit after
+        every clean shutdown, which is exactly what a blanking routine is meant
+        to prevent. Left as an output driving low it stays dark, and it stays
+        that way after this process exits because RPi.GPIO writes the pad
+        registers directly rather than holding a kernel line.
+        """
         try:
             self._command(0x28)                 # display off
         except OSError:
@@ -226,7 +236,7 @@ class ILI9341:
         self._pwm.stop()
         self.spi.close()
         self.GPIO.output(self.bl, self.GPIO.LOW)
-        self.GPIO.cleanup([self.dc, self.rst, self.bl])
+        self.GPIO.cleanup([self.dc, self.rst])
 
     def __enter__(self):
         return self
