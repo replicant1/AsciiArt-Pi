@@ -176,15 +176,20 @@ class StubDisplay:
 class StubEncoder:
     """An encoder that reports whatever movement a test wants."""
 
-    def __init__(self, steps):
+    def __init__(self, steps, presses=0):
         self.steps = steps
+        self.presses = presses
 
     def take(self):
         steps, self.steps = self.steps, 0
         return steps
 
+    def take_presses(self):
+        presses, self.presses = self.presses, 0
+        return presses
 
-def make_app(steps):
+
+def make_app(steps, presses=0):
     app = object.__new__(AsciiArtLiveCamera)
     app.display = StubDisplay()
     app.processor = ImageProcessor()
@@ -195,7 +200,7 @@ def make_app(steps):
     app.scheme_index = 0
     app.grid_key = None
     app.lcd = None
-    app.encoder = StubEncoder(steps)
+    app.encoder = StubEncoder(steps, presses)
     app._rebuild_ascii()
     return app
 
@@ -268,7 +273,54 @@ def test_app_wiring():
     check("an exact lap does not repaint either", app.display.repaints == 0,
           f"{app.display.repaints} repaints")
 
-    print("\n11. 's' still works and still goes forwards")
+    print("\n11. Pressing the knob goes home to greyscale")
+    # From the far end of the list, so a pass cannot be an accident of
+    # starting next door to grey.
+    app = make_app(len(names) - 1)
+    app._poll_encoder()
+    check("wound round to the last scheme", app.scheme.name == names[-1],
+          app.scheme.name)
+
+    app.encoder.presses = 1
+    app._poll_encoder()
+    check("a press lands on grey", app.scheme.name == "grey", app.scheme.name)
+    check("and it is the greyscale one, not just the name",
+          app.scheme.kind == "grey", app.scheme.kind)
+
+    print("\n12. Pressing when already home does nothing at all")
+    app = make_app(0, presses=1)
+    app._poll_encoder()
+    check("still grey", app.scheme.name == "grey", app.scheme.name)
+    check("and no repaint, so no flash", app.display.repaints == 0,
+          f"{app.display.repaints} repaints")
+
+    # Repaints are counted as a delta from here on, because the app always
+    # starts on grey: getting somewhere else costs a repaint of its own, and
+    # folding that into the total is how the first version of this test came to
+    # assert the wrong number.
+    app = make_app(3)
+    app._poll_encoder()
+    before = app.display.repaints
+    app.encoder.presses = 4
+    app._poll_encoder()
+    check("four presses in one frame cost one repaint between them",
+          app.display.repaints - before == 1,
+          f"{app.display.repaints - before} repaints")
+
+    print("\n13. A press beats rotation banked in the same frame")
+    app = make_app(5)
+    app._poll_encoder()                 # away from grey first
+    before = app.display.repaints
+    app.encoder.steps = 3
+    app.encoder.presses = 1
+    app._poll_encoder()
+    check("the knob goes home, not to the turned-to scheme",
+          app.scheme.name == "grey", app.scheme.name)
+    check("and does it in one repaint, not two",
+          app.display.repaints - before == 1,
+          f"{app.display.repaints - before} repaints")
+
+    print("\n14. 's' still works and still goes forwards")
     app = make_app(0)
     app._handle_key("s")
     check("the key is unaffected by the knob",

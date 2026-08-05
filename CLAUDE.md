@@ -190,9 +190,11 @@ A rotary encoder knob is wired to the Pi and cycles the app's colour schemes. It
 
     CLK -> GPIO 19        + -> 3.3V
     DT  -> GPIO 26      GND -> GND
-    SW  -> not connected
+    SW  -> GPIO 6
 
-Off unless asked for: "bash run_ascii_camera.sh fit --lcd --encoder". Driven from userspace via lgpio (installed; gpiozero and RPi.GPIO are present too, pigpio is NOT). Code is src/encoder.py, tests are tests/encoder_test.py, and tools/probe_encoder.py finds the pins.
+Turning cycles the schemes both ways; pressing jumps straight back to grey. Off unless asked for: "bash run_ascii_camera.sh fit --lcd --encoder". Driven from userspace via lgpio (installed; gpiozero and RPi.GPIO are present too, pigpio is NOT). Code is src/encoder.py, tests are tests/encoder_test.py, and tools/probe_encoder.py finds the pins.
+
+GPIO 6 for SW was chosen deliberately, not just because it was free. The module fits no pull-up on SW, so it relies on the internal one, and this chip defaults GPIO 0-8 to pull-UP but 9-27 to pull-DOWN. On a pull-down pin the switch reads as held down from power-on until the app configures it; on GPIO 6 it idles high throughout. Apply the same reasoning to any future switch.
 
 Finding the pins again, if the wiring is ever changed: the module has its own pull-ups on CLK and DT, so those two pins read high in "pinctrl get 0-27" even though this chip defaults GPIO 9-27 to pull-DOWN. That narrows it to two candidates but does not confirm them, and it cannot see SW at all (no pull-up is fitted there). Run tools/probe_encoder.py and turn the knob; it identifies the pair by which pins interleave, which is a property two merely noisy pins do not have.
 
@@ -202,6 +204,8 @@ Two things measured here that are worth not rediscovering:
 - Applying banked detents one at a time causes a violent strobe and tanks the frame rate. Every scheme change calls display.set_scheme(), which ends in stdscr.clear() and repaints all ~27,000 cells, so a five-detent spin became five full repaints between two frames - four of them of pictures never on screen long enough to see. It feeds back on itself, because a slower frame banks more detents. _cycle_scheme takes the whole move at once and repaints once. A two-detent move writing a single "Scheme:" log line is the check that this still holds.
 
 Which direction is "forwards" cannot be derived - it depends on which pin was called CLK - so it is resolved by turning the real knob. As wired, clockwise is forwards and --encoder-reverse is off.
+
+Only counts survive between frames, not the order events happened in, so a turn and a press in the same frame gap cannot be told apart from a press and a turn. The press wins and the rotation is dropped: it is the answer that can be checked by looking, since it is the same wherever the knob had got to, and it costs one repaint rather than two.
 
 Do NOT benchmark or restart the app while the user is testing the knob by hand. Doing that here produced a confident "turning the encoder has no visible effect" report from the user, because the benchmark had just relaunched the app WITHOUT --encoder. Get the user's verification first, then measure.
 

@@ -47,7 +47,9 @@ PAIR_WINDOW_NS = 30_000_000      # 30 ms
 # Enough edges to decode a direction from, and how long the knob must sit still
 # before the recording is taken to be finished.
 MIN_EDGES = 12
-QUIET_SECONDS = 4
+# Generous, because the natural way to work a knob is to turn it, pause, and
+# then press - and stopping during that pause would miss the switch entirely.
+QUIET_SECONDS = 8
 
 
 def record(seconds):

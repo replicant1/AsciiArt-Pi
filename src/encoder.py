@@ -5,13 +5,18 @@ Wiring as fitted (BCM numbering):
 
     CLK -> GPIO 19       + -> 3.3V
     DT  -> GPIO 26     GND -> GND
-    SW  -> not connected
+    SW  -> GPIO 6
 
 The module carries its own pull-up resistors on CLK and DT, which is why those
 two pins read high at rest even though this chip defaults GPIO 9-27 to pull-down.
 An internal pull-up is enabled anyway so the decoder still behaves if the
 module's 3.3V line is ever disturbed - an unconnected pin would otherwise float
 and invent transitions.
+
+SW gets no pull-up on the module, so it depends on the internal one entirely.
+GPIO 6 was chosen for it because this chip defaults GPIO 0-8 to pull-*up*: the
+pin therefore idles high from power-on, and a switch wired to ground can never
+read as held down during the window between boot and this code configuring it.
 
 Two decisions here are worth stating, because both were measured on this
 hardware rather than assumed (tools/probe_encoder.py):
@@ -124,11 +129,15 @@ class RotaryEncoder:
     that loop, and a knob nobody touches costs it nothing at all.
     """
 
-    def __init__(self, clk=19, dt=26, reverse=False, chip=0):
+    def __init__(self, clk=19, dt=26, sw=6, reverse=False, chip=0):
         """
         Args:
             clk: BCM pin for CLK.
             dt: BCM pin for DT.
+            sw: BCM pin for the push switch, or a negative number for a knob
+                whose switch is not wired.  Harmless to leave at the default
+                when it is unwired: the pin idles high on its pull-up and
+                simply never reports anything.
             reverse: Swap which way is positive.  Whether clockwise counts as
                 forward depends on which of the two pins the user called CLK
                 when wiring, and that is a coin toss no amount of code can
@@ -137,17 +146,20 @@ class RotaryEncoder:
         """
         self.clk = clk
         self.dt = dt
+        self.sw = sw
         self.reverse = reverse
         self.chip = chip
 
         self._decoder = QuadratureDecoder()
         self._lock = threading.Lock()
         self._steps = 0
+        self._presses = 0
         self._levels = {}
         self._handle = None
         self._callbacks = []
 
         self.detents = 0        # total movement seen, for the log
+        self.presses = 0        # total presses seen, likewise
 
     def start(self):
         """
@@ -160,33 +172,67 @@ class RotaryEncoder:
 
         self._lgpio = lgpio
         self._handle = lgpio.gpiochip_open(self.chip)
+
+        # The rotation pins and the switch want very different debounce times,
+        # which is the whole reason this is not one loop. 200us on CLK/DT is an
+        # optimisation only - correctness rests on the transition table - and is
+        # kept short so a fast turn still gets through intact. The switch has no
+        # such safety net, and nothing about a button needs sub-millisecond
+        # resolution, so it is debounced hard enough that one press is one
+        # event.
         for pin in (self.clk, self.dt):
             lgpio.gpio_claim_alert(self._handle, pin, lgpio.BOTH_EDGES,
                                    lgpio.SET_PULL_UP)
-            # A short hardware debounce spares this 1GHz core most of the 5:1
-            # bounce measured on these contacts.  It is an optimisation only -
-            # correctness rests on the transition table, which is why the value
-            # is small enough that a fast turn still gets through intact.
-            try:
-                lgpio.gpio_set_debounce_micros(self._handle, pin, 200)
-            except AttributeError:
-                pass                     # older lgpio; the table copes anyway
+            self._debounce(pin, 200)
             self._levels[pin] = lgpio.gpio_read(self._handle, pin)
 
-        for pin in (self.clk, self.dt):
+        if self.sw >= 0:
+            lgpio.gpio_claim_alert(self._handle, self.sw, lgpio.BOTH_EDGES,
+                                   lgpio.SET_PULL_UP)
+            self._debounce(self.sw, 5000)
+            self._levels[self.sw] = lgpio.gpio_read(self._handle, self.sw)
+
+        for pin in self._pins():
             self._callbacks.append(
                 lgpio.callback(self._handle, pin, lgpio.BOTH_EDGES,
                                self._on_edge))
 
-        logger.info("Rotary encoder on CLK=GPIO%d DT=GPIO%d%s",
-                    self.clk, self.dt, " (reversed)" if self.reverse else "")
+        logger.info("Rotary encoder on CLK=GPIO%d DT=GPIO%d SW=%s%s",
+                    self.clk, self.dt,
+                    f"GPIO{self.sw}" if self.sw >= 0 else "not wired",
+                    " (reversed)" if self.reverse else "")
         return self
+
+    def _pins(self):
+        """Every pin this encoder has claimed."""
+        pins = [self.clk, self.dt]
+        if self.sw >= 0:
+            pins.append(self.sw)
+        return pins
+
+    def _debounce(self, pin, micros):
+        """Ask the kernel to ignore edges closer together than `micros`."""
+        try:
+            self._lgpio.gpio_set_debounce_micros(self._handle, pin, micros)
+        except AttributeError:
+            pass                     # older lgpio; the table copes anyway
 
     def _on_edge(self, _chip, gpio, level, _tick):
         # Level 2 is lgpio's watchdog tick rather than a real edge.
         if level not in (0, 1):
             return
         self._levels[gpio] = level
+
+        if gpio == self.sw:
+            # The switch shorts to ground, so the press is the falling edge.
+            # Counting only that makes one press one event however long it is
+            # held down, and means releasing the knob does nothing.
+            if level == 0:
+                with self._lock:
+                    self._presses += 1
+                    self.presses += 1
+            return
+
         step = self._decoder.feed(self._levels[self.clk],
                                   self._levels[self.dt])
         if not step:
@@ -210,6 +256,18 @@ class RotaryEncoder:
             steps, self._steps = self._steps, 0
         return steps
 
+    def take_presses(self):
+        """
+        How many times the knob was pressed since the last call, and reset.
+
+        A count rather than a flag, so a caller can tell one press from three
+        if it ever wants to - though the current one does not, since pressing
+        twice asks for the same thing twice.
+        """
+        with self._lock:
+            presses, self._presses = self._presses, 0
+        return presses
+
     def stop(self):
         """Release the pins.  Safe to call twice, and never raises."""
         for callback in self._callbacks:
@@ -220,10 +278,11 @@ class RotaryEncoder:
         self._callbacks = []
         if self._handle is not None:
             try:
-                for pin in (self.clk, self.dt):
+                for pin in self._pins():
                     self._lgpio.gpio_free(self._handle, pin)
                 self._lgpio.gpiochip_close(self._handle)
             except Exception as e:
                 logger.error("Releasing the encoder failed: %s", e)
             self._handle = None
-        logger.info("Rotary encoder stopped: %d detents", self.detents)
+        logger.info("Rotary encoder stopped: %d detents, %d presses",
+                    self.detents, self.presses)

@@ -70,10 +70,15 @@ Click the window first so it has keyboard focus.
 | `a`   | Toggle per-frame auto-levels | `auto:on` / `auto:off` |
 
 With `--encoder`, a KY-040 rotary encoder cycles the colour schemes too:
-clockwise does what `s` does, and anticlockwise does what `s` cannot, which is
-go back. It needs no window focus, and it works under `--no-terminal`, where
-there is no keyboard to press `s` on. See [The rotary
-encoder](#the-rotary-encoder).
+
+| Knob | Effect |
+|------|--------|
+| Turn clockwise | Next colour scheme — what `s` does |
+| Turn anticlockwise | Previous colour scheme — what `s` cannot do |
+| Press | Jump straight back to `grey`, however far the knob has wandered |
+
+It needs no window focus, and it works under `--no-terminal`, where there is no
+keyboard to press `s` on. See [The rotary encoder](#the-rotary-encoder).
 
 Every toggle reads out its current state on the left of the status bar, so
 nothing is hidden:
@@ -119,6 +124,7 @@ rejected, listing the names that do work.
 | `--encoder` | flag | off | Cycle colour schemes with a KY-040 rotary encoder. See [The rotary encoder](#the-rotary-encoder) |
 | `--encoder-clk` | integer | `19` | BCM pin for the encoder's CLK |
 | `--encoder-dt` | integer | `26` | BCM pin for the encoder's DT |
+| `--encoder-sw` | integer | `6` | BCM pin for the push switch, which jumps back to `grey`. Negative if the switch is not wired; harmless to leave set either way, since an unwired pin idles high and stays quiet |
 | `--encoder-reverse` | flag | off | Swap which way the knob steps, if it runs backwards |
 | `--log` | path | `ascii_camera.log` beside the app | Log file. stderr is redirected here too, since nothing may reach the terminal while curses owns the screen |
 | `--verbose` | flag | off | Debug-level logging |
@@ -1295,11 +1301,15 @@ BCM numbering, and chosen to avoid every pin the SPI panel uses:
 ```
 CLK -> GPIO 19        + -> 3.3V
 DT  -> GPIO 26      GND -> GND
-SW  -> not connected
+SW  -> GPIO 6
 ```
 
-`SW` is the knob's push switch. Nothing reads it, so leaving it unwired costs
-nothing; the pin is free for whatever it is wanted for later.
+**GPIO 6 for `SW` is not an arbitrary free pin.** The module fits pull-ups to
+CLK and DT but not to SW, so the switch depends entirely on an internal one —
+and this chip defaults GPIO 0–8 to pull-*up* and GPIO 9–27 to pull-*down*. On a
+pull-down pin the switch would read as held down from power-on until the app
+configured it; on GPIO 6 it idles high throughout. Nothing else was using it,
+and it sits two rows from the rotation pins on the header.
 
 The module carries its own pull-up resistors on CLK and DT. That is worth
 knowing because it makes the encoder findable: those two pins read high at rest
@@ -1340,6 +1350,26 @@ most.
 internally, and tells the display once. The intermediate schemes are invisible by
 definition, so nothing is lost. The log makes this visible: a two-detent move
 writes one `Scheme:` line, not two.
+
+### The button, and what wins when both happen at once
+
+Pressing the knob returns to `grey` in one step, rather than winding back
+through the schemes. Pressing again when already there does nothing at all — not
+even a repaint, since a repaint you did not need is still a visible flash.
+
+Turning and pressing between the same two frames is resolved in favour of the
+press, and the rotation is discarded rather than applied first. Only the *counts*
+survive the wait between frames, not the order they happened in, so "turn then
+press" and "press then turn" are indistinguishable by the time the render loop
+looks at them. Of the two answers available, going home is the one that can be
+verified by looking, because it is the same wherever the knob had got to — and
+it costs one repaint instead of two.
+
+The switch is debounced at 5 ms against CLK and DT's 200 µs. The rotation pins
+have the transition table as a safety net and want a short window so a fast turn
+survives intact; the switch has no such net, and nothing about a button needs
+sub-millisecond resolution. Only the falling edge is counted, so one press is one
+event however long it is held, and releasing does nothing.
 
 ### Direction
 

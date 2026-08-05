@@ -150,6 +150,7 @@ class AsciiArtLiveCamera:
 
             return RotaryEncoder(clk=self.args.encoder_clk,
                                  dt=self.args.encoder_dt,
+                                 sw=self.args.encoder_sw,
                                  reverse=self.args.encoder_reverse).start()
         except Exception as e:
             logger.error("Rotary encoder unavailable, continuing without "
@@ -157,16 +158,45 @@ class AsciiArtLiveCamera:
             return None
 
     def _poll_encoder(self):
-        """Turn accumulated knob movement into scheme changes."""
+        """Turn accumulated knob movement and presses into scheme changes."""
         if self.encoder is None:
             return
         steps = self.encoder.take()
-        if not steps:
+        pressed = self.encoder.take_presses()
+
+        # A press wins over rotation banked in the same frame, and the rotation
+        # is dropped rather than applied on top. Only counts survive the wait
+        # between frames, not the order they happened in, so there is no way to
+        # tell "turn then press" from "press then turn" - and of the two
+        # answers available, going home is the one the user can see is right,
+        # since it is the same wherever the knob had got to. Applying both would
+        # also cost two repaints for one glance at the screen.
+        if pressed:
+            self._home_scheme()
             return
 
         # Handed over as one move, not one call per detent: everything banked
         # since the last frame lands on a single repaint. See _cycle_scheme.
-        self._cycle_scheme(steps)
+        if steps:
+            self._cycle_scheme(steps)
+
+    def _home_scheme(self):
+        """
+        Jump straight back to greyscale, however far the knob has wandered.
+
+        Found by kind rather than by name, so renaming the scheme cannot turn
+        this into a lookup that raises. The greyscale scheme is also the one
+        scheme every terminal can show, so this is the one jump that is always
+        available - see the colour_ok test in _cycle_scheme.
+        """
+        home = next(i for i, scheme in enumerate(palettes.SCHEMES)
+                    if scheme.kind == "grey")
+        if self.scheme_index == home:
+            return                  # already there; a repaint would only flash
+        self.scheme_index = home
+        self.display.set_scheme(self.scheme)
+        logger.info("Scheme: %s (%s) - knob pressed",
+                    self.scheme.name, self.scheme.note)
 
     def _lcd_config(self):
         """Snapshot of the settings the LCD mirrors from this display."""
@@ -563,14 +593,20 @@ def parse_args(argv=None):
     knob = parser.add_argument_group(
         "KY-040 rotary encoder",
         "A knob that steps through the colour schemes, doing what s does from "
-        "the keyboard - except that it also goes backwards. Works headless, "
-        "where there is no keyboard to press s on.")
+        "the keyboard - except that it also goes backwards. Pressing it jumps "
+        "back to greyscale. Works headless, where there is no keyboard to "
+        "press s on.")
     knob.add_argument("--encoder", action="store_true",
                       help="Cycle colour schemes with the rotary encoder")
     knob.add_argument("--encoder-clk", type=int, default=19,
                       help="BCM pin for CLK")
     knob.add_argument("--encoder-dt", type=int, default=26,
                       help="BCM pin for DT")
+    knob.add_argument("--encoder-sw", type=int, default=6,
+                      help="BCM pin for the push switch, which jumps back to "
+                           "greyscale. Give a negative number if the switch is "
+                           "not wired; leaving it set costs nothing either way, "
+                           "since an unwired pin idles high and stays quiet")
     knob.add_argument("--encoder-reverse", action="store_true",
                       help="Swap which way the knob steps. Which rotation "
                            "counts as forwards depends on which pin was wired "
