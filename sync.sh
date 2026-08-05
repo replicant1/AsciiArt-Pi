@@ -31,20 +31,22 @@ MODE="${1:-pull}"
 ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
             README.md piinput.py setup_uinput.sh lcd_blank.py)
 SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
-           window_plan.py lcd.py lcd_display.py lcd_worker.py palettes.py)
+           window_plan.py lcd.py lcd_display.py lcd_worker.py palettes.py
+           encoder.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_selftest.py lcd_render_bench.py lcd_concurrency.py
             palette_test.py keymap_test.py display_modes_test.py
-            orientation_test.py)
+            orientation_test.py encoder_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
 DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
            scheme-montage.png display-selection-guide.html)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
-# business on the Pi. scheme_montage.py is the exception: it needs the camera,
-# so it has to live on both sides.
-TOOL_FILES=(scheme_montage.py)
+# business on the Pi. The exceptions are the ones that need the hardware, and so
+# have to live on both sides: scheme_montage.py needs the camera, and
+# probe_encoder.py needs the encoder's GPIO pins.
+TOOL_FILES=(scheme_montage.py probe_encoder.py)
 
 changed=0
 

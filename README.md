@@ -69,6 +69,12 @@ Click the window first so it has keyboard focus.
 | `+` `-` | Contrast | `con1.0` |
 | `a`   | Toggle per-frame auto-levels | `auto:on` / `auto:off` |
 
+With `--encoder`, a KY-040 rotary encoder cycles the colour schemes too:
+clockwise does what `s` does, and anticlockwise does what `s` cannot, which is
+go back. It needs no window focus, and it works under `--no-terminal`, where
+there is no keyboard to press `s` on. See [The rotary
+encoder](#the-rotary-encoder).
+
 Every toggle reads out its current state on the left of the status bar, so
 nothing is hidden:
 
@@ -110,6 +116,10 @@ rejected, listing the names that do work.
 | `--lcd-portrait` | flag | off | Run the panel as 240x320 instead of 320x240 |
 | `--lcd-spi-hz` | integer | `40000000` | SPI clock. Lower it if the wiring is long or on a breadboard |
 | `--lcd-brightness` | 0–100 | `100` | Backlight duty cycle, driven as PWM |
+| `--encoder` | flag | off | Cycle colour schemes with a KY-040 rotary encoder. See [The rotary encoder](#the-rotary-encoder) |
+| `--encoder-clk` | integer | `19` | BCM pin for the encoder's CLK |
+| `--encoder-dt` | integer | `26` | BCM pin for the encoder's DT |
+| `--encoder-reverse` | flag | off | Swap which way the knob steps, if it runs backwards |
 | `--log` | path | `ascii_camera.log` beside the app | Log file. stderr is redirected here too, since nothing may reach the terminal while curses owns the screen |
 | `--verbose` | flag | off | Debug-level logging |
 
@@ -120,8 +130,8 @@ Two things the table does not show on its own.
 `--colour`, reachable as `f`, `r`, `+`/`-`, `a`, `c`, `i` and `s` — so those
 flags mostly just set a starting state. The arguments fixed at startup are
 `--width`, `--height`, `--fps`, `--log`, `--verbose`, the five `--lcd*`
-arguments, and `--colour-levels`, which is read as a setting rather than
-toggled.
+arguments, the four `--encoder*` arguments, and `--colour-levels`, which is read
+as a setting rather than toggled.
 
 **`run_ascii_camera.sh` supplies one of these arguments for you.** The launcher
 always passes `--cell-aspect`, computed from real Pango font metrics for the
@@ -1268,6 +1278,76 @@ python3 tests/lcd_selftest.py       # colour bars and the RGB565 maths
 python3 tests/lcd_render_bench.py   # render path correctness and timing
 python3 tests/lcd_concurrency.py    # proves the SPI write does not stall the app
 ```
+
+## The rotary encoder
+
+A KY-040 rotary encoder on two GPIO pins, which steps through the colour
+schemes. Off unless `--encoder` is given.
+
+```bash
+bash run_ascii_camera.sh fit --lcd --encoder
+```
+
+### Wiring
+
+BCM numbering, and chosen to avoid every pin the SPI panel uses:
+
+```
+CLK -> GPIO 19        + -> 3.3V
+DT  -> GPIO 26      GND -> GND
+SW  -> not connected
+```
+
+`SW` is the knob's push switch. Nothing reads it, so leaving it unwired costs
+nothing; the pin is free for whatever it is wanted for later.
+
+The module carries its own pull-up resistors on CLK and DT. That is worth
+knowing because it makes the encoder findable: those two pins read high at rest
+even though this chip defaults GPIO 9–27 to pull-*down*, so they stand out in a
+`pinctrl get 0-27` dump before anything has been configured. `tools/probe_encoder.py`
+turns that into a positive identification by watching every free pin while the
+knob is turned, and reporting which two interleave.
+
+### Why a state machine and not an edge count
+
+The contacts bounce hard. Measured on this encoder, about twenty clicks produced
+453 edges that reduced to 88 once repeats inside a millisecond were dropped —
+roughly 5:1. Anything that counts edges, or that samples the partner pin at each
+edge, reads that as movement that never happened.
+
+So `src/encoder.py` tracks position within the quadrature cycle using a
+transition table, and emits a step only on a complete cycle. Bounce drives the
+table back and forth across transitions that emit nothing, so it costs CPU and
+nothing else. `tests/encoder_test.py` holds it to that by feeding in modelled
+bounce at the measured ratio and demanding an exact step count — it needs no
+encoder attached, and it is the only part of this that can be checked without
+turning a knob by hand.
+
+One detent is one full cycle on this module (88 edges over ~20 clicks, so ~4.4
+each), which is why one click is one scheme.
+
+### One repaint per move, not one per scheme
+
+The knob banks detents between frames, and a fast spin in a slow scheme can bank
+several. Applying them one at a time looks harmless and is not: every scheme
+change calls `set_scheme()`, which repaints the whole window, so a five-detent
+move became five full repaints of pictures that were never on screen long enough
+to be seen. It reads as a hard strobe, and it feeds back on itself — a slower
+frame gives the knob longer to bank, so the burst grows exactly when it hurts
+most.
+
+`_cycle_scheme` therefore takes the whole move at once, walks to the destination
+internally, and tells the display once. The intermediate schemes are invisible by
+definition, so nothing is lost. The log makes this visible: a two-detent move
+writes one `Scheme:` line, not two.
+
+### Direction
+
+Which way is "forwards" depends on which of the two pins was called CLK when
+wiring, and no amount of code can settle that — it is a coin toss that has to be
+resolved by turning the real knob. As wired here, clockwise is forwards, which
+is why `--encoder-reverse` exists and is off. If the knob is rewired and runs
+backwards, that flag is the whole fix.
 
 ## Choosing a different display
 
