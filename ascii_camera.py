@@ -95,6 +95,7 @@ class AsciiArtLiveCamera:
 
         self._lcd_config_type = None
         self.lcd = self._start_lcd() if args.lcd else None
+        self.encoder = self._start_encoder() if args.encoder else None
 
         # Losing the panel is survivable when there is a terminal to fall back
         # on, and _start_lcd deliberately treats it that way. With no terminal
@@ -135,6 +136,68 @@ class AsciiArtLiveCamera:
                          exc_info=True)
             return None
 
+    def _start_encoder(self):
+        """
+        Bring the rotary encoder up, or carry on without it.
+
+        Not fatal on failure, for the same reason the LCD is not: the knob is a
+        convenience over a key that still works, so an unplugged or misconfigured
+        encoder should cost a log line rather than the whole app.  lgpio is
+        imported inside RotaryEncoder so this stays runnable off the Pi.
+        """
+        try:
+            from encoder import RotaryEncoder
+
+            return RotaryEncoder(clk=self.args.encoder_clk,
+                                 dt=self.args.encoder_dt,
+                                 sw=self.args.encoder_sw,
+                                 reverse=self.args.encoder_reverse).start()
+        except Exception as e:
+            logger.error("Rotary encoder unavailable, continuing without "
+                         "it: %s", e, exc_info=True)
+            return None
+
+    def _poll_encoder(self):
+        """Turn accumulated knob movement and presses into scheme changes."""
+        if self.encoder is None:
+            return
+        steps = self.encoder.take()
+        pressed = self.encoder.take_presses()
+
+        # A press wins over rotation banked in the same frame, and the rotation
+        # is dropped rather than applied on top. Only counts survive the wait
+        # between frames, not the order they happened in, so there is no way to
+        # tell "turn then press" from "press then turn" - and of the two
+        # answers available, going home is the one the user can see is right,
+        # since it is the same wherever the knob had got to. Applying both would
+        # also cost two repaints for one glance at the screen.
+        if pressed:
+            self._home_scheme()
+            return
+
+        # Handed over as one move, not one call per detent: everything banked
+        # since the last frame lands on a single repaint. See _cycle_scheme.
+        if steps:
+            self._cycle_scheme(steps)
+
+    def _home_scheme(self):
+        """
+        Jump straight back to greyscale, however far the knob has wandered.
+
+        Found by kind rather than by name, so renaming the scheme cannot turn
+        this into a lookup that raises. The greyscale scheme is also the one
+        scheme every terminal can show, so this is the one jump that is always
+        available - see the colour_ok test in _cycle_scheme.
+        """
+        home = next(i for i, scheme in enumerate(palettes.SCHEMES)
+                    if scheme.kind == "grey")
+        if self.scheme_index == home:
+            return                  # already there; a repaint would only flash
+        self.scheme_index = home
+        self.display.set_scheme(self.scheme)
+        logger.info("Scheme: %s (%s) - knob pressed",
+                    self.scheme.name, self.scheme.note)
+
     def _lcd_config(self):
         """Snapshot of the settings the LCD mirrors from this display."""
         return self._lcd_config_type(
@@ -153,17 +216,43 @@ class AsciiArtLiveCamera:
         """The active colour scheme."""
         return palettes.SCHEMES[self.scheme_index]
 
-    def _cycle_scheme(self):
-        """Step to the next scheme, skipping any this terminal cannot show."""
-        count = len(palettes.SCHEMES)
-        for step in range(1, count + 1):
-            candidate = palettes.SCHEMES[(self.scheme_index + step) % count]
-            if candidate.kind == "grey" or self.display.colour_ok:
-                self.scheme_index = (self.scheme_index + step) % count
-                break
-        else:
-            return
+    def _cycle_scheme(self, step=1):
+        """
+        Step to the next scheme, skipping any this terminal cannot show.
 
+        Args:
+            step: +1 for the next scheme, -1 for the previous one.  The
+                keyboard only ever goes forwards, but a knob that could not go
+                back would be a poor knob.
+        """
+        count = len(palettes.SCHEMES)
+        direction = 1 if step >= 0 else -1
+
+        # Walk to the destination first and change the display once, rather
+        # than changing it at every scheme on the way. set_scheme() repaints
+        # the whole window - it has to, since a light-screen scheme needs a
+        # different background on every cell - so a five-detent move applied
+        # one scheme at a time is five full repaints of pictures that are never
+        # on screen long enough to be seen. That is visible as a hard strobe,
+        # and the slower the scheme the worse it gets, because a slow frame
+        # gives the knob more time to bank detents before anything is drawn.
+        #
+        # A whole lap is the identity, so the count reduces modulo the list
+        # length; clamping to it instead lands a lap off.
+        index = self.scheme_index
+        for _ in range(abs(step) % count):
+            for offset in range(1, count + 1):
+                candidate = (index + direction * offset) % count
+                if (palettes.SCHEMES[candidate].kind == "grey"
+                        or self.display.colour_ok):
+                    index = candidate
+                    break
+            else:
+                return
+
+        if index == self.scheme_index:
+            return
+        self.scheme_index = index
         self.display.set_scheme(self.scheme)
         # No grid invalidation here on purpose: the grid does not depend on the
         # scheme any more, so recomputing it would only produce the same answer
@@ -359,7 +448,7 @@ class AsciiArtLiveCamera:
                     # polling too fast.
                     self.dropped += 1
                     self.display.message("Waiting for camera...")
-                    if not self._drain_keys():
+                    if not self._drain_input():
                         break
                     continue
 
@@ -390,7 +479,7 @@ class AsciiArtLiveCamera:
                 self.frame_times.append(time.time())
                 self.display.render(ascii_lines, self._status(), colours)
 
-                if not self._drain_keys():
+                if not self._drain_input():
                     break
 
         except KeyboardInterrupt:
@@ -402,12 +491,23 @@ class AsciiArtLiveCamera:
             self.camera.stop()
             if self.lcd is not None:
                 self.lcd.stop()
+            if self.encoder is not None:
+                # Releasing the pins matters as much as it does for the panel:
+                # a claim left behind makes the next run's start() fail.
+                self.encoder.stop()
             logger.info("Rendered %d frames in %.1fs (%.1f avg fps), "
                         "%d camera timeouts", self.frame_count, elapsed,
                         avg, self.dropped)
 
-    def _drain_keys(self):
-        """Process every buffered keypress. Returns False if asked to quit."""
+    def _drain_input(self):
+        """
+        Apply everything the user has done since the last frame.
+
+        The knob is read here rather than on its own timer so that it lands in
+        the same place in the loop as a keypress: one scheme change per frame
+        at most, applied before the next frame is drawn.
+        """
+        self._poll_encoder()
         while True:
             key = self.display.get_key()
             if key is None:
@@ -490,6 +590,27 @@ def parse_args(argv=None):
                           "breadboard")
     lcd.add_argument("--lcd-brightness", type=int, default=100,
                      help="Backlight duty cycle, 0-100")
+    knob = parser.add_argument_group(
+        "KY-040 rotary encoder",
+        "A knob that steps through the colour schemes, doing what s does from "
+        "the keyboard - except that it also goes backwards. Pressing it jumps "
+        "back to greyscale. Works headless, where there is no keyboard to "
+        "press s on.")
+    knob.add_argument("--encoder", action="store_true",
+                      help="Cycle colour schemes with the rotary encoder")
+    knob.add_argument("--encoder-clk", type=int, default=19,
+                      help="BCM pin for CLK")
+    knob.add_argument("--encoder-dt", type=int, default=26,
+                      help="BCM pin for DT")
+    knob.add_argument("--encoder-sw", type=int, default=6,
+                      help="BCM pin for the push switch, which jumps back to "
+                           "greyscale. Give a negative number if the switch is "
+                           "not wired; leaving it set costs nothing either way, "
+                           "since an unwired pin idles high and stays quiet")
+    knob.add_argument("--encoder-reverse", action="store_true",
+                      help="Swap which way the knob steps. Which rotation "
+                           "counts as forwards depends on which pin was wired "
+                           "to CLK, so if the knob runs backwards, add this")
     parser.add_argument("--log", default=str(Path(__file__).resolve().parent
                                              / "ascii_camera.log"),
                         help="Log file (stderr is redirected here too)")

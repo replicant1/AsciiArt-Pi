@@ -184,6 +184,31 @@ Performance facts measured on this Pi, worth not rediscovering:
 
 A caution learned here: synthetic keypresses via piinput proved unreliable for toggling app settings during this work - the first keystroke after creating the device was dropped, and later ones were delivered twice, silently toggling a setting on and back off. Prefer launching the app with the command-line flag you want to test; it is deterministic. See also the piinput gotchas above.
 
+### The KY-040 rotary encoder
+
+A rotary encoder knob is wired to the Pi and cycles the app's colour schemes. It is a third piece of hardware alongside the camera and the SPI panel, and unlike the panel it CAN be verified from here - its effects land in the log.
+
+    CLK -> GPIO 19        + -> 3.3V
+    DT  -> GPIO 26      GND -> GND
+    SW  -> GPIO 6
+
+Turning cycles the schemes both ways; pressing jumps straight back to grey. Off unless asked for: "bash run_ascii_camera.sh fit --lcd --encoder". Driven from userspace via lgpio (installed; gpiozero and RPi.GPIO are present too, pigpio is NOT). Code is src/encoder.py, tests are tests/encoder_test.py, and tools/probe_encoder.py finds the pins.
+
+GPIO 6 for SW was chosen deliberately, not just because it was free. The module fits no pull-up on SW, so it relies on the internal one, and this chip defaults GPIO 0-8 to pull-UP but 9-27 to pull-DOWN. On a pull-down pin the switch reads as held down from power-on until the app configures it; on GPIO 6 it idles high throughout. Apply the same reasoning to any future switch.
+
+Finding the pins again, if the wiring is ever changed: the module has its own pull-ups on CLK and DT, so those two pins read high in "pinctrl get 0-27" even though this chip defaults GPIO 9-27 to pull-DOWN. That narrows it to two candidates but does not confirm them, and it cannot see SW at all (no pull-up is fitted there). Run tools/probe_encoder.py and turn the knob; it identifies the pair by which pins interleave, which is a property two merely noisy pins do not have.
+
+Two things measured here that are worth not rediscovering:
+
+- The contacts bounce about 5:1 - twenty clicks gave 453 edges, 88 after a 1 ms debounce. Do NOT decode by counting edges or by sampling the partner pin at each edge; both read bounce as movement. src/encoder.py uses a quadrature transition table that only emits on a complete cycle, which ignores bounce by construction. One detent is one full cycle on this module.
+- Applying banked detents one at a time causes a violent strobe and tanks the frame rate. Every scheme change calls display.set_scheme(), which ends in stdscr.clear() and repaints all ~27,000 cells, so a five-detent spin became five full repaints between two frames - four of them of pictures never on screen long enough to see. It feeds back on itself, because a slower frame banks more detents. _cycle_scheme takes the whole move at once and repaints once. A two-detent move writing a single "Scheme:" log line is the check that this still holds.
+
+Which direction is "forwards" cannot be derived - it depends on which pin was called CLK - so it is resolved by turning the real knob. As wired, clockwise is forwards and --encoder-reverse is off.
+
+Only counts survive between frames, not the order events happened in, so a turn and a press in the same frame gap cannot be told apart from a press and a turn. The press wins and the rotation is dropped: it is the answer that can be checked by looking, since it is the same wherever the knob had got to, and it costs one repaint rather than two.
+
+Do NOT benchmark or restart the app while the user is testing the knob by hand. Doing that here produced a confident "turning the encoder has no visible effect" report from the user, because the benchmark had just relaunched the app WITHOUT --encoder. Get the user's verification first, then measure.
+
 ### Installing packages on the Pi (low memory)
 
 The Pi Zero 2 has only ~416 MB of usable RAM and apt can be OOM-killed mid-install, leaving packages half-configured and every later install blocked. This actually happened: apt-listchanges was killed while reading a 28 MB LibreOffice changelog. Always disable it:
@@ -241,3 +266,6 @@ Move code between the Pi and the git repo: bash /Users/rodneybailey/PiProjects/A
 Launch the ASCII camera on the Pi's HDMI screen: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit
 Launch it on the HDMI screen and the ILI9341 panel together: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit --lcd
 Check the ILI9341 panel is alive (colour bars, needs a human to confirm): python3 /home/rod/Projects/AsciiArt/tests/lcd_selftest.py
+Launch it with the rotary encoder cycling the colour schemes: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit --lcd --encoder
+Find which GPIO pins the rotary encoder is on (needs a human to turn the knob): python3 /home/rod/Projects/AsciiArt/tools/probe_encoder.py
+Check the rotary encoder decode without any hardware: python3 /home/rod/Projects/AsciiArt/tests/encoder_test.py
