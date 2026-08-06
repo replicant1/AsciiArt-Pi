@@ -1394,6 +1394,18 @@ the encoder module can be dropped for a bare EC11 with no code change at all, be
 `src/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
 to run on nothing else.
 
+[`docs/hdmi-panel-mount-guide.html`](docs/hdmi-panel-mount-guide.html) is a set of section
+drawings for one decision the build guide leaves open: how to get the Zero 2's mini-HDMI out to
+the enclosure wall. A panel-mount socket in Type C is not a stocked part anywhere, so the answer
+is a short mini-HDMI extension held by the printed shell itself — the drawings show where the
+plug force ends up, the geometry of the lip and rear stop that catch it, and why the shell has
+to split through the pocket. Same caveat as the other two: download it and open it in a browser.
+
+The two stops in it do opposite jobs, which is the part that is easy to get backwards. Pushing a
+plug in drives the socket *inward*, so it is the stop *behind* the connector that resists
+insertion; the lip at the aperture — which is just whatever wall is left once the hole is cut
+smaller than the connector body — is what stops it being pulled back out.
+
 ## Choosing a different display
 
 [`docs/display-selection-guide.html`](docs/display-selection-guide.html) is a ranked guide to

@@ -1,0 +1,434 @@
+<title>Capturing a mini-HDMI socket in a printed shell</title>
+
+<style>
+  :root {
+    --paper:   #F1F3EF;
+    --surface: #FBFCF9;
+    --ink:     #1D2422;
+    --ink-2:   #5C6763;
+    --rule:    #C8CFC9;
+    --plastic: #A07636;
+    --metal:   #78868F;
+    --load:    #B33C25;
+    --accent:  #16604F;
+
+    --mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, "DejaVu Sans Mono", Consolas, monospace;
+    --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif 4", Georgia, serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:   #111614;
+      --surface: #181E1B;
+      --ink:     #E3E9E4;
+      --ink-2:   #98A49D;
+      --rule:    #2D3733;
+      --plastic: #C89A50;
+      --metal:   #90A0AA;
+      --load:    #E4674A;
+      --accent:  #48B79B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:   #111614;
+    --surface: #181E1B;
+    --ink:     #E3E9E4;
+    --ink-2:   #98A49D;
+    --rule:    #2D3733;
+    --plastic: #C89A50;
+    --metal:   #90A0AA;
+    --load:    #E4674A;
+    --accent:  #48B79B;
+  }
+  :root[data-theme="light"] {
+    --paper:   #F1F3EF;
+    --surface: #FBFCF9;
+    --ink:     #1D2422;
+    --ink-2:   #5C6763;
+    --rule:    #C8CFC9;
+    --plastic: #A07636;
+    --metal:   #78868F;
+    --load:    #B33C25;
+    --accent:  #16604F;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    display: grid;
+    grid-template-columns:
+      [full-start] minmax(0, 1fr)
+      [text-start] min(65ch, 100%) [text-end]
+      minmax(0, 1fr) [full-end];
+    row-gap: 26px;
+  }
+  .page > * { grid-column: text; }
+  .page > figure,
+  .page > .wide { grid-column: full; justify-self: center; width: min(100%, 1040px); }
+
+  header { padding-top: 64px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(26px, 4.2vw, 38px);
+    font-weight: 600;
+    line-height: 1.16;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+  }
+  .standfirst { font-size: 19px; color: var(--ink-2); margin: 0; }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    margin: 34px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  p { margin: 0; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono);
+    font-size: .88em;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: .06em .34em;
+  }
+
+  ol.notes { margin: 0; padding-left: 1.3em; display: grid; gap: 14px; }
+  ol.notes > li::marker { font-family: var(--mono); font-size: .86em; color: var(--ink-2); }
+
+  figure {
+    margin: 12px 0;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 22px 22px 18px;
+    display: grid;
+    gap: 16px;
+  }
+  .figbody { overflow-x: auto; }
+  figure svg { display: block; width: 100%; min-width: 620px; height: auto; }
+  figcaption {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 78ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 2px; background: var(--surface); }
+  /* font-family/line-height are stated rather than inherited: opened straight off
+     disk this page has no doctype, and quirks mode does not pass font down into
+     tables. */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 620px;
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  thead th {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  td.spec { font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.feat { font-weight: 600; }
+
+  /* ---- SVG tokens. Modifiers are declared after the base class so they win. ---- */
+  .st-ink   { stroke: var(--ink);   stroke-width: 1.5; fill: none; }
+  .st-thin  { stroke: var(--ink-2); stroke-width: 1;   fill: none; }
+  .st-load  { stroke: var(--load);  stroke-width: 2;   fill: none; }
+  .f-metal  { fill: var(--metal); stroke: var(--ink); stroke-width: 1.4; }
+  .f-surf   { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+  .f-board  { fill: var(--rule); stroke: var(--ink); stroke-width: 1.4; }
+  .f-ink    { fill: var(--ink); stroke: none; }
+  .f-load   { fill: var(--load); stroke: none; }
+  .hatch line { stroke: var(--plastic); stroke-width: 1.3; }
+  .center   { stroke: var(--ink-2); stroke-width: 1; fill: none; opacity: .55; stroke-dasharray: 20 4 3 4; }
+
+  .t { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .t-dim { fill: var(--ink-2); font-size: 11.5px; }
+  .t-load { fill: var(--load); }
+  .t-eye { fill: var(--ink-2); font-size: 11.5px; letter-spacing: .11em; }
+</style>
+
+<div class="page">
+
+  <header>
+    <p class="eyebrow">Enclosure detail &middot; AsciiArt / Pi Zero 2 W</p>
+    <h1>Capturing a mini-HDMI socket in a printed shell</h1>
+    <p class="standfirst">Instead of buying a panel-mount connector that doesn&rsquo;t exist in Type C, buy a short mini-HDMI extension and let the enclosure hold it. Three sections: why it&rsquo;s worth doing, what the geometry has to be, and how the two shell halves close around it.</p>
+  </header>
+
+  <h2>Where the force ends up</h2>
+  <p>The mini-HDMI socket on a Zero 2 is surface-mount &mdash; a handful of solder tabs holding it to the board. Every time someone pushes a plug into the enclosure, that force has to be absorbed somewhere. Left to itself, it travels down the cable and into those tabs.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 800 450" role="img" aria-label="Two schematics compared. Without capture, insertion force travels from the external plug through a loose connector, along the cable, and into the Raspberry Pi's socket solder joints. With capture, the connector is held in a pocket and the force stops at the enclosure shell, leaving the Pi's socket unloaded.">
+        <defs>
+          <pattern id="hp1" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
+          </pattern>
+          <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-load"/>
+          </marker>
+          <marker id="ar1b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-ink"/>
+          </marker>
+        </defs>
+
+        <!-- ============ PANEL A : without capture ============ -->
+        <text class="t t-eye" x="0" y="14">WITHOUT CAPTURE &mdash; CONNECTOR FLOATS IN A CLEARANCE HOLE</text>
+
+        <rect x="104" y="28" width="20" height="42" fill="url(#hp1)" class="st-ink"/>
+        <rect x="104" y="110" width="20" height="42" fill="url(#hp1)" class="st-ink"/>
+
+        <path class="st-ink" d="M208,90 L292,90 C344,90 334,142 386,142 L462,142 C516,142 506,96 552,96"/>
+        <rect x="98" y="74" width="110" height="32" class="f-metal"/>
+        <rect x="18" y="79" width="122" height="22" class="f-surf"/>
+
+        <rect x="560" y="112" width="210" height="26" class="f-board"/>
+        <rect x="552" y="80" width="44" height="32" class="f-metal"/>
+        <line class="st-load" x1="566" y1="112" x2="566" y2="121"/>
+        <line class="st-load" x1="578" y1="112" x2="578" y2="121"/>
+        <line class="st-load" x1="590" y1="112" x2="590" y2="121"/>
+
+        <text class="t t-dim" x="24" y="72">external plug</text>
+        <text class="t" x="174" y="94" text-anchor="middle">connector</text>
+        <text class="t t-dim" x="100" y="174" text-anchor="end">enclosure wall</text>
+        <path class="st-thin" d="M104,170 L113,153"/>
+        <text class="t t-dim" x="665" y="130" text-anchor="middle">Pi Zero 2 W</text>
+
+        <path class="st-load" marker-end="url(#ar1)" d="M24,190 H552 V148"/>
+        <text class="t t-load" x="24" y="178">push force</text>
+        <text class="t t-load" x="564" y="186">lands on the Pi&rsquo;s socket</text>
+
+        <!-- ============ PANEL B : with capture ============ -->
+        <text class="t t-eye" x="0" y="244">WITH CAPTURE &mdash; SHELL TRAPPED BETWEEN LIP AND REAR STOP</text>
+
+        <rect x="104" y="258" width="20" height="49" fill="url(#hp1)" class="st-ink"/>
+        <rect x="104" y="333" width="20" height="49" fill="url(#hp1)" class="st-ink"/>
+
+        <path class="st-ink" d="M252,320 L320,320 C372,320 362,372 414,372 L462,372 C516,372 506,326 552,326"/>
+
+        <rect x="124" y="286" width="110" height="12" fill="url(#hp1)" class="st-ink"/>
+        <rect x="124" y="342" width="110" height="12" fill="url(#hp1)" class="st-ink"/>
+        <rect x="234" y="286" width="18" height="26" fill="url(#hp1)" class="st-ink"/>
+        <rect x="234" y="328" width="18" height="26" fill="url(#hp1)" class="st-ink"/>
+
+        <rect x="124" y="298" width="110" height="44" class="f-metal"/>
+        <rect x="18" y="309" width="132" height="22" class="f-surf"/>
+
+        <rect x="560" y="342" width="210" height="26" class="f-board"/>
+        <rect x="552" y="310" width="44" height="32" class="f-metal"/>
+        <line class="st-thin" x1="566" y1="342" x2="566" y2="351"/>
+        <line class="st-thin" x1="578" y1="342" x2="578" y2="351"/>
+        <line class="st-thin" x1="590" y1="342" x2="590" y2="351"/>
+
+        <text class="t t-dim" x="94" y="290" text-anchor="end">lip</text>
+        <path class="st-thin" d="M98,287 L117,301"/>
+        <text class="t t-dim" x="258" y="278">pocket ribs</text>
+        <path class="st-thin" d="M256,275 L210,288"/>
+        <text class="t t-dim" x="258" y="300">rear stop</text>
+        <text class="t" x="192" y="325" text-anchor="middle">connector</text>
+        <text class="t t-dim" x="665" y="360" text-anchor="middle">Pi Zero 2 W</text>
+
+        <path class="st-load" marker-end="url(#ar1)" d="M24,420 H243 V360"/>
+        <text class="t t-load" x="24" y="408">push force</text>
+        <text class="t t-load" x="258" y="404">stops in the shell</text>
+        <text class="t t-dim" x="612" y="420">socket unloaded</text>
+        <path class="st-thin" marker-end="url(#ar1b)" d="M608,416 L594,374"/>
+      </svg>
+    </div>
+    <figcaption><b>The whole point, in one comparison.</b> Outside is at the left in both views. The only difference is the plastic hugging the connector &mdash; and it is enough to change where the red arrow terminates.</figcaption>
+  </figure>
+
+  <h2>The two stops do opposite jobs</h2>
+  <p>Pushing a plug in drives the socket <em>inward</em>, so it is the stop <em>behind</em> the connector that resists insertion. Pulling the cable drags the socket <em>outward</em>, and that is caught by the lip at the aperture &mdash; formed simply by making the hole smaller than the connector body. You need both, and they are at opposite ends of the part.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 780 430" role="img" aria-label="Enlarged cross-section through the enclosure wall. The aperture is smaller than the connector body, so the wall's inner face forms a lip that resists pull. Printed ribs form a pocket around the connector body, and a rear stop behind the connector resists push. The cable exits between the rear stop blocks and is anchored a short distance away.">
+        <defs>
+          <pattern id="hp2" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
+          </pattern>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-load"/>
+          </marker>
+        </defs>
+
+        <line class="center" x1="0" y1="210" x2="780" y2="210"/>
+
+        <rect x="180" y="84" width="40" height="106" fill="url(#hp2)" class="st-ink"/>
+        <rect x="180" y="230" width="40" height="106" fill="url(#hp2)" class="st-ink"/>
+
+        <rect x="220" y="142" width="250" height="24" fill="url(#hp2)" class="st-ink"/>
+        <rect x="220" y="254" width="250" height="24" fill="url(#hp2)" class="st-ink"/>
+        <rect x="430" y="142" width="40" height="52" fill="url(#hp2)" class="st-ink"/>
+        <rect x="430" y="226" width="40" height="52" fill="url(#hp2)" class="st-ink"/>
+
+        <rect x="220" y="166" width="210" height="88" class="f-metal"/>
+        <rect x="220" y="190" width="86" height="40" class="f-surf"/>
+        <rect x="0" y="194" width="286" height="32" class="f-surf"/>
+
+        <rect x="470" y="198" width="310" height="24" class="f-surf"/>
+        <rect x="596" y="186" width="44" height="12" fill="url(#hp2)" class="st-ink"/>
+        <rect x="596" y="222" width="44" height="12" fill="url(#hp2)" class="st-ink"/>
+
+        <text class="t" x="120" y="214" text-anchor="middle">external plug</text>
+        <text class="t" x="368" y="214" text-anchor="middle">connector shell</text>
+        <text class="t t-dim" x="160" y="126" text-anchor="end">aperture</text>
+        <path class="st-thin" d="M164,130 L198,186"/>
+        <text class="t t-dim" x="164" y="322" text-anchor="end">enclosure wall</text>
+        <path class="st-thin" d="M168,318 L187,300"/>
+        <text class="t t-dim" x="486" y="274">pocket rib</text>
+        <path class="st-thin" d="M482,271 L466,266"/>
+        <text class="t t-dim" x="618" y="262" text-anchor="middle">cable anchor</text>
+        <path class="st-thin" d="M618,252 L618,237"/>
+
+        <path class="st-load" marker-end="url(#ar2)" d="M20,56 H444 V134"/>
+        <text class="t t-load" x="20" y="42">push &mdash; plug going in</text>
+        <text class="t t-load" x="456" y="60">rear stop takes it</text>
+
+        <path class="st-load" marker-end="url(#ar2)" d="M300,378 H34"/>
+        <text class="t t-load" x="312" y="382">pull &mdash; cable yanked</text>
+        <text class="t t-load" x="166" y="308" text-anchor="end">lip takes it</text>
+        <path class="st-thin" d="M170,304 L216,254"/>
+      </svg>
+    </div>
+    <figcaption><b>Section through the wall, outside at the left.</b> The lip is not an added feature &mdash; it is whatever wall material is left once the aperture is cut smaller than the connector body. The rear stop is a separate boss, and the gap between its two blocks is what the cable exits through.</figcaption>
+  </figure>
+
+  <h2>Why the shell has to split through the pocket</h2>
+  <p>A connector this shape cannot be threaded in from either end once the pocket exists &mdash; it is wider than the aperture in front and wider than the cable gap behind. So the pocket has to open. Put the parting line through its centre and each half carries half the pocket; the connector drops into the lower half and the upper half traps it as the box closes.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 700 420" role="img" aria-label="Exploded end-on section taken behind the panel face. The upper shell half has a recess in its lower edge and the lower half has a matching recess in its upper edge. Together they form the pocket around the connector, with the parting line running through the connector's centre.">
+        <defs>
+          <pattern id="hp3" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
+          </pattern>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-ink"/>
+          </marker>
+        </defs>
+
+        <line class="center" x1="0" y1="215" x2="700" y2="215"/>
+
+        <path d="M120,40 H460 V130 H350 V96 H230 V130 H120 Z" fill="url(#hp3)" class="st-ink"/>
+        <path d="M120,390 H460 V300 H350 V334 H230 V300 H120 Z" fill="url(#hp3)" class="st-ink"/>
+        <rect x="230" y="185" width="120" height="60" class="f-metal"/>
+
+        <text class="t" x="175" y="90" text-anchor="middle">upper half</text>
+        <text class="t" x="175" y="348" text-anchor="middle">lower half</text>
+        <text class="t" x="290" y="220" text-anchor="middle">connector</text>
+        <text class="t t-dim" x="8" y="208">parting line</text>
+
+        <text class="t t-dim" x="480" y="112">half the pocket</text>
+        <path class="st-thin" d="M476,109 L354,112"/>
+        <text class="t t-dim" x="480" y="324">half the pocket</text>
+        <path class="st-thin" d="M476,321 L354,318"/>
+
+        <path class="st-thin" marker-end="url(#ar3)" d="M560,150 V180"/>
+        <path class="st-thin" marker-end="url(#ar3)" d="M560,280 V250"/>
+        <text class="t t-dim" x="576" y="219">the halves close on it</text>
+      </svg>
+    </div>
+    <figcaption><b>End-on section, taken behind the panel face</b> (so no aperture appears here). The recess sides also grip the connector body, which is what stops it rotating in the pocket &mdash; worth keeping snug even though rotation carries no load.</figcaption>
+  </figure>
+
+  <h2>Numbers to start from</h2>
+  <p>FDM figures, for a 0.4&nbsp;mm nozzle. Tighten the clearances for resin. Measure the connector with calipers rather than trusting a listing &mdash; overmoulded boots vary far more than the connector standard does.</p>
+
+  <div class="wide tablewrap">
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Start from</th><th>Why that number</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat">Aperture</td>
+          <td class="spec">plug shell + 0.3 mm all round</td>
+          <td>The plug has to pass through it. Any looser and you eat into the lip.</td>
+        </tr>
+        <tr>
+          <td class="feat">Lip land</td>
+          <td class="spec">&ge; 1.5 mm all round</td>
+          <td>Bearing area for extraction load. This is the difference between the aperture and the connector body, so check it survives the aperture clearance.</td>
+        </tr>
+        <tr>
+          <td class="feat">Pocket</td>
+          <td class="spec">connector body + 0.2 mm</td>
+          <td>Locates it without needing force to assemble. A press fit here fights you at every service.</td>
+        </tr>
+        <tr>
+          <td class="feat">Wall at the aperture</td>
+          <td class="spec">&ge; 3 mm</td>
+          <td>The lip is the thinnest loaded section in the whole part. Thin walls split along the aperture corners.</td>
+        </tr>
+        <tr>
+          <td class="feat">Cable gap in the rear stop</td>
+          <td class="spec">cable OD + 0.5 mm</td>
+          <td>Must clear the cable, not pinch it. Pinching a shielded cable is how you get intermittent DDC faults.</td>
+        </tr>
+        <tr>
+          <td class="feat">Anchor to Pi</td>
+          <td class="spec">&le; 30 mm of free cable</td>
+          <td>Bounds how much leverage a side load can apply to the Pi&rsquo;s own socket.</td>
+        </tr>
+        <tr>
+          <td class="feat">Service loop</td>
+          <td class="spec">20&ndash;30 mm of slack</td>
+          <td>A taut cable transmits everything. Slack between the anchor and the Pi is doing real work.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What bites</h2>
+  <ol class="notes">
+    <li><strong>Print orientation decides whether the lip survives.</strong> If the panel face is printed flat on the bed, extraction load pulls the lip apart across layer lines, which is the weak direction. Print that face vertical, or fillet the lip root so the load isn&rsquo;t concentrated at a layer boundary.</li>
+    <li><strong>Check the connector has a flat back face.</strong> Some female extension ends are a fat plastic boot with nothing square for the rear stop to bear on. That kills the design. Buy two and pick the better one &mdash; they&rsquo;re a few pounds each.</li>
+    <li><strong>Side loads still get through.</strong> The capture handles push and pull along the axis. A sideways yank levers the connector in the pocket and can crack the ribs. That&rsquo;s what the cable anchor is for; it is not optional.</li>
+    <li><strong>Dry-fit on a test coupon.</strong> Print a 20 mm slab with just the aperture and pocket in it, ten minutes a go. Two iterations of that beat one wasted shell.</li>
+    <li><strong>No screening from the box.</strong> A metal connector in a plastic shell means the HDMI shield is grounded only through the cable. That&rsquo;s fine at these lengths &mdash; just don&rsquo;t expect the enclosure to contribute.</li>
+  </ol>
+
+  <h2>The part to buy</h2>
+  <p>Any short mini-HDMI female to mini-HDMI male extension &mdash; <a href="https://www.ebay.com/itm/235086819308">this 0.16&nbsp;m one</a> is the right shape. The female end becomes the panel socket; the male end plugs into the Pi. Everything above is about the plastic around it.</p>
+
+</div>
