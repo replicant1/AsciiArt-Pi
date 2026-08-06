@@ -41,7 +41,8 @@ TEST_FILES=(bench_pipeline.py capture_reference.py
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
 DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
-           scheme-montage.png display-selection-guide.html)
+           scheme-montage.png display-selection-guide.html
+           enclosure-build-guide.html)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera, and
