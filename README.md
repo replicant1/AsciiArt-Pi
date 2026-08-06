@@ -1421,13 +1421,17 @@ isometric of the base with the lid lifted off, and a side section through the we
 console, 92 × 105 mm, 25 mm at the front and 62 at the back**, camera out of the vertical front
 face so the panel is a viewfinder.
 
-The layout is decided by the Pi's port edge, not by preference. Fixing that edge against the
-**right wall with PWR toward the back and mini-HDMI toward the front** is a 90° rotation of the
-board, and it carries the CSI connector to the back with it. Since the ribbon leaves the short
-edge travelling parallel to the long edge, the camera has to go on the **back wall** for that
-run to be straight — which is also where it belongs, looking away from whoever is reading the
-panel. Each wall pocket sits directly opposite the board port it serves, so the leads are short
-and cannot be crossed at assembly.
+The isometric carries a compass — north is right-and-up, east is right-and-down — because
+"front" and "back" are useless words for an isometric. It also sits on a ground plane, casts a
+shadow, and has its two near walls cut away rather than drawn see-through: without those cues an
+open tray reads equally well as the underside of a closed one.
+
+The layout is decided by the Pi's port edge, not by preference. Pinning that edge **east, with
+PWR IN north and mini-HDMI south**, is a 90° rotation of the board, and a rotation carries
+everything with it — header pin 1 lands south, and the CSI connector lands on the **north**
+edge. Since the ribbon leaves the short edge travelling parallel to the long edge, the camera
+has to go on the **north wall** for that run to stay straight. Each wall pocket sits directly
+opposite the board port it serves, so the leads are short and cannot be crossed at assembly.
 
 The other load-bearing idea is the parting plane at **z = 25 mm**: it is the front wall height,
 it clears the Pi and HAT stack, it cuts both connectors exactly in half so they can be captured
