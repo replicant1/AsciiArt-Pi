@@ -1418,13 +1418,20 @@ specifically, not of the overlay.
 
 It closes with the enclosure those three decisions imply, drawn rather than described: an
 isometric of the base with the lid lifted off, and a side section through the wedge. A **sloped
-console, 105 × 95 mm, 25 mm at the front and 62 at the back**, camera out of the vertical front
-face so the panel is a viewfinder, and the HAT's two JST-XH sockets facing forward where you can
-reach them. The load-bearing idea is the parting plane at **z = 25 mm**: it is the front wall
-height, it clears the Pi and HAT stack, it cuts both back-panel connectors exactly in half so
-they can be captured at all, and it keeps every hand-crimped joint in the base. Ten millimetres
-under the Pi are reserved for a PiSugar 3 that is not fitted, so adding the battery later costs
-a cable rather than a re-print.
+console, 92 × 105 mm, 25 mm at the front and 62 at the back**, camera out of the vertical front
+face so the panel is a viewfinder.
+
+The layout is decided by the camera ribbon, not by preference. The flex leaves the Pi's *short*
+edge travelling parallel to its *long* edge, so a Pi lying across the box would need the ribbon
+to turn 90° in a few millimetres. Turning the Pi to run front-to-back makes that run dead
+straight — and that one rotation then puts the port edge against the **right wall**, which is
+where the HDMI and USB-C pockets have to go, and leaves the back wall empty.
+
+The other load-bearing idea is the parting plane at **z = 25 mm**: it is the front wall height,
+it clears the Pi and HAT stack, it cuts both connectors exactly in half so they can be captured
+at all, and it keeps every hand-crimped joint in the base. Ten millimetres under the Pi are
+reserved for a PiSugar 3 that is not fitted, so adding the battery later costs a cable rather
+than a re-print.
 
 ## Choosing a different display
 
