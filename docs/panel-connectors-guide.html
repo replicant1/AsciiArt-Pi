@@ -1,0 +1,736 @@
+<title>Panel connectors and controls — ASCII Camera enclosure</title>
+
+<style>
+  :root {
+    --paper:   #F1F3EF;
+    --surface: #FBFCF9;
+    --ink:     #1D2422;
+    --ink-2:   #5C6763;
+    --rule:    #C8CFC9;
+    --plastic: #A07636;
+    --metal:   #78868F;
+    --load:    #B33C25;
+    --accent:  #16604F;
+
+    --mono:  ui-monospace, "SF Mono", SFMono-Regular, Menlo, "DejaVu Sans Mono", Consolas, monospace;
+    --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Source Serif 4", Georgia, serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:   #111614;
+      --surface: #181E1B;
+      --ink:     #E3E9E4;
+      --ink-2:   #98A49D;
+      --rule:    #2D3733;
+      --plastic: #C89A50;
+      --metal:   #90A0AA;
+      --load:    #E4674A;
+      --accent:  #48B79B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:   #111614;
+    --surface: #181E1B;
+    --ink:     #E3E9E4;
+    --ink-2:   #98A49D;
+    --rule:    #2D3733;
+    --plastic: #C89A50;
+    --metal:   #90A0AA;
+    --load:    #E4674A;
+    --accent:  #48B79B;
+  }
+  :root[data-theme="light"] {
+    --paper:   #F1F3EF;
+    --surface: #FBFCF9;
+    --ink:     #1D2422;
+    --ink-2:   #5C6763;
+    --rule:    #C8CFC9;
+    --plastic: #A07636;
+    --metal:   #78868F;
+    --load:    #B33C25;
+    --accent:  #16604F;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    display: grid;
+    grid-template-columns:
+      [full-start] minmax(0, 1fr)
+      [text-start] min(65ch, 100%) [text-end]
+      minmax(0, 1fr) [full-end];
+    row-gap: 26px;
+  }
+  .page > * { grid-column: text; }
+  .page > figure,
+  .page > .wide { grid-column: full; justify-self: center; width: min(100%, 1040px); }
+
+  header { padding-top: 64px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(26px, 4.2vw, 38px);
+    font-weight: 600;
+    line-height: 1.16;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0 0 18px;
+  }
+  .standfirst { font-size: 19px; color: var(--ink-2); margin: 0; }
+
+  .parthead {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 44px 0 -14px;
+    padding-top: 22px;
+    border-top: 2px solid var(--accent);
+  }
+  h2 {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.005em;
+    margin: 34px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  .parthead + h2 { border-top: 0; padding-top: 0; margin-top: 30px; }
+  p { margin: 0; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono);
+    font-size: .88em;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: .06em .34em;
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.5;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+    margin: 0;
+    padding: 14px 18px;
+    overflow-x: auto;
+  }
+  pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+  ol.notes, ul.notes { margin: 0; padding-left: 1.3em; display: grid; gap: 14px; }
+  ol.notes > li::marker { font-family: var(--mono); font-size: .86em; color: var(--ink-2); }
+
+  figure {
+    margin: 12px 0;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 22px 22px 18px;
+    display: grid;
+    gap: 16px;
+  }
+  .figbody { overflow-x: auto; }
+  figure svg { display: block; width: 100%; min-width: 620px; height: auto; }
+  figcaption {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 78ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 2px; background: var(--surface); }
+  /* font-family/line-height are stated rather than inherited: opened straight off
+     disk this page has no doctype, and quirks mode does not pass font down into
+     tables. */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 620px;
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  thead th {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  td.spec { font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.feat { font-weight: 600; }
+
+  /* ---- SVG tokens. Modifiers are declared after the base class so they win. ---- */
+  .st-ink   { stroke: var(--ink);   stroke-width: 1.5; fill: none; }
+  .st-thin  { stroke: var(--ink-2); stroke-width: 1;   fill: none; }
+  .st-load  { stroke: var(--load);  stroke-width: 2;   fill: none; }
+  .st-wire  { stroke: var(--ink);   stroke-width: 1.8; fill: none; }
+  .st-dash  { stroke: var(--ink-2); stroke-width: 1.4; fill: none; stroke-dasharray: 7 5; }
+  .f-metal  { fill: var(--metal); stroke: var(--ink); stroke-width: 1.4; }
+  .f-surf   { fill: var(--surface); stroke: var(--ink); stroke-width: 1.4; }
+  .f-board  { fill: var(--rule); stroke: var(--ink); stroke-width: 1.4; }
+  .f-ink    { fill: var(--ink); stroke: none; }
+  .f-load   { fill: var(--load); stroke: none; }
+  .hatch line { stroke: var(--plastic); stroke-width: 1.3; }
+  .center   { stroke: var(--ink-2); stroke-width: 1; fill: none; opacity: .55; stroke-dasharray: 20 4 3 4; }
+
+  .t { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .t-dim { fill: var(--ink-2); font-size: 11.5px; }
+  .t-load { fill: var(--load); }
+  .t-eye { fill: var(--ink-2); font-size: 11.5px; letter-spacing: .11em; }
+</style>
+
+<div class="page">
+
+  <header>
+    <p class="eyebrow">Enclosure detail &middot; AsciiArt / Pi Zero 2 W</p>
+    <h1>Panel connectors and controls</h1>
+    <p class="standfirst">Three things have to cross the enclosure wall: video out, power in, and some way to shut the machine down. Each has a different answer, only one of them is genuinely hard, and the one that looks like an afterthought &mdash; the button &mdash; turns out to be free.</p>
+  </header>
+
+  <h2>What crosses the wall</h2>
+  <p>The Pi&rsquo;s three exposed sockets are not equally worth exposing, and two of them are not exposed as themselves.</p>
+
+  <div class="wide tablewrap">
+    <table>
+      <thead>
+        <tr><th>Crossing</th><th>On the Pi</th><th>At the panel</th><th>Difficulty</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat">Video out</td>
+          <td class="spec">mini-HDMI (Type C)</td>
+          <td class="spec">full-size HDMI (Type A)</td>
+          <td>Hard &mdash; no panel-mount part exists in Type C, so the shell holds the connector itself.</td>
+        </tr>
+        <tr>
+          <td class="feat">Power in</td>
+          <td class="spec">micro-B</td>
+          <td class="spec">USB-C</td>
+          <td>Easy &mdash; a stocked part does the whole job, screws included.</td>
+        </tr>
+        <tr>
+          <td class="feat">Shutdown</td>
+          <td class="spec">GPIO 3 / header pin 5</td>
+          <td class="spec">momentary button</td>
+          <td>Easy &mdash; one line in <code>config.txt</code> and a $2 switch.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Nothing here needs the PiSugar 3, which is out of the picture for now. The choices below are made so that adding it later costs a cable and one wire, not a re-printed panel &mdash; noted where it matters.</p>
+
+  <!-- ==================== PART 1 : VIDEO ==================== -->
+
+  <p class="parthead">Video out &mdash; mini-HDMI</p>
+  <h2>Capturing the socket in the shell</h2>
+  <p>A mini-HDMI (Type C) female panel-mount connector is not a stocked part. Full-size Type A has flanged sockets, bulkhead couplers, keystones and pre-made panel leads from a dozen suppliers; for Type C there is no equivalent, and the listings that claim to be one all mean <em>mini plug on the cable end, full-size socket on the panel</em>. Custom assemblies exist to order, with an MOQ in the dozens.</p>
+  <p>So buy a short extension and let the enclosure be the panel mount. The connector&rsquo;s own body is captured between two features of the printed shell, and the Pi&rsquo;s fragile surface-mount socket never sees a plug force again.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 800 450" role="img" aria-label="Two schematics compared. Without capture, insertion force travels from the external plug through a loose connector, along the cable, and into the Raspberry Pi's socket solder joints. With capture, the connector is held in a pocket and the force stops at the enclosure shell, leaving the Pi's socket unloaded.">
+        <defs>
+          <pattern id="hp1" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
+          </pattern>
+          <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-load"/>
+          </marker>
+          <marker id="ar1b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-ink"/>
+          </marker>
+        </defs>
+
+        <text class="t t-eye" x="0" y="14">WITHOUT CAPTURE &mdash; CONNECTOR FLOATS IN A CLEARANCE HOLE</text>
+
+        <rect x="104" y="28" width="20" height="42" fill="url(#hp1)" class="st-ink"/>
+        <rect x="104" y="110" width="20" height="42" fill="url(#hp1)" class="st-ink"/>
+
+        <path class="st-ink" d="M208,90 L292,90 C344,90 334,142 386,142 L462,142 C516,142 506,96 552,96"/>
+        <rect x="98" y="74" width="110" height="32" class="f-metal"/>
+        <rect x="18" y="79" width="122" height="22" class="f-surf"/>
+
+        <rect x="560" y="112" width="210" height="26" class="f-board"/>
+        <rect x="552" y="80" width="44" height="32" class="f-metal"/>
+        <line class="st-load" x1="566" y1="112" x2="566" y2="121"/>
+        <line class="st-load" x1="578" y1="112" x2="578" y2="121"/>
+        <line class="st-load" x1="590" y1="112" x2="590" y2="121"/>
+
+        <text class="t t-dim" x="24" y="72">external plug</text>
+        <text class="t" x="174" y="94" text-anchor="middle">connector</text>
+        <text class="t t-dim" x="100" y="174" text-anchor="end">enclosure wall</text>
+        <path class="st-thin" d="M104,170 L113,153"/>
+        <text class="t t-dim" x="665" y="130" text-anchor="middle">Pi Zero 2 W</text>
+
+        <path class="st-load" marker-end="url(#ar1)" d="M24,190 H552 V148"/>
+        <text class="t t-load" x="24" y="178">push force</text>
+        <text class="t t-load" x="564" y="186">lands on the Pi&rsquo;s socket</text>
+
+        <text class="t t-eye" x="0" y="244">WITH CAPTURE &mdash; SHELL TRAPPED BETWEEN LIP AND REAR STOP</text>
+
+        <rect x="104" y="258" width="20" height="49" fill="url(#hp1)" class="st-ink"/>
+        <rect x="104" y="333" width="20" height="49" fill="url(#hp1)" class="st-ink"/>
+
+        <path class="st-ink" d="M252,320 L320,320 C372,320 362,372 414,372 L462,372 C516,372 506,326 552,326"/>
+
+        <rect x="124" y="286" width="110" height="12" fill="url(#hp1)" class="st-ink"/>
+        <rect x="124" y="342" width="110" height="12" fill="url(#hp1)" class="st-ink"/>
+        <rect x="234" y="286" width="18" height="26" fill="url(#hp1)" class="st-ink"/>
+        <rect x="234" y="328" width="18" height="26" fill="url(#hp1)" class="st-ink"/>
+
+        <rect x="124" y="298" width="110" height="44" class="f-metal"/>
+        <rect x="18" y="309" width="132" height="22" class="f-surf"/>
+
+        <rect x="560" y="342" width="210" height="26" class="f-board"/>
+        <rect x="552" y="310" width="44" height="32" class="f-metal"/>
+        <line class="st-thin" x1="566" y1="342" x2="566" y2="351"/>
+        <line class="st-thin" x1="578" y1="342" x2="578" y2="351"/>
+        <line class="st-thin" x1="590" y1="342" x2="590" y2="351"/>
+
+        <text class="t t-dim" x="94" y="290" text-anchor="end">lip</text>
+        <path class="st-thin" d="M98,287 L117,301"/>
+        <text class="t t-dim" x="258" y="278">pocket ribs</text>
+        <path class="st-thin" d="M256,275 L210,288"/>
+        <text class="t t-dim" x="258" y="300">rear stop</text>
+        <text class="t" x="192" y="325" text-anchor="middle">connector</text>
+        <text class="t t-dim" x="665" y="360" text-anchor="middle">Pi Zero 2 W</text>
+
+        <path class="st-load" marker-end="url(#ar1)" d="M24,420 H243 V360"/>
+        <text class="t t-load" x="24" y="408">push force</text>
+        <text class="t t-load" x="258" y="404">stops in the shell</text>
+        <text class="t t-dim" x="612" y="420">socket unloaded</text>
+        <path class="st-thin" marker-end="url(#ar1b)" d="M608,416 L594,374"/>
+      </svg>
+    </div>
+    <figcaption><b>The whole point, in one comparison.</b> Outside is at the left in both views. The only difference is the plastic hugging the connector &mdash; and it is enough to change where the red arrow terminates.</figcaption>
+  </figure>
+
+  <h2>The two stops do opposite jobs</h2>
+  <p>Pushing a plug in drives the socket <em>inward</em>, so it is the stop <em>behind</em> the connector that resists insertion. Pulling the cable drags the socket <em>outward</em>, and that is caught by the lip at the aperture &mdash; formed simply by making the hole smaller than the connector body. You need both, and they are at opposite ends of the part.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 780 430" role="img" aria-label="Enlarged cross-section through the enclosure wall. The aperture is smaller than the connector body, so the wall's inner face forms a lip that resists pull. Printed ribs form a pocket around the connector body, and a rear stop behind the connector resists push. The cable exits between the rear stop blocks and is anchored a short distance away.">
+        <defs>
+          <pattern id="hp2" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
+          </pattern>
+          <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-load"/>
+          </marker>
+        </defs>
+
+        <line class="center" x1="0" y1="210" x2="780" y2="210"/>
+
+        <rect x="180" y="84" width="40" height="106" fill="url(#hp2)" class="st-ink"/>
+        <rect x="180" y="230" width="40" height="106" fill="url(#hp2)" class="st-ink"/>
+
+        <rect x="220" y="142" width="250" height="24" fill="url(#hp2)" class="st-ink"/>
+        <rect x="220" y="254" width="250" height="24" fill="url(#hp2)" class="st-ink"/>
+        <rect x="430" y="142" width="40" height="52" fill="url(#hp2)" class="st-ink"/>
+        <rect x="430" y="226" width="40" height="52" fill="url(#hp2)" class="st-ink"/>
+
+        <rect x="220" y="166" width="210" height="88" class="f-metal"/>
+        <rect x="220" y="190" width="86" height="40" class="f-surf"/>
+        <rect x="0" y="194" width="286" height="32" class="f-surf"/>
+
+        <rect x="470" y="198" width="310" height="24" class="f-surf"/>
+        <rect x="596" y="186" width="44" height="12" fill="url(#hp2)" class="st-ink"/>
+        <rect x="596" y="222" width="44" height="12" fill="url(#hp2)" class="st-ink"/>
+
+        <text class="t" x="120" y="214" text-anchor="middle">external plug</text>
+        <text class="t" x="368" y="214" text-anchor="middle">connector shell</text>
+        <text class="t t-dim" x="160" y="126" text-anchor="end">aperture</text>
+        <path class="st-thin" d="M164,130 L198,186"/>
+        <text class="t t-dim" x="164" y="322" text-anchor="end">enclosure wall</text>
+        <path class="st-thin" d="M168,318 L187,300"/>
+        <text class="t t-dim" x="486" y="274">pocket rib</text>
+        <path class="st-thin" d="M482,271 L466,266"/>
+        <text class="t t-dim" x="618" y="262" text-anchor="middle">cable anchor</text>
+        <path class="st-thin" d="M618,252 L618,237"/>
+
+        <path class="st-load" marker-end="url(#ar2)" d="M20,56 H444 V134"/>
+        <text class="t t-load" x="20" y="42">push &mdash; plug going in</text>
+        <text class="t t-load" x="456" y="60">rear stop takes it</text>
+
+        <path class="st-load" marker-end="url(#ar2)" d="M300,378 H34"/>
+        <text class="t t-load" x="312" y="382">pull &mdash; cable yanked</text>
+        <text class="t t-load" x="166" y="308" text-anchor="end">lip takes it</text>
+        <path class="st-thin" d="M170,304 L216,254"/>
+      </svg>
+    </div>
+    <figcaption><b>Section through the wall, outside at the left.</b> The lip is not an added feature &mdash; it is whatever wall material is left once the aperture is cut smaller than the connector body. The rear stop is a separate boss, and the gap between its two blocks is what the cable exits through.</figcaption>
+  </figure>
+
+  <h2>Why the shell has to split through the pocket</h2>
+  <p>A connector this shape cannot be threaded in from either end once the pocket exists &mdash; it is wider than the aperture in front and wider than the cable gap behind. So the pocket has to open. Put the parting line through its centre and each half carries half the pocket; the connector drops into the lower half and the upper half traps it as the box closes.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 700 420" role="img" aria-label="Exploded end-on section taken behind the panel face. The upper shell half has a recess in its lower edge and the lower half has a matching recess in its upper edge. Together they form the pocket around the connector, with the parting line running through the connector's centre.">
+        <defs>
+          <pattern id="hp3" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
+          </pattern>
+          <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-ink"/>
+          </marker>
+        </defs>
+
+        <line class="center" x1="0" y1="215" x2="700" y2="215"/>
+
+        <path d="M120,40 H460 V130 H350 V96 H230 V130 H120 Z" fill="url(#hp3)" class="st-ink"/>
+        <path d="M120,390 H460 V300 H350 V334 H230 V300 H120 Z" fill="url(#hp3)" class="st-ink"/>
+        <rect x="230" y="185" width="120" height="60" class="f-metal"/>
+
+        <text class="t" x="175" y="90" text-anchor="middle">upper half</text>
+        <text class="t" x="175" y="348" text-anchor="middle">lower half</text>
+        <text class="t" x="290" y="220" text-anchor="middle">connector</text>
+        <text class="t t-dim" x="8" y="208">parting line</text>
+
+        <text class="t t-dim" x="480" y="112">half the pocket</text>
+        <path class="st-thin" d="M476,109 L354,112"/>
+        <text class="t t-dim" x="480" y="324">half the pocket</text>
+        <path class="st-thin" d="M476,321 L354,318"/>
+
+        <path class="st-thin" marker-end="url(#ar3)" d="M560,150 V180"/>
+        <path class="st-thin" marker-end="url(#ar3)" d="M560,280 V250"/>
+        <text class="t t-dim" x="576" y="219">the halves close on it</text>
+      </svg>
+    </div>
+    <figcaption><b>End-on section, taken behind the panel face</b> (so no aperture appears here). The recess sides also grip the connector body, which is what stops it rotating in the pocket &mdash; worth keeping snug even though rotation carries no load.</figcaption>
+  </figure>
+
+  <h2>Numbers to start from</h2>
+  <p>FDM figures, for a 0.4&nbsp;mm nozzle. Tighten the clearances for resin. Measure the connector with calipers rather than trusting a listing &mdash; overmoulded boots vary far more than the connector standard does.</p>
+
+  <div class="wide tablewrap">
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Start from</th><th>Why that number</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat">Aperture</td>
+          <td class="spec">plug shell + 0.3 mm all round</td>
+          <td>The plug has to pass through it. Any looser and you eat into the lip.</td>
+        </tr>
+        <tr>
+          <td class="feat">Lip land</td>
+          <td class="spec">&ge; 1.5 mm all round</td>
+          <td>Bearing area for extraction load. This is the difference between the aperture and the connector body, so check it survives the aperture clearance.</td>
+        </tr>
+        <tr>
+          <td class="feat">Pocket</td>
+          <td class="spec">connector body + 0.2 mm</td>
+          <td>Locates it without needing force to assemble. A press fit here fights you at every service.</td>
+        </tr>
+        <tr>
+          <td class="feat">Wall at the aperture</td>
+          <td class="spec">&ge; 3 mm</td>
+          <td>The lip is the thinnest loaded section in the whole part. Thin walls split along the aperture corners.</td>
+        </tr>
+        <tr>
+          <td class="feat">Cable gap in the rear stop</td>
+          <td class="spec">cable OD + 0.5 mm</td>
+          <td>Must clear the cable, not pinch it. Pinching a shielded cable is how you get intermittent DDC faults.</td>
+        </tr>
+        <tr>
+          <td class="feat">Anchor to Pi</td>
+          <td class="spec">&le; 30 mm of free cable</td>
+          <td>Bounds how much leverage a side load can apply to the Pi&rsquo;s own socket.</td>
+        </tr>
+        <tr>
+          <td class="feat">Service loop</td>
+          <td class="spec">20&ndash;30 mm of slack</td>
+          <td>A taut cable transmits everything. Slack between the anchor and the Pi is doing real work.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What bites on the HDMI side</h2>
+  <ol class="notes">
+    <li><strong>Print orientation decides whether the lip survives.</strong> If the panel face is printed flat on the bed, extraction load pulls the lip apart across layer lines, which is the weak direction. Print that face vertical, or fillet the lip root so the load isn&rsquo;t concentrated at a layer boundary.</li>
+    <li><strong>Check the connector has a flat back face.</strong> Some female extension ends are a fat plastic boot with nothing square for the rear stop to bear on. That kills the design. Buy two and pick the better one &mdash; they&rsquo;re a few pounds each.</li>
+    <li><strong>Side loads still get through.</strong> The capture handles push and pull along the axis. A sideways yank levers the connector in the pocket and can crack the ribs. That&rsquo;s what the cable anchor is for; it is not optional.</li>
+    <li><strong>Dry-fit on a test coupon.</strong> Print a 20 mm slab with just the aperture and pocket in it, ten minutes a go. Two iterations of that beat one wasted shell.</li>
+    <li><strong>No screening from the box.</strong> A metal connector in a plastic shell means the HDMI shield is grounded only through the cable. That&rsquo;s fine at these lengths &mdash; just don&rsquo;t expect the enclosure to contribute.</li>
+  </ol>
+
+  <p>If the enclosure has room, the simpler alternative is a full-size panel-mount lead (Adafruit ADA978, flanged socket on a 40 cm cable) plus the official Raspberry Pi mini-HDMI-to-HDMI-female <em>cable</em> adapter &mdash; the flexible one, not the rigid dongle. That is one more junction, but everything is stocked and the mounting dimensions are published.</p>
+
+  <!-- ==================== PART 2 : POWER ==================== -->
+
+  <p class="parthead">Power in &mdash; micro-B, exposed as USB-C</p>
+  <h2>One part does the whole job</h2>
+  <p>Unlike mini-HDMI, this is a solved commodity. <strong>Adafruit ADA4056, &ldquo;Panel Mount Cable USB C to Micro B Male, 30 cm&rdquo;</strong>: a USB-C socket with M3 mounting ears at 20 mm spacing on one end, a micro-B plug on the other. Panels up to 6.35 mm thick, 4.5 mm cable, screws included. There is no printed capture to design &mdash; it bolts to the panel.</p>
+  <p>The interesting decision is not the part, it is the connector on the outside face.</p>
+
+  <h2>Why USB-C on the panel of a micro-B device</h2>
+  <p><strong>The cutout is the irreversible part.</strong> A cable can be swapped in a minute; a printed panel cannot be un-cut. USB-C is the cutout that survives changing your mind &mdash; including the specific change of mind already on the table, since the PiSugar 3 charges over USB-C. Fit it now and adding the battery later costs a different internal lead and nothing else. Put micro-B on the panel and that decision re-prints the panel.</p>
+  <p><strong>The handled connector should be the durable one.</strong> Micro-B is the most-touched and least durable connector in the build. Its failure mode isn&rsquo;t a clean break either &mdash; contacts wear, resistance creeps up, and it shows as intermittent undervoltage that looks like a software fault. Mating the micro-B once during assembly and never touching it again removes that whole failure class.</p>
+
+  <h2>Where the volts go</h2>
+  <p>This is a power problem, not a signal problem. No impedance control, no EDID, nothing to get subtly wrong &mdash; just 5&nbsp;V and ground, and a budget. The Pi&rsquo;s PMIC flags undervoltage at about <strong>4.63&nbsp;V</strong>, and every conductor and every mated pair between the charger and the board spends some of the difference.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 820 400" role="img" aria-label="Voltage budget from a 5.1 volt charger to the Pi at 1 amp. The one metre charger cable costs about 170 millivolts, the panel socket and micro-B junctions about 40 millivolts each, and the 300 millimetre panel lead 50 millivolts in 24 AWG or 128 millivolts in 28 AWG. The 24 AWG lead arrives at about 4.80 volts and the 28 AWG lead at about 4.72 volts, both above the 4.63 volt undervoltage trip.">
+        <defs>
+          <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1 L9,5 L0,9 Z" class="f-ink"/>
+          </marker>
+        </defs>
+
+        <line class="st-thin" x1="70" y1="50" x2="70" y2="312"/>
+        <line class="st-thin" x1="70" y1="94"  x2="790" y2="94"  opacity=".3"/>
+        <line class="st-thin" x1="70" y1="129" x2="790" y2="129" opacity=".3"/>
+        <line class="st-thin" x1="70" y1="163" x2="790" y2="163" opacity=".3"/>
+        <line class="st-thin" x1="70" y1="197" x2="790" y2="197" opacity=".3"/>
+        <line class="st-thin" x1="70" y1="231" x2="790" y2="231" opacity=".3"/>
+        <text class="t t-dim" x="60" y="98"  text-anchor="end">5.10 V</text>
+        <text class="t t-dim" x="60" y="133" text-anchor="end">5.00</text>
+        <text class="t t-dim" x="60" y="167" text-anchor="end">4.90</text>
+        <text class="t t-dim" x="60" y="201" text-anchor="end">4.80</text>
+        <text class="t t-dim" x="60" y="235" text-anchor="end">4.70</text>
+
+        <line class="st-load" x1="70" y1="255" x2="790" y2="255"/>
+        <text class="t t-load" x="790" y="272" text-anchor="end">4.63 V &mdash; undervoltage trip</text>
+
+        <line class="st-thin" x1="300" y1="50" x2="300" y2="312" stroke-dasharray="4 5"/>
+        <line class="st-thin" x1="450" y1="50" x2="450" y2="312" stroke-dasharray="4 5"/>
+        <line class="st-thin" x1="640" y1="50" x2="640" y2="312" stroke-dasharray="4 5"/>
+
+        <path class="st-dash" d="M450,166 L640,210 L640,223 L760,223"/>
+        <path class="st-ink" d="M100,94 L300,152 L450,152 L450,166 L640,183 L640,196 L760,196"/>
+
+        <text class="t t-dim" x="100" y="86">charger 5.1 V</text>
+        <text class="t t-dim" x="185" y="340" text-anchor="middle">1 m charger cable</text>
+        <text class="t t-dim" x="185" y="356" text-anchor="middle">(not yours to choose)</text>
+        <text class="t t-dim" x="375" y="340" text-anchor="middle">panel socket</text>
+        <text class="t t-dim" x="545" y="340" text-anchor="middle">300 mm panel lead</text>
+        <text class="t t-dim" x="700" y="340" text-anchor="middle">micro-B into the Pi</text>
+
+        <path class="st-thin" marker-end="url(#ar4)" d="M775,199 V252"/>
+        <path class="st-thin" marker-end="url(#ar4)" d="M775,252 V199"/>
+        <text class="t" x="760" y="248" text-anchor="end">0.17 V headroom</text>
+
+        <line class="st-ink" x1="596" y1="66" x2="626" y2="66"/>
+        <text class="t t-dim" x="634" y="70">24 AWG</text>
+        <line class="st-dash" x1="596" y1="86" x2="626" y2="86"/>
+        <text class="t t-dim" x="634" y="90">28 AWG</text>
+      </svg>
+    </div>
+    <figcaption><b>Voltage budget at 1 A &mdash; the pessimistic case</b> (Wi-Fi transmitting, camera streaming; the steady draw for this build is nearer 0.6 A and every drop scales with it). Slopes are cable, steps are connectors. <b>The modification you are making is only the middle two segments</b> &mdash; about 90 mV in 24 AWG. The metre of charger cable, which was always there, costs twice that.</figcaption>
+  </figure>
+
+  <p>Two things follow from the shape of that graph. The charger cable dominates, so a good supply and a short lead to it matter more than anything inside the box. And the gauge of the panel lead is the one number worth checking on the listing:</p>
+
+  <div class="wide tablewrap">
+    <table>
+      <thead>
+        <tr><th>Power conductor</th><th>Resistance</th><th>Drop over a 300 mm lead at 1 A</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="feat">24 AWG</td><td class="spec">0.084 &Omega;/m</td><td class="spec">~50 mV</td></tr>
+        <tr><td class="feat">28 AWG</td><td class="spec">0.213 &Omega;/m</td><td class="spec">~128 mV</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>300 mm of lead is 600 mm of round-trip conductor. ADA4056 states 24 AWG on the power pair and 28 AWG on the data pair, which is the right way round and is the reason to prefer it over an unspecified generic cable &mdash; those are commonly 28 AWG throughout and don&rsquo;t say so.</p>
+
+  <h2>The USB-C trap, stated plainly</h2>
+  <p>A USB-C source only enables VBUS when it sees 5.1&nbsp;k&Omega; from CC1 and CC2 to ground. Adafruit are explicit that ADA4056 <strong>has no CC pull-down resistors</strong>. So:</p>
+  <ul class="notes">
+    <li><strong>A-to-C cable from an ordinary charger</strong> &mdash; works.</li>
+    <li><strong>C-to-C cable from a laptop or modern charger</strong> &mdash; dead. No power at all, no diagnostic, nothing.</li>
+  </ul>
+  <p>There is nowhere to add the resistors on a moulded panel cable. So either commit to an A-to-C cable and label the box, or use a USB-C panel <em>breakout</em> board with accessible pads and fit the two 5.1&nbsp;k&Omega; yourself. Worth deciding once, because the same applies to whatever eventually feeds the PiSugar&rsquo;s USB-C port.</p>
+
+  <h2>Supply</h2>
+  <p>With no battery you are straight off the wall. The official Zero 2 W spec is 5.1&nbsp;V / 2.5&nbsp;A; this build draws well under 1&nbsp;A with camera, SPI panel and HDMI all running. The headroom isn&rsquo;t for the current, it is for keeping the left-hand end of that graph as high as possible.</p>
+
+  <!-- ==================== PART 3 : CONTROL ==================== -->
+
+  <p class="parthead">Control &mdash; the off switch</p>
+  <h2>You no longer have one, and the fix is free</h2>
+  <p>Without the PiSugar there is no power button anywhere in the build, and pulling the plug on a running Pi is how SD cards get corrupted. Raspberry Pi OS solves this in one line. In <code>/boot/firmware/config.txt</code>:</p>
+
+  <pre><code>dtoverlay=gpio-shutdown</code></pre>
+
+  <p>The default is GPIO 3, active-low, internal pull-up. Wire a momentary button between <strong>GPIO 3 (header pin 5)</strong> and <strong>GND (pin 6)</strong> and you get both halves of a power button:</p>
+  <ul class="notes">
+    <li><strong>Press while running</strong> &rarr; clean shutdown.</li>
+    <li><strong>Press again while halted, power still applied</strong> &rarr; the machine boots.</li>
+  </ul>
+  <p>That is the behaviour a PiSugar&rsquo;s power button gives you, for the price of a $2 switch and no battery module.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 760 380" role="img" aria-label="Wiring for the shutdown button. GPIO 3 on header pin 5 and ground on pin 6 run as a twisted pair to a momentary panel switch mounted through the enclosure wall. A 100 nanofarad capacitor sits across the pair close to the Pi.">
+        <defs>
+          <pattern id="hp5" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
+          </pattern>
+        </defs>
+
+        <rect x="50" y="90" width="140" height="140" class="f-surf"/>
+        <text class="t" x="120" y="155" text-anchor="middle">Pi Zero 2 W</text>
+        <text class="t t-dim" x="120" y="175" text-anchor="middle">40-pin header</text>
+
+        <path class="st-wire" d="M190,140 H300"/>
+        <path class="st-wire" d="M190,190 H300"/>
+        <text class="t t-dim" x="198" y="130">pin 5 &middot; GPIO 3</text>
+        <text class="t t-dim" x="198" y="210">pin 6 &middot; GND</text>
+
+        <path class="st-wire" d="M250,140 V157"/>
+        <path class="st-wire" d="M250,167 V190"/>
+        <line class="st-ink" x1="232" y1="157" x2="268" y2="157"/>
+        <line class="st-ink" x1="232" y1="167" x2="268" y2="167"/>
+        <text class="t" x="250" y="234" text-anchor="middle">100 nF</text>
+
+        <path class="st-wire" d="M300,140 C315,140 335,190 350,190 C365,190 385,140 400,140 C415,140 435,190 450,190 C465,190 485,140 500,140"/>
+        <path class="st-wire" d="M300,190 C315,190 335,140 350,140 C365,140 385,190 400,190 C415,190 435,140 450,140 C465,140 485,190 500,190"/>
+
+        <rect x="520" y="135" width="60" height="70" class="f-surf"/>
+        <path class="st-wire" d="M500,140 H524"/>
+        <path class="st-wire" d="M500,190 H524"/>
+
+        <rect x="580" y="40"  width="20" height="115" fill="url(#hp5)" class="st-ink"/>
+        <rect x="580" y="185" width="20" height="85"  fill="url(#hp5)" class="st-ink"/>
+        <rect x="576" y="155" width="28" height="30" class="f-surf"/>
+        <rect x="600" y="150" width="10" height="40" class="f-surf"/>
+        <rect x="610" y="158" width="26" height="24" class="f-metal"/>
+
+        <text class="t t-dim" x="380" y="248" text-anchor="middle">twisted pair, &lt; 150 mm</text>
+        <text class="t t-dim" x="570" y="248" text-anchor="middle">panel switch, N.O. momentary</text>
+        <text class="t t-dim" x="620" y="300">enclosure wall</text>
+        <path class="st-thin" d="M618,292 L596,274"/>
+      </svg>
+    </div>
+    <figcaption><b>A contact closure to ground, and everything else is noise control.</b> GPIO 3 already carries a 1k8 pull-up on the Pi&rsquo;s own board, so no external resistor is wanted. The 100 nF sits at the Pi end, not the switch end &mdash; it has to shunt noise picked up along the whole run.</figcaption>
+  </figure>
+
+  <h2>Noise is the failure mode, not the wiring</h2>
+  <p>You are extending a high-impedance input feeding a hold-time detector, past an SPI panel clocking at MHz and a camera ribbon. A spurious long &ldquo;press&rdquo; shuts the machine down mid-frame, which is a genuinely confusing fault to chase.</p>
+  <ul class="notes">
+    <li><strong>100 nF ceramic across the pair at the Pi end.</strong> Single most effective thing available; it shunts induced noise and debounces the switch for free.</li>
+    <li><strong>Twisted pair</strong> &mdash; signal with its own ground return, not two loose hookup wires.</li>
+    <li><strong>Short, and crossing rather than parallel.</strong> Under ~150 mm, and cross the SPI and camera cables at right angles.</li>
+    <li><strong>100&ndash;330 &Omega; in series</strong> in the signal leg if the switch has a metal body, as ESD protection for a connector a human touches.</li>
+  </ul>
+  <p>There is a pleasant accident in that first item. Switching a logic-level line at microamps is <em>dry-circuit</em> territory, where cheap silver contacts can build an oxide film that never breaks down. The 100 nF charges through the pull-up between presses and dumps into the contacts on closure &mdash; exactly the wetting pulse that keeps the surfaces clean. The part that&rsquo;s there for noise solves the contact problem too. If the button ever needs two or three presses after months idle, that is the mechanism, and a larger cap is the fix.</p>
+
+  <h2>Which switch</h2>
+  <p><strong>SparkFun COM-11996, Momentary Button &mdash; Panel Mount (Black)</strong>, AU$2.15 from Core Electronics; also in red as COM-11992. SPST normally-open, &frac14;&Prime; threaded bushing with a nut, solder lugs, about 27 mm overall including leads. Three reasons it suits this build specifically: the nut takes finger force into the panel rather than into your solder joints, the solder lugs match thin twisted pair where spade terminals would not, and the plastic body simply does not offer the ESD path that a metal anti-vandal button does.</p>
+  <p>Buying rules, in order of how often they are got wrong:</p>
+  <ol class="notes">
+    <li><strong>Momentary, not latching.</strong> Latching anti-vandal switches look identical in photographs and are frequently the default variant on a listing. A latching switch here misbehaves rather than fails cleanly.</li>
+    <li><strong>Ignore the current rating entirely.</strong> You are switching microamps at logic level. A 5 A waterproof switch buys nothing but bulk and a 16 mm hole.</li>
+    <li><strong>Check the depth behind the panel</strong> before finalising the CAD. It is the dimension suppliers routinely omit, and a 12 mm anti-vandal switch is typically 25&ndash;30 mm deep plus terminals.</li>
+  </ol>
+
+  <h2>The pin decision to make now</h2>
+  <p>GPIO 2 and 3 are the I&sup2;C bus, and the PiSugar 3 talks to the Pi over I&sup2;C on those exact pins. If the battery goes in later, GPIO 3 is taken.</p>
+  <p>You can move the button with <code>dtoverlay=gpio-shutdown,gpio_pin=5</code>, but note what does and does not survive the move: <strong>shutdown works on any GPIO; wake-from-halt is a hardware property of GPIO 3 specifically.</strong> Move the pin and the button becomes shutdown-only.</p>
+  <p>If you do move it, <strong>GPIO 5</strong> is the one, by the same reasoning already applied to the encoder&rsquo;s SW pin: this chip defaults GPIO 0&ndash;8 to pull-<em>up</em> and 9&ndash;27 to pull-<em>down</em>, so on GPIO 5 the switch idles high from power-on rather than reading as held down until the overlay configures it. GPIO 5 is also clear of everything in use &mdash; SPI0, the panel&rsquo;s 25/27/18, and the encoder&rsquo;s 19/26/6.</p>
+  <p><strong>Use GPIO 3 now.</strong> Wake-from-halt is worth having, the PiSugar is hypothetical, and if it does arrive the box is coming open for the battery anyway &mdash; moving one wire costs nothing at that point.</p>
+
+  <!-- ==================== IF THE PISUGAR ARRIVES ==================== -->
+
+  <p class="parthead">If the PiSugar 3 goes in later</p>
+  <h2>What changes, and what doesn&rsquo;t</h2>
+  <ul class="notes">
+    <li><strong>The panel cutout survives.</strong> This is the whole reason for choosing USB-C now. Swap the internal lead from C-panel-to-micro-B for C-panel-to-C, into the PiSugar&rsquo;s charge port.</li>
+    <li><strong>Power moves to the PiSugar&rsquo;s port, and must.</strong> Power arriving at the Pi&rsquo;s own micro-B runs the Pi but does <em>not</em> charge the battery &mdash; you would have a panel socket that looks like a charge port and isn&rsquo;t.</li>
+    <li><strong>The shutdown button moves to GPIO 5</strong> and loses wake-from-halt, because GPIO 3 becomes the PiSugar&rsquo;s I&sup2;C.</li>
+    <li><strong>The PiSugar&rsquo;s own power button can take over the power-on job</strong> &mdash; and it can be brought to the panel without desoldering anything. Its button is a plain contact closure, so a second momentary switch wired <em>in parallel</em> across the existing one gives you both, reversibly. Desoldering a small SMD tact switch with an iron is the classic way to lift a pad, and PiSugar document no alternative connection point for the 3, so a lifted pad is unrecoverable.</li>
+    <li><strong>Verify the two nets with a meter first.</strong> Continuity across the unpressed button reads open; with the board powered, one side is ground and the other sits at the pull-up rail and drops to 0 V while held. The ON / CTRL / OFF pad instructions found online are for the PiSugar 2 / S, which used a three-pin slide switch, and do not transfer to the 3.</li>
+  </ul>
+
+  <!-- ==================== PARTS ==================== -->
+
+  <p class="parthead">Parts</p>
+  <h2>Shopping list</h2>
+  <p>Prices are the ones actually listed at the time of writing; where a supplier quotes in USD it is marked. Everything is stocked in Australia except the HDMI capture cable, which is a generic import.</p>
+
+  <div class="wide tablewrap">
+    <table>
+      <thead>
+        <tr><th>Crossing</th><th>Part</th><th>Supplier</th><th>Price</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat">Video out</td>
+          <td>Short mini-HDMI female to mini-HDMI male extension, captured in the shell</td>
+          <td>generic import</td>
+          <td class="spec">~$10</td>
+        </tr>
+        <tr>
+          <td class="feat">Video out<br><span style="font-weight:400">(alternative)</span></td>
+          <td>Adafruit ADA978 panel-mount HDMI cable + official Pi mini-HDMI adapter <em>cable</em></td>
+          <td>Core Electronics + Pi Hut</td>
+          <td class="spec">US$5.95 + ~$8</td>
+        </tr>
+        <tr>
+          <td class="feat">Power in</td>
+          <td>Adafruit ADA4056 &mdash; panel mount USB-C to micro-B male, 30 cm, 24 AWG power</td>
+          <td>Core Electronics</td>
+          <td class="spec">US$4.95</td>
+        </tr>
+        <tr>
+          <td class="feat">Shutdown</td>
+          <td>SparkFun COM-11996 momentary panel-mount button (black); COM-11992 in red</td>
+          <td>Core Electronics</td>
+          <td class="spec">AU$2.15</td>
+        </tr>
+        <tr>
+          <td class="feat">Shutdown</td>
+          <td>100 nF ceramic capacitor, and 100&ndash;330 &Omega; if the switch body is metal</td>
+          <td>parts drawer</td>
+          <td class="spec">&mdash;</td>
+        </tr>
+        <tr>
+          <td class="feat">Power in</td>
+          <td>USB-A to USB-C charger cable &mdash; <em>not</em> C-to-C, see the CC trap above</td>
+          <td>anywhere</td>
+          <td class="spec">&mdash;</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

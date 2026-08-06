@@ -1394,17 +1394,27 @@ the encoder module can be dropped for a bare EC11 with no code change at all, be
 `src/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
 to run on nothing else.
 
-[`docs/hdmi-panel-mount-guide.html`](docs/hdmi-panel-mount-guide.html) is a set of section
-drawings for one decision the build guide leaves open: how to get the Zero 2's mini-HDMI out to
-the enclosure wall. A panel-mount socket in Type C is not a stocked part anywhere, so the answer
-is a short mini-HDMI extension held by the printed shell itself — the drawings show where the
-plug force ends up, the geometry of the lip and rear stop that catch it, and why the shell has
-to split through the pocket. Same caveat as the other two: download it and open it in a browser.
+[`docs/panel-connectors-guide.html`](docs/panel-connectors-guide.html) is a set of section
+drawings and specs for the three things that have to cross the enclosure wall: video out, power
+in, and an off switch. Same caveat as the other two: download it and open it in a browser.
 
-The two stops in it do opposite jobs, which is the part that is easy to get backwards. Pushing a
-plug in drives the socket *inward*, so it is the stop *behind* the connector that resists
-insertion; the lip at the aperture — which is just whatever wall is left once the hole is cut
-smaller than the connector body — is what stops it being pulled back out.
+Only the first is hard. A panel-mount socket in **Type C mini-HDMI is not a stocked part
+anywhere**, so the answer is a short mini-HDMI extension held by the printed shell itself, and
+the drawings show where the plug force ends up, the geometry of the lip and rear stop that catch
+it, and why the shell has to split through the pocket. The two stops do opposite jobs, which is
+the part that is easy to get backwards: pushing a plug in drives the socket *inward*, so it is
+the stop *behind* the connector that resists insertion, while the lip at the aperture — just
+whatever wall is left once the hole is cut smaller than the connector body — is what stops it
+being pulled back out.
+
+The other two are cheap. **Power comes out as USB-C even though the Pi's socket is micro-B**,
+because the cutout is the irreversible part and USB-C is the one that survives fitting a PiSugar
+3 later; a voltage-budget graph shows that the whole modification costs about 90 mV at 1 A,
+against a 4.63 V undervoltage floor, and that the charger cable you don't control costs twice
+that. And with no PiSugar there is **no power button at all**, which `dtoverlay=gpio-shutdown`
+fixes for the price of a $2 momentary switch on GPIO 3 — press to shut down cleanly, press again
+to boot. Use GPIO 3 rather than any other pin: wake-from-halt is a property of that pin
+specifically, not of the overlay.
 
 ## Choosing a different display
 
