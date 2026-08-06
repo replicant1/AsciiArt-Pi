@@ -1379,6 +1379,21 @@ resolved by turning the real knob. As wired here, clockwise is forwards, which
 is why `--encoder-reverse` exists and is off. If the knob is rewired and runs
 backwards, that flag is the whole fix.
 
+## Putting it in an enclosure
+
+[`docs/enclosure-build-guide.html`](docs/enclosure-build-guide.html) covers taking the Pi,
+camera, SPI panel and encoder off the breadboard and into a self-contained, battery-powered
+box: connector choices, a pin-by-pin bench reference, power budget, and the enclosure cutouts.
+Like the display guide below, it is a single self-contained page — **download it and open it in
+a browser**, since GitHub renders HTML as source.
+
+Two findings in it are measured on this Pi rather than estimated. The render loop costs **96% of
+one core** with the HDMI terminal running and **29%** with `--no-terminal`, so the enclosed
+configuration is not merely tidier — it is 3.3x cheaper, which is most of the battery life. And
+the encoder module can be dropped for a bare EC11 with no code change at all, because
+`src/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
+to run on nothing else.
+
 ## Choosing a different display
 
 [`docs/display-selection-guide.html`](docs/display-selection-guide.html) is a ranked guide to

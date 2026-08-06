@@ -1,0 +1,1026 @@
+<title>ASCII Camera — Enclosure Build Guide</title>
+
+<style>
+  :root {
+    --ground:     #E9E7DF;
+    --panel:      #F3F2EC;
+    --panel-2:    #DEDCD2;
+    --ink:        #2B2B28;
+    --ink-soft:   #5D5B53;
+    --ink-faint:  #8B887E;
+    --rule:       #CBC7BA;
+    --accent:     #123A9E;
+    --accent-bg:  #DCE3F4;
+    --ok:         #2C6E49;
+    --ok-bg:      #D8E8DD;
+    --warn:       #8A5A06;
+    --warn-bg:    #F0E4CB;
+    --stop:       #9B2F26;
+    --stop-bg:    #F2DAD6;
+
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    --measure: 68ch;
+    --s1: 0.4rem;
+    --s2: 0.8rem;
+    --s3: 1.4rem;
+    --s4: 2.2rem;
+    --s5: 3.6rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:    #131820;
+      --panel:     #1A2029;
+      --panel-2:   #232B36;
+      --ink:       #E2E6EC;
+      --ink-soft:  #A4ACB8;
+      --ink-faint: #6F7987;
+      --rule:      #2F3945;
+      --accent:    #8AB4F0;
+      --accent-bg: #1C2A42;
+      --ok:        #6FCF97;
+      --ok-bg:     #172A20;
+      --warn:      #E3B341;
+      --warn-bg:   #2C2415;
+      --stop:      #F08C7E;
+      --stop-bg:   #33201D;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:    #131820;
+    --panel:     #1A2029;
+    --panel-2:   #232B36;
+    --ink:       #E2E6EC;
+    --ink-soft:  #A4ACB8;
+    --ink-faint: #6F7987;
+    --rule:      #2F3945;
+    --accent:    #8AB4F0;
+    --accent-bg: #1C2A42;
+    --ok:        #6FCF97;
+    --ok-bg:     #172A20;
+    --warn:      #E3B341;
+    --warn-bg:   #2C2415;
+    --stop:      #F08C7E;
+    --stop-bg:   #33201D;
+  }
+
+  :root[data-theme="light"] {
+    --ground:    #E9E7DF;
+    --panel:     #F3F2EC;
+    --panel-2:   #DEDCD2;
+    --ink:       #2B2B28;
+    --ink-soft:  #5D5B53;
+    --ink-faint: #8B887E;
+    --rule:      #CBC7BA;
+    --accent:    #123A9E;
+    --accent-bg: #DCE3F4;
+    --ok:        #2C6E49;
+    --ok-bg:     #D8E8DD;
+    --warn:      #8A5A06;
+    --warn-bg:   #F0E4CB;
+    --stop:      #9B2F26;
+    --stop-bg:   #F2DAD6;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 78ch;
+    margin: 0 auto;
+    padding: var(--s5) var(--s3) var(--s5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s4);
+  }
+
+  /* ---- masthead ---- */
+  .masthead { display: flex; flex-direction: column; gap: var(--s2); }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 4.4vw, 2.3rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.18;
+    text-wrap: balance;
+  }
+  .standfirst {
+    max-width: var(--measure);
+    color: var(--ink-soft);
+    font-size: 1.03rem;
+  }
+  .rule-heavy { height: 3px; background: var(--ink); }
+
+  /* ---- sections ---- */
+  section { display: flex; flex-direction: column; gap: var(--s2); }
+  h2 {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding-bottom: var(--s1);
+    border-bottom: 1.5px solid var(--rule);
+    margin-top: var(--s2);
+  }
+  h3 {
+    font-family: var(--mono);
+    font-size: 1rem;
+    font-weight: 650;
+    margin-top: var(--s2);
+  }
+  p, li { max-width: var(--measure); }
+  ul, ol { padding-left: 1.3em; display: flex; flex-direction: column; gap: var(--s1); }
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--panel-2);
+    padding: 0.1em 0.36em;
+    border-radius: 2px;
+  }
+  strong { font-weight: 650; }
+  a { color: var(--accent); }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+  thead th {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--ink-soft);
+    border-bottom: 1.5px solid var(--ink);
+    padding: 0 0.7rem var(--s1) 0;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.42rem 0.7rem 0.42rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.pin, td.gpio, th.pin { font-family: var(--mono); white-space: nowrap; }
+  .num { text-align: right; }
+
+  /* ---- status chips ---- */
+  .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    padding: 0.14em 0.5em;
+    border-radius: 2px;
+    white-space: nowrap;
+    font-weight: 650;
+  }
+  .chip-ok   { color: var(--ok);   background: var(--ok-bg); }
+  .chip-warn { color: var(--warn); background: var(--warn-bg); }
+  .chip-stop { color: var(--stop); background: var(--stop-bg); }
+
+  /* ---- callout ---- */
+  .note {
+    background: var(--panel);
+    border-left: 3px solid var(--accent);
+    padding: var(--s2) var(--s3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+  }
+  .note .label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 650;
+  }
+  .note.caution { border-left-color: var(--warn); }
+  .note.caution .label { color: var(--warn); }
+
+  /* ---- figure ---- */
+  figure {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s2);
+    background: var(--panel);
+    padding: var(--s3);
+    border: 1px solid var(--rule);
+  }
+  figure .scroll { margin: 0 calc(-1 * var(--s2)); padding: 0 var(--s2); }
+  figure svg { display: block; width: 100%; min-width: 33rem; height: auto; }
+
+  /* Diagram paint lives here, not in presentation attributes: browsers do not
+     resolve var() inside an SVG attribute, so themed marks would render black. */
+  figure svg text { font-family: var(--mono); }
+  .d-box       { fill: none; stroke: currentColor; stroke-width: 1.5; }
+  .d-line      { fill: none; stroke: currentColor; stroke-width: 1.5; }
+  .d-txt       { fill: currentColor; }
+  .d-dim       { fill: currentColor; opacity: 0.62; }
+  .d-div       { stroke: currentColor; stroke-width: 1; stroke-dasharray: 3 5; opacity: 0.35; }
+  .d-warn-box  { fill: none; stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 5 3; }
+  .d-warn-line { fill: none; stroke: var(--warn); stroke-width: 1.5; }
+  .d-warn-txt  { fill: var(--warn); }
+  .d-acc-line  { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+  .d-acc-txt   { fill: var(--accent); }
+  .d-hat       { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+  .d-hdr       { stroke: var(--accent); stroke-width: 2; }
+  .m-plain     { fill: currentColor; }
+  .m-warn      { fill: var(--warn); }
+  .m-acc       { fill: var(--accent); }
+  .d-screen    { fill: var(--panel-2); stroke: currentColor; stroke-width: 1.2; }
+  .d-dash      { fill: none; stroke: currentColor; stroke-width: 1.2; stroke-dasharray: 4 4; opacity: 0.5; }
+  .d-thin      { fill: none; stroke: currentColor; stroke-width: 1; opacity: 0.75; }
+  .d-part      { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 1.5; }
+  .d-wire      { fill: none; stroke: currentColor; stroke-width: 1.2; }
+  .d-wire-acc  { fill: none; stroke: var(--accent); stroke-width: 1.4; }
+  figure svg.svg-wide { min-width: 46rem; }
+  figure svg.svg-xwide { min-width: 54rem; }
+  .pad-on  { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 1.4; }
+  .pad-off { fill: none; stroke: currentColor; stroke-width: 1; opacity: 0.28; }
+
+  /* Real wire colours, so the drawing matches what is in your hand. Deliberately
+     NOT theme-swapped: a red wire is red on both grounds. Each is drawn over a
+     casing stroke in the page's own foreground, because white would otherwise
+     vanish on the light ground and black on the dark one. */
+  .wc-case   { fill: none; stroke: currentColor; stroke-width: 4.6; stroke-linecap: round; }
+  .wc        { fill: none; stroke-width: 2.2; stroke-linecap: round; }
+  .wc-red    { stroke: #D42B2B; }
+  .wc-orange { stroke: #E1720B; }
+  .wc-yellow { stroke: #D8B408; }
+  .wc-blue   { stroke: #2547B0; }
+  .wc-green  { stroke: #1A7A45; }
+  .wc-white  { stroke: #FFFFFF; }
+  .wc-black  { stroke: #101010; }
+  .wc-grey   { stroke: #6E7681; }
+
+  .sw { display: inline-block; width: 13px; height: 13px;
+        border: 1px solid var(--ink-soft); vertical-align: -2px; margin-right: 7px; }
+  .sw-red{background:#D42B2B} .sw-orange{background:#E1720B}
+  .sw-yellow{background:#D8B408} .sw-blue{background:#2547B0}
+  .sw-green{background:#1A7A45} .sw-white{background:#FFFFFF}
+  .sw-black{background:#101010} .sw-grey{background:#6E7681}
+  figcaption {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+  }
+
+  /* ---- build steps ---- */
+  .steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--s3); counter-reset: step; }
+  .steps > li { counter-increment: step; display: grid; grid-template-columns: 2.4rem 1fr; gap: var(--s2); max-width: none; }
+  .steps > li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent);
+    padding-top: 0.28rem;
+    letter-spacing: 0.04em;
+  }
+  .steps h3 { margin-top: 0; }
+  .step-body { display: flex; flex-direction: column; gap: var(--s1); }
+
+  footer {
+    border-top: 1.5px solid var(--rule);
+    padding-top: var(--s2);
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    font-family: var(--mono);
+  }
+
+  @media (max-width: 34rem) {
+    .wrap { padding: var(--s4) var(--s2); }
+    .steps > li { grid-template-columns: 1.9rem 1fr; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">Raspberry Pi Zero 2 WH · Build guide</div>
+    <h1>ASCII camera: from breadboard to enclosure</h1>
+    <div class="rule-heavy"></div>
+    <p class="standfirst">Taking the Pi, Camera Module 2, Waveshare 2.4″ ILI9341 panel and rotary encoder off the bench and into a self-contained, battery-powered box — with every solderless joint replaced by something that survives being carried around.</p>
+  </header>
+
+  <section>
+    <h2>Where you are now</h2>
+    <p>Two of your three connections are already sound. Only one is genuinely fragile, and it is the one holding the encoder.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Link</th><th>What you have</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Camera → Pi</strong></td>
+            <td>Flat flex ribbon, latching connector at both ends</td>
+            <td><span class="chip chip-ok">Keep</span></td>
+          </tr>
+          <tr>
+            <td><strong>Panel → Pi</strong></td>
+            <td>Waveshare keyed plug at the panel; nine loose female Dupont at the Pi</td>
+            <td><span class="chip chip-warn">Half fix</span></td>
+          </tr>
+          <tr>
+            <td><strong>Encoder → Pi</strong></td>
+            <td>Module in a solderless breadboard, five male–female jumpers</td>
+            <td><span class="chip chip-stop">Replace</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <div class="label">One correction</div>
+      <p>The camera ribbon is not on an SPI connector — it plugs into the <strong>CSI-2 port</strong>, a dedicated camera interface. SPI lives on the GPIO header, which is where your <em>panel</em> is. Two separate buses that happen to sit near each other. Worth knowing before you search for replacement cables: “CSI cable” and “SPI cable” return very different products.</p>
+    </div>
+
+    <p>The breadboard is the part to be least sentimental about. Five jumpers through spring contacts is roughly ten mating surfaces held together by friction, and every one of them can go intermittent under vibration. An intermittent encoder does not look like a loose wire — it looks like a software bug, and you will spend an evening reading <code>src/encoder.py</code> before you suspect the breadboard.</p>
+  </section>
+
+  <section>
+    <h2>The change, in one picture</h2>
+
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 880 380" role="img" aria-label="Comparison of the current wiring, in which the panel reaches the Pi through nine loose Dupont leads and the encoder reaches it through a solderless breadboard and five jumpers, against the rebuilt wiring, in which a soldered perfboard HAT sits on the Pi header and both devices attach to it through one keyed plug each.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <polygon points="0,1 9,5 0,9" class="m-plain"/>
+            </marker>
+            <marker id="ar-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <polygon points="0,1 9,5 0,9" class="m-warn"/>
+            </marker>
+            <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <polygon points="0,1 9,5 0,9" class="m-acc"/>
+            </marker>
+          </defs>
+
+          <text x="10" y="20" class="d-txt" font-size="12" font-weight="700" letter-spacing="1.6">NOW</text>
+          <text x="490" y="20" class="d-acc-txt" font-size="12" font-weight="700" letter-spacing="1.6">REBUILT</text>
+
+          <line x1="450" y1="8" x2="450" y2="372" class="d-div"/>
+
+          <!-- ============ LEFT: NOW ============ -->
+          <rect x="105" y="42" width="180" height="46" class="d-box"/>
+          <text x="195" y="70" text-anchor="middle" class="d-txt" font-size="12.5">Pi Zero 2 WH</text>
+
+          <rect x="215" y="186" width="170" height="42" class="d-warn-box"/>
+          <text x="300" y="212" text-anchor="middle" class="d-warn-txt" font-size="12">breadboard</text>
+
+          <rect x="10" y="296" width="165" height="46" class="d-box"/>
+          <text x="92" y="317" text-anchor="middle" class="d-txt" font-size="12">2.4″ panel</text>
+          <text x="92" y="333" text-anchor="middle" class="d-dim" font-size="10.5">ILI9341</text>
+
+          <rect x="215" y="296" width="170" height="46" class="d-box"/>
+          <text x="300" y="317" text-anchor="middle" class="d-txt" font-size="12">encoder</text>
+          <text x="300" y="333" text-anchor="middle" class="d-dim" font-size="10.5">on module PCB</text>
+
+          <polyline points="92,296 92,120 150,120 150,90" class="d-line" marker-end="url(#ar)"/>
+          <text x="100" y="200" class="d-txt" font-size="11.5">9 loose</text>
+          <text x="100" y="215" class="d-txt" font-size="11.5">Dupont</text>
+
+          <line x1="300" y1="296" x2="300" y2="230" class="d-warn-line" marker-end="url(#ar-w)"/>
+          <text x="310" y="268" class="d-warn-txt" font-size="11.5">5 jumpers</text>
+
+          <polyline points="300,186 300,120 245,120 245,90" class="d-warn-line" marker-end="url(#ar-w)"/>
+          <text x="310" y="160" class="d-warn-txt" font-size="11.5">5 more</text>
+
+          <!-- ============ RIGHT: REBUILT ============ -->
+          <rect x="585" y="42" width="190" height="46" class="d-box"/>
+          <text x="680" y="70" text-anchor="middle" class="d-txt" font-size="12.5">Pi Zero 2 WH</text>
+
+          <rect x="585" y="112" width="190" height="44" class="d-hat"/>
+          <text x="680" y="133" text-anchor="middle" class="d-acc-txt" font-size="12" font-weight="650">perfboard HAT</text>
+          <text x="680" y="148" text-anchor="middle" class="d-acc-txt" font-size="10.5">soldered</text>
+
+          <line x1="680" y1="88" x2="680" y2="112" class="d-hdr"/>
+          <text x="692" y="105" class="d-acc-txt" font-size="10.5">2×20 header</text>
+
+          <rect x="490" y="296" width="165" height="46" class="d-box"/>
+          <text x="572" y="317" text-anchor="middle" class="d-txt" font-size="12">2.4″ panel</text>
+          <text x="572" y="333" text-anchor="middle" class="d-dim" font-size="10.5">ILI9341</text>
+
+          <rect x="705" y="296" width="165" height="46" class="d-box"/>
+          <text x="787" y="317" text-anchor="middle" class="d-txt" font-size="12">bare EC11</text>
+          <text x="787" y="333" text-anchor="middle" class="d-dim" font-size="10.5">no PCB</text>
+
+          <polyline points="620,156 620,240 572,240 572,296" class="d-acc-line" marker-end="url(#ar-a)"/>
+          <text x="500" y="272" class="d-acc-txt" font-size="11.5">1 keyed plug</text>
+
+          <polyline points="740,156 740,240 787,240 787,296" class="d-acc-line" marker-end="url(#ar-a)"/>
+          <text x="748" y="272" class="d-acc-txt" font-size="11.5">1 keyed plug</text>
+        </svg>
+      </div>
+      <figcaption>Fourteen friction-fit connections and a breadboard collapse into two latching plugs on a board that is soldered to the Pi header. The Pi itself is never modified — if the HAT is wrong, you rebuild a $8 board, not the computer.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>What you end up with</h2>
+    <p>Three boards sandwiched, three peripherals on latching harnesses, and one edge of the Pi left reachable. No enclosure in this view — this is the assembly you should be able to power up and test flat on the bench before anything gets printed.</p>
+
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1000 745" class="svg-wide" role="img" aria-label="Wiring drawing of the assembly. A PiSugar battery board mounts under the Pi Zero 2 WH and a perfboard HAT sits above it on the 2 by 20 header. The camera plugs into the Pi's own CSI port. Eight individually labelled wires run from an 8-way JST-XH socket on the HAT to the plug supplied with the 2.4 inch panel, carrying 3V3, ground, MOSI on GPIO 10, SCK on GPIO 11, chip select on GPIO 8, data-command on GPIO 25, reset on GPIO 27 and backlight on GPIO 18. Four more run from a 4-way socket to the bare EC11 encoder, carrying quadrature A on GPIO 19, B on GPIO 26, the switch on GPIO 6 and a common ground.">
+          <defs>
+            <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <polygon points="0,1 9,5 0,9" class="m-plain"/>
+            </marker>
+          </defs>
+          <rect x="30" y="414" width="132" height="58" class="d-box"/>
+          <circle cx="96" cy="436" r="10" class="d-thin"/>
+          <text x="96" y="462" text-anchor="middle" class="d-txt" font-size="11.5">Camera Module 2</text>
+          <line x1="162" y1="440" x2="178" y2="440" class="d-line" marker-end="url(#ar3)"/>
+          <text x="96" y="492" text-anchor="middle" class="d-dim" font-size="10">CSI ribbon — 15 way,</text>
+          <text x="96" y="506" text-anchor="middle" class="d-dim" font-size="10">straight into the Pi</text>
+          <rect x="180" y="280" width="240" height="100" class="d-part"/>
+          <text x="292" y="318" text-anchor="middle" class="d-acc-txt" font-size="12.5" font-weight="650">perfboard HAT</text>
+          <text x="292" y="338" text-anchor="middle" class="d-acc-txt" font-size="10.5">routes every wire below</text>
+          <text x="292" y="356" text-anchor="middle" class="d-acc-txt" font-size="10.5">to its header pin</text>
+          <rect x="410" y="292" width="24" height="46" class="d-part"/>
+          <text x="422" y="288" text-anchor="middle" class="d-acc-txt" font-size="9.5">XH 8</text>
+          <rect x="410" y="346" width="24" height="28" class="d-part"/>
+          <text x="422" y="386" text-anchor="middle" class="d-acc-txt" font-size="9.5">XH 4</text>
+          <line x1="200" y1="380" x2="200" y2="414" class="d-thin"/>
+          <line x1="224" y1="380" x2="224" y2="414" class="d-thin"/>
+          <line x1="248" y1="380" x2="248" y2="414" class="d-thin"/>
+          <line x1="272" y1="380" x2="272" y2="414" class="d-thin"/>
+          <line x1="296" y1="380" x2="296" y2="414" class="d-thin"/>
+          <line x1="320" y1="380" x2="320" y2="414" class="d-thin"/>
+          <line x1="344" y1="380" x2="344" y2="414" class="d-thin"/>
+          <line x1="368" y1="380" x2="368" y2="414" class="d-thin"/>
+          <line x1="392" y1="380" x2="392" y2="414" class="d-thin"/>
+          <text x="292" y="402" text-anchor="middle" class="d-dim" font-size="10">2×20 header</text>
+          <rect x="180" y="414" width="240" height="48" class="d-box"/>
+          <text x="300" y="434" text-anchor="middle" class="d-txt" font-size="12.5">Pi Zero 2 WH</text>
+          <text x="300" y="451" text-anchor="middle" class="d-dim" font-size="10">65 × 30 mm</text>
+          <rect x="200" y="462" width="28" height="9" class="d-box"/>
+          <rect x="236" y="462" width="28" height="9" class="d-box"/>
+          <rect x="272" y="462" width="28" height="9" class="d-box"/>
+          <polyline points="214,471 214,492 190,492" class="d-thin"/>
+          <text x="184" y="496" text-anchor="end" class="d-dim" font-size="10">mini-HDMI + 2× micro-USB</text>
+          <path d="M 206 471 L 206 512" class="d-dash"/>
+          <path d="M 394 471 L 394 512" class="d-dash"/>
+          <rect x="180" y="512" width="240" height="52" class="d-box"/>
+          <text x="300" y="534" text-anchor="middle" class="d-txt" font-size="12.5">PiSugar 3 · 1200 mAh</text>
+          <text x="300" y="551" text-anchor="middle" class="d-dim" font-size="10">under the Pi; header stays free</text>
+          <rect x="700" y="55" width="262" height="240" class="d-box"/>
+        <rect x="682" y="70" width="20" height="204" class="d-screen"/>
+        <text x="692" y="64" text-anchor="middle" class="d-txt" font-size="9.5">PLUG</text>
+          <text x="831" y="322" text-anchor="middle" class="d-txt" font-size="12">2.4″ ILI9341 panel</text>
+          <text x="831" y="338" text-anchor="middle" class="d-dim" font-size="10">Waveshare’s own 9-way plug, reused as supplied</text>
+          <path d="M 434 296 C 452 296, 454 80, 472 80 L 682 80" class="wc-case"/>
+        <path d="M 434 296 C 452 296, 454 80, 472 80 L 682 80" class="wc wc-red"/>
+          <line x1="682" y1="80" x2="702" y2="80" class="d-line"/>
+          <text x="478" y="75" class="d-txt" font-size="10.5">3V3 · pin 1</text>
+          <text x="716" y="84" class="d-dim" font-size="10.5">VCC</text>
+          <path d="M 434 302 C 452 302, 454 106, 472 106 L 682 106" class="wc-case"/>
+        <path d="M 434 302 C 452 302, 454 106, 472 106 L 682 106" class="wc wc-black"/>
+          <line x1="682" y1="106" x2="702" y2="106" class="d-line"/>
+          <text x="478" y="101" class="d-txt" font-size="10.5">GND · pin 6</text>
+          <text x="716" y="110" class="d-dim" font-size="10.5">GND</text>
+          <path d="M 434 308 C 452 308, 454 132, 472 132 L 682 132" class="wc-case"/>
+        <path d="M 434 308 C 452 308, 454 132, 472 132 L 682 132" class="wc wc-orange"/>
+          <line x1="682" y1="132" x2="702" y2="132" class="d-line"/>
+          <text x="478" y="127" class="d-txt" font-size="10.5">MOSI · GPIO 10 · pin 19</text>
+          <text x="716" y="136" class="d-dim" font-size="10.5">DIN</text>
+          <path d="M 434 314 C 452 314, 454 158, 472 158 L 682 158" class="wc-case"/>
+        <path d="M 434 314 C 452 314, 454 158, 472 158 L 682 158" class="wc wc-yellow"/>
+          <line x1="682" y1="158" x2="702" y2="158" class="d-line"/>
+          <text x="478" y="153" class="d-txt" font-size="10.5">SCK · GPIO 11 · pin 23</text>
+          <text x="716" y="162" class="d-dim" font-size="10.5">CLK</text>
+          <path d="M 434 320 C 452 320, 454 184, 472 184 L 682 184" class="wc-case"/>
+        <path d="M 434 320 C 452 320, 454 184, 472 184 L 682 184" class="wc wc-blue"/>
+          <line x1="682" y1="184" x2="702" y2="184" class="d-line"/>
+          <text x="478" y="179" class="d-txt" font-size="10.5">CE0 · GPIO 8 · pin 24</text>
+          <text x="716" y="188" class="d-dim" font-size="10.5">CS</text>
+          <path d="M 434 326 C 452 326, 454 210, 472 210 L 682 210" class="wc-case"/>
+        <path d="M 434 326 C 452 326, 454 210, 472 210 L 682 210" class="wc wc-green"/>
+          <line x1="682" y1="210" x2="702" y2="210" class="d-line"/>
+          <text x="478" y="205" class="d-txt" font-size="10.5">GPIO 25 · pin 22</text>
+          <text x="716" y="214" class="d-dim" font-size="10.5">DC</text>
+          <path d="M 434 332 C 452 332, 454 236, 472 236 L 682 236" class="wc-case"/>
+        <path d="M 434 332 C 452 332, 454 236, 472 236 L 682 236" class="wc wc-white"/>
+          <line x1="682" y1="236" x2="702" y2="236" class="d-line"/>
+          <text x="478" y="231" class="d-txt" font-size="10.5">GPIO 27 · pin 13</text>
+          <text x="716" y="240" class="d-dim" font-size="10.5">RST</text>
+          <path d="M 434 338 C 452 338, 454 262, 472 262 L 682 262" class="wc-case"/>
+        <path d="M 434 338 C 452 338, 454 262, 472 262 L 682 262" class="wc wc-grey"/>
+          <line x1="682" y1="262" x2="702" y2="262" class="d-line"/>
+          <text x="478" y="257" class="d-txt" font-size="10.5">GPIO 18 · pin 12</text>
+          <text x="716" y="266" class="d-dim" font-size="10.5">BL</text>
+          <circle cx="762" cy="588" r="15" class="d-thin"/>
+          <line x1="762" y1="603" x2="762" y2="624" class="d-line"/>
+          <rect x="700" y="624" width="150" height="86" class="d-box"/>
+        <rect x="684" y="628" width="18" height="76" class="d-part"/>
+        <text x="693" y="622" text-anchor="middle" class="d-acc-txt" font-size="9.5">XH 4</text>
+          <text x="775" y="700" text-anchor="middle" class="d-txt" font-size="12">bare EC11</text>
+          <text x="775" y="732" text-anchor="middle" class="d-dim" font-size="10">on a tail board: a 4-way XH header, so the cable unplugs here too</text>
+          <path d="M 434 352 C 456 352, 458 636, 476 636 L 684 636" class="wc-case"/>
+        <path d="M 434 352 C 456 352, 458 636, 476 636 L 684 636" class="wc wc-yellow"/>
+          <line x1="684" y1="636" x2="702" y2="636" class="d-line"/>
+          <text x="482" y="631" class="d-txt" font-size="10.5">GPIO 19 · pin 35</text>
+          <text x="716" y="640" class="d-dim" font-size="10.5">A</text>
+          <path d="M 434 358 C 456 358, 458 656, 476 656 L 684 656" class="wc-case"/>
+        <path d="M 434 358 C 456 358, 458 656, 476 656 L 684 656" class="wc wc-green"/>
+          <line x1="684" y1="656" x2="702" y2="656" class="d-line"/>
+          <text x="482" y="651" class="d-txt" font-size="10.5">GPIO 26 · pin 37</text>
+          <text x="716" y="660" class="d-dim" font-size="10.5">B</text>
+          <path d="M 434 364 C 456 364, 458 676, 476 676 L 684 676" class="wc-case"/>
+        <path d="M 434 364 C 456 364, 458 676, 476 676 L 684 676" class="wc wc-blue"/>
+          <line x1="684" y1="676" x2="702" y2="676" class="d-line"/>
+          <text x="482" y="671" class="d-txt" font-size="10.5">GPIO 6 · pin 31</text>
+          <text x="716" y="680" class="d-dim" font-size="10.5">SW</text>
+          <path d="M 434 370 C 456 370, 458 696, 476 696 L 684 696" class="wc-case"/>
+        <path d="M 434 370 C 456 370, 458 696, 476 696 L 684 696" class="wc wc-black"/>
+          <line x1="684" y1="696" x2="702" y2="696" class="d-line"/>
+          <text x="482" y="691" class="d-txt" font-size="10.5">GND · pin 39</text>
+          <text x="716" y="700" class="d-dim" font-size="10.5">C</text>
+          <rect x="30" y="628" width="13" height="13" class="d-part"/>
+        <text x="50" y="639" class="d-dim" font-size="10">connector you crimp or solder</text>
+        <rect x="30" y="652" width="13" height="13" class="d-screen"/>
+        <text x="50" y="663" class="d-dim" font-size="10">connector supplied with the part</text>
+        <text x="500" y="600" text-anchor="middle" class="d-dim" font-size="10">Schematic — connections exact, positions and scale are not</text>
+        </svg>
+      </div>
+      <figcaption>All twelve conductors, drawn individually and named at both ends — the device’s own pad label on the right, the GPIO and header pin it lands on in the middle. Every cable now unplugs at both ends, but only three of the four connectors are ones you make: the panel’s is Waveshare’s own plug, reused exactly as supplied, which is why it is drawn plain rather than in accent. The camera is the only peripheral that does not touch the HAT — it goes straight into the Pi’s CSI port, and its fifteen conductors stay inside the flex, so it is drawn as one link rather than fifteen.</figcaption>
+    </figure>
+
+    <p>The wires fan from two sockets, and the drawing spreads them for legibility — in reality each bundle stays together as one harness into one keyed plug. What matters here is the correspondence: read straight across and you have the wire to cut, the pad to solder, and the header pin it must reach.</p>
+    <p>Worth noting what is <em>not</em> in this picture: no breadboard, no loose jumpers, and no wire that terminates in anything other than a latching plug or a soldered joint. That is the whole point of the exercise.</p>
+  </section>
+
+
+  <section>
+    <h2>Inside the HAT</h2>
+    <p>This is the part you actually solder. Every wire in the drawing above stops at a JST-XH socket — here is what has to happen underneath it, from each outgoing socket position back to the header pin it belongs on.</p>
+
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1000 500" class="svg-xwide" role="img" aria-label="Plan view of the perfboard HAT from above with the Pi underneath and its microSD slot to the left. The 2 by 20 header has the even-numbered row outermost and the odd row inboard, pin 1 at the left of the inner row. Twelve coloured wires run down to two JST-XH sockets. To the panel socket: red 3V3 from pin 1, black ground from pin 6, orange MOSI from pin 19, yellow SCK from pin 23, dark blue chip select from pin 24, dark green data-command from pin 22, white reset from pin 13 and dark grey backlight from pin 12. To the encoder socket: yellow quadrature A from pin 35, dark green B from pin 37, dark blue switch from pin 31 and black ground from pin 39.">
+          <text x="60" y="80" class="d-txt" font-size="13">Looking down on the HAT from above — component side up, Pi underneath,</text>
+          <text x="60" y="98" class="d-txt" font-size="13">its pins pointing up into the header. Pi’s microSD slot to the left.</text>
+          <rect x="60" y="118" width="880" height="282" class="d-box"/>
+          <rect x="104" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="104" y="194" width="12" height="12" class="pad-on"/>
+          <rect x="144" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="144" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="184" y="144" width="12" height="12" class="pad-on"/>
+          <rect x="184" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="224" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="224" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="264" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="264" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="304" y="144" width="12" height="12" class="pad-on"/>
+          <rect x="304" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="344" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="344" y="194" width="12" height="12" class="pad-on"/>
+          <rect x="384" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="384" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="424" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="424" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="464" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="464" y="194" width="12" height="12" class="pad-on"/>
+          <rect x="504" y="144" width="12" height="12" class="pad-on"/>
+          <rect x="504" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="544" y="144" width="12" height="12" class="pad-on"/>
+          <rect x="544" y="194" width="12" height="12" class="pad-on"/>
+          <rect x="584" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="584" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="624" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="624" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="664" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="664" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="704" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="704" y="194" width="12" height="12" class="pad-on"/>
+          <rect x="744" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="744" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="784" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="784" y="194" width="12" height="12" class="pad-on"/>
+          <rect x="824" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="824" y="194" width="12" height="12" class="pad-on"/>
+          <rect x="864" y="144" width="12" height="12" class="pad-off"/>
+          <rect x="864" y="194" width="12" height="12" class="pad-on"/>
+          <rect x="101" y="191" width="18" height="18" class="d-acc-line"/>
+          <text x="86" y="204" text-anchor="end" class="d-acc-txt" font-size="12" font-weight="650">pin 1</text>
+          <text x="896" y="154" class="d-dim" font-size="11">even row (2–40)</text>
+          <text x="896" y="204" class="d-dim" font-size="11">odd row (1–39)</text>
+          <path d="M 110 206 L 110 218 L 135 218 L 135 352" class="wc-case"/>
+          <path d="M 110 206 L 110 218 L 135 218 L 135 352" class="wc wc-red"/>
+          <text x="110" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">1</text>
+          <text x="135" y="380" text-anchor="middle" class="d-txt" font-size="11.5">VCC</text>
+          <path d="M 190 156 L 190 170 L 206 178 L 206 228 L 165 228 L 165 352" class="wc-case"/>
+          <path d="M 190 156 L 190 170 L 206 178 L 206 228 L 165 228 L 165 352" class="wc wc-black"/>
+          <text x="190" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">6</text>
+          <text x="165" y="380" text-anchor="middle" class="d-txt" font-size="11.5">GND</text>
+          <path d="M 470 206 L 470 238 L 195 238 L 195 352" class="wc-case"/>
+          <path d="M 470 206 L 470 238 L 195 238 L 195 352" class="wc wc-orange"/>
+          <text x="470" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">19</text>
+          <text x="195" y="380" text-anchor="middle" class="d-txt" font-size="11.5">DIN</text>
+          <path d="M 550 206 L 550 248 L 225 248 L 225 352" class="wc-case"/>
+          <path d="M 550 206 L 550 248 L 225 248 L 225 352" class="wc wc-yellow"/>
+          <text x="550" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">23</text>
+          <text x="225" y="380" text-anchor="middle" class="d-txt" font-size="11.5">CLK</text>
+          <path d="M 550 156 L 550 170 L 566 178 L 566 258 L 255 258 L 255 352" class="wc-case"/>
+          <path d="M 550 156 L 550 170 L 566 178 L 566 258 L 255 258 L 255 352" class="wc wc-blue"/>
+          <text x="550" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">24</text>
+          <text x="255" y="380" text-anchor="middle" class="d-txt" font-size="11.5">CS</text>
+          <path d="M 510 156 L 510 170 L 526 178 L 526 268 L 285 268 L 285 352" class="wc-case"/>
+          <path d="M 510 156 L 510 170 L 526 178 L 526 268 L 285 268 L 285 352" class="wc wc-green"/>
+          <text x="510" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">22</text>
+          <text x="285" y="380" text-anchor="middle" class="d-txt" font-size="11.5">DC</text>
+          <path d="M 350 206 L 350 278 L 315 278 L 315 352" class="wc-case"/>
+          <path d="M 350 206 L 350 278 L 315 278 L 315 352" class="wc wc-white"/>
+          <text x="350" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">13</text>
+          <text x="315" y="380" text-anchor="middle" class="d-txt" font-size="11.5">RST</text>
+          <path d="M 310 156 L 310 170 L 326 178 L 326 288 L 345 288 L 345 352" class="wc-case"/>
+          <path d="M 310 156 L 310 170 L 326 178 L 326 288 L 345 288 L 345 352" class="wc wc-grey"/>
+          <text x="310" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">12</text>
+          <text x="345" y="380" text-anchor="middle" class="d-txt" font-size="11.5">BL</text>
+          <path d="M 790 206 L 790 298 L 700 298 L 700 352" class="wc-case"/>
+          <path d="M 790 206 L 790 298 L 700 298 L 700 352" class="wc wc-yellow"/>
+          <text x="790" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">35</text>
+          <text x="700" y="380" text-anchor="middle" class="d-txt" font-size="11.5">A</text>
+          <path d="M 830 206 L 830 308 L 736 308 L 736 352" class="wc-case"/>
+          <path d="M 830 206 L 830 308 L 736 308 L 736 352" class="wc wc-green"/>
+          <text x="830" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">37</text>
+          <text x="736" y="380" text-anchor="middle" class="d-txt" font-size="11.5">B</text>
+          <path d="M 710 206 L 710 318 L 772 318 L 772 352" class="wc-case"/>
+          <path d="M 710 206 L 710 318 L 772 318 L 772 352" class="wc wc-blue"/>
+          <text x="710" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">31</text>
+          <text x="772" y="380" text-anchor="middle" class="d-txt" font-size="11.5">SW</text>
+          <path d="M 870 206 L 870 328 L 808 328 L 808 352" class="wc-case"/>
+          <path d="M 870 206 L 870 328 L 808 328 L 808 352" class="wc wc-black"/>
+          <text x="870" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">39</text>
+          <text x="808" y="380" text-anchor="middle" class="d-txt" font-size="11.5">C</text>
+          <rect x="120" y="352" width="240" height="44" class="d-part"/>
+          <text x="240" y="342" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 8 — to panel</text>
+          <rect x="680" y="352" width="150" height="44" class="d-part"/>
+          <text x="755" y="342" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 4 — encoder</text>
+          <text x="70" y="440" class="d-warn-txt" font-size="12" font-weight="650">Flip the board to solder its underside and this view mirrors left-to-right.</text>
+          <text x="70" y="462" class="d-dim" font-size="11">Only the twelve pins in use are filled; the other twenty-eight stay bare. Colours are listed below.</text>
+        </svg>
+      </div>
+      <figcaption>The twelve connections on the HAT, drawn in the colour of the wire you actually cut. Colours are unique within each socket, so nothing is ambiguous while you solder. Pin numbering is as <code>pinout</code> reports it on this board: pin 1 sits on the <em>inner</em> row, so the even-numbered row is the outer one. Twenty-eight of the forty pins are never touched.</figcaption>
+    </figure>
+
+
+    <h3>Cut list</h3>
+    <p>Colours repeat between the two harnesses but never within one, so a wire is never ambiguous at the socket you are soldering.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Wire</th><th>Carries</th><th class="pin">Header pin</th><th class="pin">Panel pad</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="sw sw-red"></span>red</td><td>3V3</td><td class="pin">1</td><td class="pin">VCC</td></tr>
+          <tr><td><span class="sw sw-black"></span>black</td><td>GND</td><td class="pin">6</td><td class="pin">GND</td></tr>
+          <tr><td><span class="sw sw-orange"></span>orange</td><td>MOSI · GPIO 10</td><td class="pin">19</td><td class="pin">DIN</td></tr>
+          <tr><td><span class="sw sw-yellow"></span>yellow</td><td>SCK · GPIO 11</td><td class="pin">23</td><td class="pin">CLK</td></tr>
+          <tr><td><span class="sw sw-blue"></span>dark blue</td><td>CE0 · GPIO 8</td><td class="pin">24</td><td class="pin">CS</td></tr>
+          <tr><td><span class="sw sw-green"></span>dark green</td><td>GPIO 25</td><td class="pin">22</td><td class="pin">DC</td></tr>
+          <tr><td><span class="sw sw-white"></span>white</td><td>GPIO 27</td><td class="pin">13</td><td class="pin">RST</td></tr>
+          <tr><td><span class="sw sw-grey"></span>dark grey</td><td>GPIO 18</td><td class="pin">12</td><td class="pin">BL</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Wire</th><th>Carries</th><th class="pin">Header pin</th><th class="pin">Encoder pad</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="sw sw-yellow"></span>yellow</td><td>GPIO 19</td><td class="pin">35</td><td class="pin">A</td></tr>
+          <tr><td><span class="sw sw-green"></span>dark green</td><td>GPIO 26</td><td class="pin">37</td><td class="pin">B</td></tr>
+          <tr><td><span class="sw sw-blue"></span>dark blue</td><td>GPIO 6</td><td class="pin">31</td><td class="pin">SW</td></tr>
+          <tr><td><span class="sw sw-black"></span>black</td><td>GND</td><td class="pin">39</td><td class="pin">C</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>Red for 3V3 and black for ground</strong> in both harnesses, because that convention is worth more than any drawing — anyone opening this box later will read those two correctly without a legend.</p>
+
+    <p>Two things fall out of this that are worth knowing before you start. The <strong>panel’s eight wires all land in the left half of the header</strong> (pins 1–24) and the <strong>encoder’s four all land in the right</strong> (pins 31–39), so the two sockets want to sit at opposite ends of the board and almost nothing has to cross. And <strong>the two grounds are separate pins</strong> — 6 for the panel, 39 for the encoder — which is worth keeping that way rather than daisy-chaining them, since it costs nothing and keeps the encoder’s switching current out of the panel’s return path.</p>
+    <p>Check every route with a multimeter in continuity mode before the HAT ever meets the Pi. A short between 3V3 and ground on a board you have just soldered is cheap to find now and expensive to find later.</p>
+  </section>
+
+  <section>
+    <h2>Drop the encoder module</h2>
+    <p>This is the largest simplification available, and your own code already permits it. <code>src/encoder.py</code> claims all three encoder pins with <code>SET_PULL_UP</code>, and the probe run confirmed that <code>SW</code> works on nothing but that internal pull-up — the module fits no resistor on it. The blue PCB’s only real contribution is the two 10 kΩ pull-ups on CLK and DT, which the Pi duplicates internally.</p>
+    <p>So replace it with a <strong>bare EC11 encoder</strong>. Three signal wires plus its common pin to ground. No PCB, no 3.3 V feed, and — the practical win — the EC11’s threaded bushing panel-mounts with a nut, where the round module PCB forces an oversized cutout and an awkward standoff behind the panel.</p>
+    <p><strong>No code changes at all.</strong> Same three GPIOs, same driver.</p>
+    <div class="note">
+      <div class="label">A convenient accident</div>
+      <p>With the module gone, all four encoder conductors land on odd-numbered header pins at the far end of the connector: <code>31</code>, <code>35</code>, <code>37</code> and <code>39</code>, with pin 39 already being a ground. One tidy cluster, one short harness.</p>
+    </div>
+
+    <h3>Give it a tail board</h3>
+    <p>Do not solder the harness straight to the encoder’s tags. A cable fixed at one end can only be fitted <em>before</em> the encoder goes into the panel, which forces you to assemble the box around the wiring — awkward, and worse every time you need to take it apart.</p>
+    <p>Instead solder a <strong>4-way JST-XH header onto a ~15 mm square of perfboard</strong>, and solder that onto the EC11’s pins. The encoder becomes a self-contained module with a socket, so the cable plugs in at <em>both</em> ends. Mount the Pi, the panel and the encoder to the shell first, then drop the two harnesses in last.</p>
+    <p>It is worth naming what this is: approximately the breakout board you just removed — minus the pull-ups you do not need, and in a shape you choose rather than a round PCB that fights the panel nut. The connector was the module’s good idea; the resistors were the redundant part.</p>
+  </section>
+
+  <section>
+    <h2>Bench reference — nine conductors</h2>
+    <p>MISO is deliberately absent. Your <code>CLAUDE.md</code> records that this panel returns all zeros on register read-back, and nothing in <code>src/lcd.py</code> ever reads it, so the wire earns nothing.</p>
+
+    <h3>Panel (Waveshare 2.4″ ILI9341)</h3>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Panel pin</th><th class="pin">BCM</th><th class="pin">Header</th><th>Carries</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>VCC</td><td class="gpio">3V3</td><td class="pin">1</td><td>Power</td></tr>
+          <tr><td>GND</td><td class="gpio">GND</td><td class="pin">6</td><td>Ground</td></tr>
+          <tr><td>DIN / MOSI</td><td class="gpio">GPIO 10</td><td class="pin">19</td><td>SPI data — keep short</td></tr>
+          <tr><td>CLK / SCK</td><td class="gpio">GPIO 11</td><td class="pin">23</td><td>SPI clock — keep short</td></tr>
+          <tr><td>CS</td><td class="gpio">GPIO 8</td><td class="pin">24</td><td>Chip select (CE0)</td></tr>
+          <tr><td>DC</td><td class="gpio">GPIO 25</td><td class="pin">22</td><td>Data/command select</td></tr>
+          <tr><td>RST</td><td class="gpio">GPIO 27</td><td class="pin">13</td><td>Hardware reset</td></tr>
+          <tr><td>BL</td><td class="gpio">GPIO 18</td><td class="pin">12</td><td>Backlight, hardware PWM</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Encoder (bare EC11)</h3>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Encoder pin</th><th class="pin">BCM</th><th class="pin">Header</th><th>Carries</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A / CLK</td><td class="gpio">GPIO 19</td><td class="pin">35</td><td>Quadrature A</td></tr>
+          <tr><td>B / DT</td><td class="gpio">GPIO 26</td><td class="pin">37</td><td>Quadrature B</td></tr>
+          <tr><td>Switch</td><td class="gpio">GPIO 6</td><td class="pin">31</td><td>Push — idles high on internal pull-up</td></tr>
+          <tr><td>Common</td><td class="gpio">GND</td><td class="pin">39</td><td>Ground return for all three</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Connectors</h2>
+    <p>Dupont fails in a portable build for one specific reason: the crimp has no latch and nothing but friction holding it in the housing, so vibration walks it out. Everything below is chosen to latch.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Harness</th><th>Connector</th><th>Why this one</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Panel, 8 way</td><td><strong>JST-XH 2.5 mm</strong></td><td>Most forgiving to hand-crimp; latches; happy with 24–26 AWG</td></tr>
+          <tr><td>Encoder, 4 way</td><td><strong>JST-XH 2.5 mm</strong></td><td>Same family again; header on a tail board so it unplugs at both ends</td></tr>
+          <tr><td>Battery</td><td>JST-PH 2.0 mm</td><td>Not a choice; it is what the pack ships with</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <div class="label">The cheapest possible fix, if you want one today</div>
+      <p>Your Waveshare cable already ends in nine individually crimped female Dupont shells. Those crimps have retention tabs and <em>slide out of their single housings and into a multi-way housing</em> with a pin pick — no crimper, no re-terminating. A 1×9 empty housing costs pennies and instantly removes the wrong-pin failure mode. It still will not latch to the header, so it is a stopgap rather than the destination, but it is twenty minutes of work.</p>
+    </div>
+
+    <p><strong>Buy a real crimper.</strong> An IWISS SN-01BM or equivalent is the difference between connectors that last years and connectors you remake monthly. Crimping, not soldering, is the skill that decides whether this build stays reliable.</p>
+
+    <h3>Why one family for both</h3>
+    <p>It is tempting to fit the smaller JST-PH on the encoder because it is only four ways. Resist it. Mixing families means two sets of terminals, two housings, two die positions on the crimper and two things to keep in stock — real friction, for a one-off build, against very little gain. A 4-way XH is about 10 mm wide, which is nothing on a perfboard HAT.</p>
+    <p>The one honest argument for mixing is that different families cannot be cross-plugged. But the pin counts already do most of that work — an 8-way and a 4-way will not properly mate — and placement plus a paint-pen mark on pin 1 covers the rest.</p>
+    <p><strong>Reach for PH on the encoder only if</strong> you wire it in 28 AWG ribbon, since XH terminals under-fill at that gauge where PH is specced to 30; or if you later move to a custom PCB, where 2.5 mm pitch genuinely costs layout area.</p>
+
+    <h3>Ribbon or discrete wire?</h3>
+    <p>The deciding factor is crimp fit, not electrical performance — at these lengths both carry the signals perfectly well.</p>
+    <p><strong>Use 26 AWG silicone for both harnesses.</strong> XH terminals are sized for 22–26 AWG, so 26 AWG fills the barrel properly. Ribbon is typically 28 AWG, which under-fills and crimps weakly — the exact failure mode you are designing out.</p>
+    <p><strong>If you prefer ribbon for tidiness</strong> — and it is tidier, with rainbow colouring making pin 1 unmistakable — then buy <strong>stranded, never solid-core</strong>. Solid-core IDC ribbon work-hardens and snaps at the first bend that sees movement. Take a 10-way for the panel’s eight signals and ground the two spare conductors at both ends, one either side of SCK; they then act as a return path for the fastest edge in the harness. Note that choosing ribbon is the case that pushes the encoder back to PH.</p>
+    <p><strong>Silicone-insulated wire is the safer default</strong> wherever the harness moves. It stays flexible, shrugs off a soldering iron, and does not work-harden the way PVC hookup wire does after a few dozen flexes. That matters most if the panel ends up on a removable lid — in which case leave a service loop so opening the box does not tug the joint.</p>
+    <p>Heatshrink over every solder joint for strain relief, whichever you choose.</p>
+
+    <div class="note caution">
+      <div class="label">Measure before you order</div>
+      <p>Waveshare use more than one connector family across their panel range, and I cannot tell from here which is on yours. Put calipers on the pin pitch — 2.54 mm, 2.0 mm and 1.25 mm are all plausible — before buying mating parts. If it turns out to be 1.25 mm, keep the supplied cable and re-terminate only its Pi end.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Power</h2>
+    <p>How long it runs depends far more on <em>how you run it</em> than on which pack you buy. A PiSugar 3’s 1200 mAh at 3.7 V is 4.44 Wh, of which roughly <strong>3.9 Wh</strong> survives the boost to 5 V.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Configuration</th><th class="num">Measured CPU</th><th class="num">Est. draw</th><th class="num">PiSugar 3</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Terminal + panel, desktop up, WiFi on</td>
+            <td class="num">96% of a core</td>
+            <td class="num">~2.4 W</td>
+            <td class="num">~1.6 h</td>
+          </tr>
+          <tr>
+            <td><strong>Headless</strong> — <code>--no-terminal</code>, console boot, WiFi off</td>
+            <td class="num">29% of a core</td>
+            <td class="num">~1.45 W</td>
+            <td class="num">~2.7 h</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The CPU column is measured on this Pi, sampled from <code>/proc</code> over 15 s after a 35 s settle. The draw and runtime columns are estimates derived from it — a wattage needs a meter inline with the supply, which is worth doing once when the pack arrives.</p>
+    <p><strong>A 1200 mAh PiSugar 3 is fine for a demo piece or a desk object</strong>, and it is meaningfully smaller and lighter than the 5000 mAh Plus — which matters for something handheld. If you want all-day untethered use, that is the case where you would want the Plus instead. Either way the PiSugar mounts on the back <em>without consuming the GPIO header</em>, so your HAT stays free, and brings charging, a power button and a real-time clock with it.</p>
+    <p><strong>Recharging</strong> from flat takes roughly 2½–3 hours with the Pi shut down, and 4 hours or more if it is running from a small supply — your build draws ~600 mA, so a 1 A charger leaves only ~400 mA for the cell. Use a 2 A supply or better, and let the pack cool before charging: a battery straight out of a sealed enclosure is warm, and charging is throttled or inhibited until it drops back.</p>
+    <p>If you go with a plain USB bank instead, check it does not auto-shut-off below about 100 mA. At 600 mA you will not trip that in use, but some packs also refuse to start delivering power without a button press, which is awkward inside a sealed box.</p>
+
+    <div class="note caution">
+      <div class="label">Do this or you will corrupt an SD card</div>
+      <p>Pulling power from a running Pi is the failure you will actually hit in a sealed enclosure. Two defences, and I would fit both. First, a momentary button on a spare GPIO running a clean shutdown — the PiSugar’s own button does this out of the box. Second, and better: make the root filesystem <strong>read-only with an overlay</strong> (<code>raspi-config</code> → Performance → Overlay File System). Your app writes nothing but <code>ascii_camera.log</code>, which can live in tmpfs, so a power cut becomes an ordinary reboot and the box needs no shutdown ceremony at all.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Two ways to run it</h2>
+    <p>Inside a box there is no HDMI screen, so <code>--no-terminal</code> stops being an optimisation and becomes the correct mode. Your own code says why it is cheap:</p>
+    <blockquote style="border-left:2px solid var(--rule); padding-left:var(--s2); color:var(--ink-soft); max-width:var(--measure);">No terminal: the panel does its own downscale and character mapping on its own thread, so building a picture here would be work nothing ever looks at.</blockquote>
+    <p>The terminal grid is 267 × 100 — <strong>26,700 cells</strong>. The panel is 64 × 24 — <strong>1,536 cells</strong>. Seventeen times less work per frame, and the measurement above bears it out: 96% of a core falls to 29%.</p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Mode</th><th>Command</th><th>When</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Enclosed</strong></td>
+            <td><code>--lcd --encoder --no-terminal</code></td>
+            <td>On battery. Boot to console, no desktop, HDMI output off, WiFi off</td>
+          </tr>
+          <tr>
+            <td><strong>Tethered</strong></td>
+            <td><code>fit --lcd --encoder</code></td>
+            <td>On the bench with a monitor plugged in, for debugging</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Make the enclosed mode the one that starts at boot, and opt into tethered mode deliberately. Anything that starts the terminal render automatically will quietly cost you 3.3× the CPU on a battery that cannot spare it.</p>
+    <p>Two further savings that cost you nothing in the box: <code>--fps 10</code> eases both the camera and the render loop, and <code>--lcd-brightness 60</code> takes roughly 40% off the backlight. Both are flags you already have.</p>
+  </section>
+
+  <section>
+    <h2>Leaving a way in</h2>
+    <p>Sealing the box is the moment debugging gets hard, so plan the access before you print rather than cutting it in afterwards.</p>
+
+    <h3>One slot gets you everything</h3>
+    <p>The Zero’s mini-HDMI and both micro-USB ports sit along the <em>same</em> long edge, opposite the GPIO header. A single rectangular opening down that edge exposes all three — no connectors, no extension cable, no signal-integrity question. Position the board against that wall and the cutout is the whole job.</p>
+    <p>That also buys two debugging routes you may reach for more often than a monitor:</p>
+    <ul>
+      <li><strong>USB gadget mode</strong> on the data port presents the Pi as an Ethernet device over one cable — SSH into a sealed box with no network at all.</li>
+      <li><strong>The power port</strong> stays reachable for bench work without opening the case.</li>
+    </ul>
+
+    <h3>Bare slot or panel-mount socket?</h3>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Approach</th><th>Effort</th><th>Trade-off</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Slot for the whole port edge</td><td>Trivial</td><td>Needs a mini-HDMI lead; dust gets in</td></tr>
+          <tr><td>Panel-mount mini-HDMI</td><td>Moderate</td><td>Tidier; still needs a mini-HDMI lead</td></tr>
+          <tr><td>Panel-mount full-size HDMI + short internal adapter</td><td>Most</td><td>Any ordinary HDMI cable works</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The real argument for a panel-mount socket is not neatness. <strong>The Zero’s mini-HDMI connector is surface-mounted and fragile</strong>, and repeated plugging stresses a joint on a board that will by then be wired into your HAT. A panel-mount socket takes that wear on a cheap replaceable part instead. If this is genuinely break-glass access, the bare slot is fine.</p>
+
+    <div class="note caution">
+      <div class="label">Two things that catch people</div>
+      <p>It is <strong>mini</strong>-HDMI (Type C) — not micro, not full size. Tape an adapter inside the lid or you will be hunting for one at the worst possible moment. And an open slot lets dust onto the board: a printed flap or a rubber bung costs nothing.</p>
+    </div>
+
+    <h3>Consider a serial console too</h3>
+    <p>A UART console on GPIO 14/15 is three wires to a 3-pin header, and it gives boot messages and a login shell when networking is dead — which is the situation HDMI usually gets reached for. It is far easier to expose than HDMI and catches early-boot output. It does not replace HDMI here, though: seeing the ASCII picture in terminal mode needs a real screen.</p>
+  </section>
+
+  <section>
+    <h2>Build order</h2>
+    <ol class="steps">
+      <li>
+        <div class="step-body">
+          <h3>Free the encoder</h3>
+          <p>Solder a 4-way JST-XH header onto a ~15 mm square of perfboard, then solder that tail board onto the EC11’s own pins: A, B, switch and common. Sleeve the joints in heatshrink.</p>
+          <p>The encoder is now a module with a socket on it, which is the point — it can be screwed into the panel before any cable exists. The breadboard leaves the project permanently.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Build the HAT</h3>
+          <p>Solder a 2×20 female header to a Zero-sized protoboard so it mates with the Pi’s male pins. On the top side, fit the two JST-XH sockets, 8-way for the panel and 4-way for the encoder, then wire each socket pin to the correct header pin per the tables above. Verify every route with a multimeter in continuity mode <em>before</em> the Pi ever goes near it.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Re-terminate the panel cable</h3>
+          <p>Keep the Waveshare plug at the panel end. Cut the nine Dupont shells off the other end, drop the unused MISO conductor, and crimp the remaining eight into one JST-XH housing. Label pin 1 with a paint pen — you will thank yourself at reassembly.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Test flat on the bench, before any enclosure</h3>
+          <p>Run <code>bash run_ascii_camera.sh fit --lcd --encoder</code> with everything loose on the desk. Confirm the picture, then turn the knob both ways and press it. Fixing a cold joint is trivial now and miserable once it is screwed into a box.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Fit power and prove the shutdown path</h3>
+          <p>Add the battery, then deliberately test whatever shutdown you chose. If you went the overlay-filesystem route, yank the power mid-run on purpose and confirm it boots cleanly. Better to discover that now than in the field.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Model and print the enclosure</h3>
+          <p>Measure your own modules — panel PCBs vary between vendors, typically around 50 × 70 mm with a 49 × 37 mm active area. Cut the window to the <em>active area</em>, not the board outline, or you will frame the bezel. Print in <strong>PETG</strong>: PLA softens near 55 °C and a sealed box in Sydney sun gets there.</p>
+          <p>Cut the port-edge slot now, in the model — see <em>Leaving a way in</em>. Retrofitting an opening for mini-HDMI into a printed shell is fiddly and never looks deliberate.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-body">
+          <h3>Final assembly and strain relief</h3>
+          <p>Panel on M2 standoffs behind its window. EC11 through a single hole, nut outside, with a small anti-rotation notch or the whole encoder turns when the knob stiffens. Clamp the camera ribbon to the shell about a centimetre back from its connector so flexing happens in the free span, never at the joint. Fit all three devices to the shell <em>first</em>, then plug the two harnesses in — that is what the connectors at both ends of each cable buy you.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Parts</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Item</th><th class="num">≈ AUD</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Zero-sized protoboard</td><td class="num">8</td><td>Get two; the first is practice</td></tr>
+          <tr><td>2×20 female header</td><td class="num">3</td><td>Plain height unless stacking the PiSugar</td></tr>
+          <tr><td>Bare EC11 encoder + knob</td><td class="num">4</td><td>Threaded bushing for panel mount</td></tr>
+          <tr><td>Perfboard offcut for the tail board</td><td class="num">—</td><td>~15 mm square, from the HAT board</td></tr>
+          <tr><td>JST-XH kit</td><td class="num">18</td><td>One family: housings, crimps, headers</td></tr>
+          <tr><td>Crimp tool (SN-01BM)</td><td class="num">40</td><td>One-off; makes everything else work</td></tr>
+          <tr><td>26 AWG silicone wire</td><td class="num">15</td><td>Several colours</td></tr>
+          <tr><td>PiSugar 3 · 1200 mAh</td><td class="num">60</td><td>~2.7 h headless; small and light</td></tr>
+          <tr><td>Mini-HDMI adapter or lead</td><td class="num">10</td><td>Tape it inside the lid</td></tr>
+          <tr><td>M2 / M2.5 standoff kit</td><td class="num">12</td><td></td></tr>
+          <tr><td>Stick-on heatsink</td><td class="num">3</td><td>No fan — noise defeats the point</td></tr>
+          <tr><td>PETG filament or print service</td><td class="num">—</td><td>Depends on your setup</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Prices are rough Sydney retail and will drift; the crimper is the only item where paying more genuinely buys you a better result.</p>
+  </section>
+
+  <section>
+    <h2>Three things that will bite</h2>
+
+    <h3>SPI at 40 MHz dislikes long wire</h3>
+    <p>Keep MOSI and SCK under about 10 cm. If you went the ribbon route, the grounded spare conductors either side of SCK are doing this job for you. You already have the escape hatch if it misbehaves: <code>--lcd-spi-hz 20000000</code> halves the clock, and your README documents exactly that.</p>
+
+    <h3>Re-crimping can reverse the knob</h3>
+    <p>Which rotation counts as forwards depends on which physical pin lands on GPIO 19. Swap A and B while making the new harness and the knob runs backwards. The fix is <code>--encoder-reverse</code>, not a rewire — so test it before you blame the crimp.</p>
+
+    <h3>The Zero 2 throttles, and your render loop is not gentle</h3>
+    <p>Vents above and below the board for convection, plus a stick-on heatsink. A sealed box with no airflow will quietly cost you frame rate long before it produces an error message.</p>
+  </section>
+
+  <footer>
+    Built for the AsciiArt project · Pi Zero 2 WH · ILI9341 · EC11 · Camera Module 2
+  </footer>
+
+</div>
