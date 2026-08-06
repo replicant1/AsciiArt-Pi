@@ -1416,6 +1416,16 @@ fixes for the price of a $2 momentary switch on GPIO 3 — press to shut down cl
 to boot. Use GPIO 3 rather than any other pin: wake-from-halt is a property of that pin
 specifically, not of the overlay.
 
+It closes with the enclosure those three decisions imply, drawn rather than described: an
+isometric of the base with the lid lifted off, and a side section through the wedge. A **sloped
+console, 105 × 95 mm, 25 mm at the front and 62 at the back**, camera out of the vertical front
+face so the panel is a viewfinder, and the HAT's two JST-XH sockets facing forward where you can
+reach them. The load-bearing idea is the parting plane at **z = 25 mm**: it is the front wall
+height, it clears the Pi and HAT stack, it cuts both back-panel connectors exactly in half so
+they can be captured at all, and it keeps every hand-crimped joint in the base. Ten millimetres
+under the Pi are reserved for a PiSugar 3 that is not fitted, so adding the battery later costs
+a cable rather than a re-print.
+
 ## Choosing a different display
 
 [`docs/display-selection-guide.html`](docs/display-selection-guide.html) is a ranked guide to

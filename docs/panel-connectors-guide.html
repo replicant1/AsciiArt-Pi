@@ -207,6 +207,23 @@
   .t-dim { fill: var(--ink-2); font-size: 11.5px; }
   .t-load { fill: var(--load); }
   .t-eye { fill: var(--ink-2); font-size: 11.5px; letter-spacing: .11em; }
+
+  /* isometric and section solids: top / front / right faces of each body */
+  .s1 { fill: var(--surface); stroke: var(--ink); stroke-width: 1.1; stroke-linejoin: round; }
+  .s2 { fill: var(--rule); stroke: var(--ink); stroke-width: 1.1; stroke-linejoin: round; opacity: .65; }
+  .s3 { fill: var(--rule); stroke: var(--ink); stroke-width: 1.1; stroke-linejoin: round; }
+  .m1 { fill: var(--metal); stroke: var(--ink); stroke-width: 1.1; opacity: .45; }
+  .m2 { fill: var(--metal); stroke: var(--ink); stroke-width: 1.1; opacity: .7; }
+  .m3 { fill: var(--metal); stroke: var(--ink); stroke-width: 1.1; }
+  .j1 { fill: var(--plastic); stroke: var(--ink); stroke-width: 1.1; opacity: .45; }
+  .j2 { fill: var(--plastic); stroke: var(--ink); stroke-width: 1.1; opacity: .7; }
+  .j3 { fill: var(--plastic); stroke: var(--ink); stroke-width: 1.1; }
+  .sec { fill: var(--rule); stroke: var(--ink); stroke-width: 1.3; stroke-linejoin: round; opacity: .8; }
+  .gwallo { fill: none; stroke: var(--ink-2); stroke-width: 1; }
+  .hole { fill: var(--ink); fill-opacity: .5; stroke: var(--ink); stroke-width: 1; }
+  .drop { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; fill: none; }
+  .cab { fill: none; stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
+
 </style>
 
 <div class="page">
@@ -680,6 +697,117 @@
     <li><strong>The PiSugar&rsquo;s own power button can take over the power-on job</strong> &mdash; and it can be brought to the panel without desoldering anything. Its button is a plain contact closure, so a second momentary switch wired <em>in parallel</em> across the existing one gives you both, reversibly. Desoldering a small SMD tact switch with an iron is the classic way to lift a pad, and PiSugar document no alternative connection point for the 3, so a lifted pad is unrecoverable.</li>
     <li><strong>Verify the two nets with a meter first.</strong> Continuity across the unpressed button reads open; with the board powered, one side is ground and the other sits at the pull-up rail and drops to 0 V while held. The ON / CTRL / OFF pad instructions found online are for the PiSugar 2 / S, which used a three-pin slide switch, and do not transfer to the 3.</li>
   </ul>
+
+
+  <p class="parthead">The enclosure</p>
+  <h2>How it all sits</h2>
+  <p>A sloped console, 105 &#215; 95 mm on the desk, 25 mm tall at the front and 62 at the back &#8212; a 21&#176; face, which is a comfortable angle to read a 2.4&#8243; panel from a seated position and shallow enough that the box does not want to tip when you turn the knob. The camera looks out of the vertical front face, so the panel is a viewfinder for the scene in front of it rather than a mirror.</p>
+  <p>Everything below assumes the build guide&rsquo;s decisions: the HAT soldered to the Pi&rsquo;s header carrying two JST-XH sockets, the bare EC11 on a tail board, the panel on M2 standoffs, and the camera straight into the CSI port.</p>
+
+  <figure>
+    <div class="figbody"><svg viewBox="0 0 815 451" role="img" aria-label="Isometric view of the open enclosure base with the lid removed. The Raspberry Pi sits on a reserved ten millimetre battery volume with the HAT above it on the GPIO header, its two JST-XH sockets feeding the panel and encoder harnesses up past the parting plane. The camera stands behind the front wall, and the captured mini-HDMI connector and USB-C panel socket sit on the back wall, each cut in half by the parting plane."><polygon class="s2" points="173.3,261.2 427.9,408.2 427.9,346.6 173.3,199.6"/><polygon class="s3" points="427.9,408.2 420.6,412.4 420.6,350.8 427.9,346.6"/><polygon class="s1" points="173.3,199.6 427.9,346.6 420.6,350.8 166.0,203.8"/><polygon class="s2" points="396.4,132.4 403.6,136.6 403.6,75.0 396.4,70.8"/><polygon class="s3" points="403.6,136.6 173.3,269.6 173.3,208.0 403.6,75.0"/><polygon class="s1" points="396.4,70.8 403.6,75.0 173.3,208.0 166.0,203.8"/><polygon class="s2" points="396.4,140.8 651.0,287.8 651.0,279.4 396.4,132.4"/><polygon class="s3" points="651.0,287.8 420.6,420.8 420.6,412.4 651.0,279.4"/><polygon class="s1" points="396.4,132.4 651.0,279.4 420.6,412.4 166.0,265.4"/><polygon class="hole" points="350.3,153.4 328.5,166.0 328.5,135.2 350.3,122.6"/><polygon class="hole" points="313.9,174.4 292.1,187.0 292.1,156.2 313.9,143.6"/><polygon class="hole" points="277.5,195.4 255.7,208.0 255.7,177.2 277.5,164.6"/><polygon class="hole" points="241.2,216.4 219.3,229.0 219.3,198.2 241.2,185.6"/><line class="ghost" x1="352.7" y1="213.6" x2="510.3" y2="304.6"/><line class="ghost" x1="510.3" y1="304.6" x2="437.6" y2="346.6"/><line class="ghost" x1="510.3" y1="304.6" x2="510.3" y2="276.6"/><line class="ghost" x1="352.7" y1="185.6" x2="510.3" y2="276.6"/><line class="ghost" x1="510.3" y1="276.6" x2="437.6" y2="318.6"/><line class="ghost" x1="437.6" y1="318.6" x2="280.0" y2="227.6"/><line class="ghost" x1="280.0" y1="227.6" x2="352.7" y2="185.6"/><line class="ghost" x1="352.7" y1="213.6" x2="352.7" y2="185.6"/><line class="ghost" x1="437.6" y1="346.6" x2="437.6" y2="318.6"/><polygon class="m3" points="352.7,185.6 510.3,276.6 510.3,272.1 352.7,181.1"/><polygon class="m3" points="510.3,276.6 437.6,318.6 437.6,314.1 510.3,272.1"/><polygon class="m3" points="352.7,181.1 510.3,272.1 437.6,314.1 280.0,223.1"/><polygon class="m2" points="364.8,188.1 488.5,259.5 488.5,228.7 364.8,157.3"/><polygon class="m3" points="488.5,259.5 476.4,266.5 476.4,235.7 488.5,228.7"/><polygon class="m1" points="364.8,157.3 488.5,228.7 476.4,235.7 352.7,164.3"/><line class="drop" x1="352.7" y1="150.3" x2="352.7" y2="150.3"/><line class="drop" x1="510.3" y1="241.3" x2="510.3" y2="241.3"/><line class="drop" x1="437.6" y1="283.3" x2="437.6" y2="283.3"/><polygon class="m1" points="352.7,150.3 510.3,241.3 510.3,236.8 352.7,145.8"/><polygon class="m2" points="510.3,241.3 437.6,283.3 437.6,278.8 510.3,236.8"/><polygon class="m1" points="352.7,145.8 510.3,236.8 437.6,278.8 280.0,187.8"/><polygon class="j2" points="345.4,166.8 398.8,197.6 398.8,175.2 345.4,144.4"/><polygon class="j3" points="398.8,197.6 379.4,208.8 379.4,186.4 398.8,175.2"/><polygon class="j1" points="345.4,144.4 398.8,175.2 379.4,186.4 326.0,155.6"/><polygon class="j2" points="437.6,220.0 466.7,236.8 466.7,214.4 437.6,197.6"/><polygon class="j3" points="466.7,236.8 447.3,248.0 447.3,225.6 466.7,214.4"/><polygon class="j1" points="437.6,197.6 466.7,214.4 447.3,225.6 418.2,208.8"/><polygon class="s2" points="272.7,229.0 321.2,257.0 321.2,248.6 272.7,220.6"/><polygon class="s3" points="321.2,257.0 275.1,283.6 275.1,275.2 321.2,248.6"/><polygon class="s1" points="272.7,220.6 321.2,248.6 275.1,275.2 226.6,247.2"/><polygon class="s2" points="272.7,226.2 311.5,248.6 311.5,231.8 272.7,209.4"/><polygon class="s3" points="311.5,248.6 270.3,272.4 270.3,255.6 311.5,231.8"/><polygon class="s1" points="272.7,209.4 311.5,231.8 270.3,255.6 231.5,233.2"/><polygon class="s2" points="350.3,287.8 393.9,313.0 393.9,304.6 350.3,279.4"/><polygon class="s3" points="393.9,313.0 362.4,331.2 362.4,322.8 393.9,304.6"/><polygon class="s1" points="350.3,279.4 393.9,304.6 362.4,322.8 318.8,297.6"/><polygon class="s2" points="350.3,285.0 384.2,304.6 384.2,290.6 350.3,271.0"/><polygon class="s3" points="384.2,304.6 357.6,320.0 357.6,306.0 384.2,290.6"/><polygon class="s1" points="350.3,271.0 384.2,290.6 357.6,306.0 323.6,286.4"/><path class="cab" d="M294.5,227.6 L304.2,230.4 L316.3,237.4"/><path class="cab" d="M372.1,289.2 L391.5,286.4 L403.6,290.6"/><path class="cab" d="M364.8,157.3 L391.5,87.6 L406.1,48.4"/><path class="cab" d="M444.9,203.5 L505.5,153.4 L549.1,133.8"/><polygon class="s2" points="309.1,266.8 328.5,278.0 328.5,258.4 309.1,247.2"/><polygon class="s3" points="328.5,278.0 318.8,283.6 318.8,264.0 328.5,258.4"/><polygon class="s1" points="309.1,247.2 328.5,258.4 318.8,264.0 299.4,252.8"/><polygon class="s2" points="398.8,318.6 418.2,329.8 418.2,310.2 398.8,299.0"/><polygon class="s3" points="418.2,329.8 408.5,335.4 408.5,315.8 418.2,310.2"/><polygon class="s1" points="398.8,299.0 418.2,310.2 408.5,315.8 389.1,304.6"/><polygon class="m2" points="486.1,189.8 546.7,224.8 546.7,157.6 486.1,122.6"/><polygon class="m3" points="546.7,224.8 524.9,237.4 524.9,170.2 546.7,157.6"/><polygon class="m1" points="486.1,122.6 546.7,157.6 524.9,170.2 464.3,135.2"/><polygon class="gwallo" points="396.4,132.4 651.0,279.4 651.0,217.8 396.4,70.8"/><polygon class="gwallo" points="651.0,279.4 420.6,412.4 420.6,350.8 651.0,217.8"/><polygon class="s1" points="396.4,70.8 651.0,217.8 643.7,222.0 389.1,75.0"/><polygon class="s1" points="643.7,213.6 651.0,217.8 420.6,350.8 413.3,346.6"/><polygon class="hole" points="512.8,174.4 534.6,187.0 534.6,161.8 512.8,149.2"/><polygon class="hole" points="602.5,287.8 578.2,301.8 578.2,273.8 602.5,259.8"/><path class="st-thin" d="M156.0,92.0 L168.0,92.0 L515.2,142.2"/><text class="t t-dim" x="150.0" y="96.0" text-anchor="end">Camera Module 2</text><path class="st-thin" d="M156.0,144.0 L168.0,144.0 L379.4,257.0"/><text class="t t-dim" x="150.0" y="148.0" text-anchor="end">reserved: PiSugar 3</text><path class="st-thin" d="M156.0,196.0 L168.0,196.0 L323.6,185.0"/><text class="t t-dim" x="150.0" y="200.0" text-anchor="end">HAT protoboard</text><path class="st-thin" d="M156.0,248.0 L168.0,248.0 L362.4,167.1"/><text class="t t-dim" x="150.0" y="252.0" text-anchor="end">8-way JST-XH</text><path class="st-thin" d="M156.0,300.0 L168.0,300.0 L313.9,261.2"/><text class="t t-dim" x="150.0" y="304.0" text-anchor="end">cable anchors</text><path class="st-thin" d="M661.0,104.0 L649.0,104.0 L590.4,280.8"/><text class="t t-dim" x="667.0" y="108.0" text-anchor="start">shutdown button</text><path class="st-thin" d="M661.0,152.0 L649.0,152.0 L272.7,240.2"/><text class="t t-dim" x="667.0" y="156.0" text-anchor="start">mini-HDMI capture</text><path class="st-thin" d="M661.0,200.0 L649.0,200.0 L352.7,294.8"/><text class="t t-dim" x="667.0" y="204.0" text-anchor="start">USB-C socket</text><path class="st-thin" d="M661.0,248.0 L649.0,248.0 L442.4,213.3"/><text class="t t-dim" x="667.0" y="252.0" text-anchor="start">4-way JST-XH</text><path class="st-thin" d="M661.0,296.0 L649.0,296.0 L420.6,289.2"/><text class="t t-dim" x="667.0" y="300.0" text-anchor="start">Pi Zero 2 WH</text><text class="t t-eye" x="8" y="20">ENCLOSURE BASE &#8212; LID REMOVED &#183; 105 &#215; 95 mm</text></svg></div>
+    <figcaption><b>The base, with the lid lifted off.</b> The near two walls are drawn as outlines only so the tray reads as open; everything shown is really there. The Pi sits on 10 mm of reserved height for a PiSugar 3 that is not fitted yet, with the HAT above it on the 2&#215;20 header and its two JST-XH sockets facing forward. Both back-wall connectors are cut in half by the parting plane, which is what lets them be captured at all.</figcaption>
+  </figure>
+
+  <h2>The parting plane is the whole design</h2>
+  <p>One horizontal plane at <strong>z = 25 mm</strong> does four jobs at once. It is the height of the front wall, so the base is a simple tray. It cuts the HDMI and USB-C pockets exactly in half, which is the only way to get a connector into a printed pocket at all. It clears the Pi and HAT stack. And it puts every hand-made harness connection in the base, where you can reach them with the lid off.</p>
+
+  <figure>
+    <div class="figbody"><svg viewBox="0 0 830 420" role="img" aria-label="Side section through the wedge, front at the left. The base tray holds the Raspberry Pi on a reserved battery volume with the HAT above it, the camera behind the front wall, and the captured mini-HDMI at the back. The lid is the whole sloped face, carrying the ILI9341 panel on standoffs and the EC11 encoder, and it parts from the base on a horizontal plane at 25 millimetres that cuts the connectors in half.">
+<defs><marker id="dimA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 Z" class="f-ink"/></marker></defs>
+
+<text class="t t-eye" x="8" y="20">SIDE SECTION &#8212; FRONT AT THE LEFT</text>
+
+<polygon class="sec" points="180,340 484,340 484,260 474.4,260 474.4,330.4 189.6,330.4 189.6,260 180,260"/>
+<polygon class="sec" points="180,260 180,249.4 484,141.6 484,152.2"/>
+<polygon class="sec" points="474.4,260 484,260 484,152.2 474.4,155.7"/>
+
+<rect class="ghost" x="301.6" y="298.4" width="96" height="32"/>
+<rect class="m3" x="301.6" y="293.3" width="96" height="5.1"/>
+<rect class="m2" x="301.6" y="258.1" width="16" height="35.2"/>
+<rect class="m1" x="301.6" y="252.9" width="96" height="5.2"/>
+<rect class="j3" x="330.4" y="227.4" width="25.6" height="25.5"/>
+<rect class="m2" x="189.6" y="250.4" width="28.8" height="76.8"/>
+<rect class="s3" x="413.6" y="231.2" width="60.8" height="57.6"/>
+<rect class="s3" x="391.2" y="308" width="12.8" height="22.4"/>
+
+<polygon class="m2" points="244,256.5 404,199.7 404,204.9 244,261.6"/>
+<rect class="s3" x="256" y="234.8" width="8" height="19.2"/>
+<rect class="s3" x="384" y="186.2" width="8" height="19.2"/>
+
+<rect class="m2" x="424" y="169.2" width="24" height="32"/>
+<rect class="s3" x="432" y="158.6" width="8" height="10.6"/>
+<rect class="m3" x="422" y="139" width="28" height="19"/>
+
+<path class="cab" d="M343,227 C325,205 275,222 258,250"/>
+<path class="cab" d="M352,230 C382,218 404,196 424,182"/>
+<path class="cab" d="M397,300 C410,290 420,272 430,258"/>
+
+<line class="center" x1="150" y1="260" x2="514" y2="260"/>
+
+<path class="st-thin" marker-end="url(#dimA)" d="M180,378 H484"/>
+<path class="st-thin" marker-end="url(#dimA)" d="M484,378 H180"/>
+<text class="t t-dim" x="332" y="396" text-anchor="middle">95 mm front to back</text>
+<path class="st-thin" marker-end="url(#dimA)" d="M164,340 V260"/>
+<path class="st-thin" marker-end="url(#dimA)" d="M164,260 V340"/>
+<text class="t t-dim" x="156" y="304" text-anchor="end">25 mm</text>
+<path class="st-thin" marker-end="url(#dimA)" d="M500,340 V141.6"/>
+<path class="st-thin" marker-end="url(#dimA)" d="M500,141.6 V340"/>
+<text class="t t-dim" x="494" y="138" text-anchor="end">62 mm</text>
+<path class="st-thin" d="M180,260 H236"/>
+<path class="st-thin" d="M228,260 A48,48 0 0,0 233,243"/>
+<text class="t t-dim" x="240" y="254">21&#176;</text>
+
+<text class="t t-dim" x="168" y="196" text-anchor="end">ILI9341 panel</text>
+<path class="st-thin" d="M174,192 L192,192 L300,229"/>
+<text class="t t-dim" x="168" y="222" text-anchor="end">M2 standoffs</text>
+<path class="st-thin" d="M174,218 L192,218 L258,240"/>
+<text class="t t-dim" x="168" y="248" text-anchor="end">Camera Module 2</text>
+<path class="st-thin" d="M174,244 L192,244 L204,278"/>
+<text class="t t-dim" x="168" y="288" text-anchor="end">reserved: PiSugar 3</text>
+<path class="st-thin" d="M174,284 L192,284 L330,314"/>
+<text class="t t-dim" x="168" y="314" text-anchor="end">cable anchor</text>
+<path class="st-thin" d="M174,310 L192,310 L392,318"/>
+
+<text class="t t-dim" x="524" y="170">EC11 encoder + knob</text>
+<path class="st-thin" d="M518,166 L500,166 L444,150"/>
+<text class="t t-dim" x="524" y="200">mini-HDMI, captured</text>
+<path class="st-thin" d="M518,196 L500,196 L448,244"/>
+<text class="t t-dim" x="524" y="230">HAT &#183; JST-XH sockets</text>
+<path class="st-thin" d="M518,226 L500,226 L350,238"/>
+<text class="t t-dim" x="524" y="266">parting plane, z = 25</text>
+<path class="st-thin" d="M518,262 L502,262"/>
+<text class="t t-dim" x="524" y="296">Pi Zero 2 WH</text>
+<path class="st-thin" d="M518,292 L500,292 L360,296"/>
+<text class="t t-dim" x="524" y="326">2&#215;20 header, 11 mm</text>
+<path class="st-thin" d="M518,322 L500,322 L312,278"/>
+</svg></div>
+    <figcaption><b>Section through the wedge, front at the left.</b> The lid is the entire sloped face &#8212; so lifting it lifts the panel and the encoder with it, and both harnesses need a service loop. That is the cost of this parting line, and it is why the build guide&rsquo;s insistence on a plug at <em>both</em> ends of every cable matters: you can unplug the lid rather than fight it. The encoder is drawn above the panel on the slope; beside it works equally well and the harness reaches either way.</figcaption>
+  </figure>
+
+  <h2>Numbers</h2>
+  <div class="wide tablewrap">
+    <table>
+      <thead><tr><th>Dimension</th><th>Value</th><th>Set by</th></tr></thead>
+      <tbody>
+        <tr><td class="feat">Footprint</td><td class="spec">105 &#215; 95 mm</td><td>The panel is 70 mm wide and the Pi 65 mm long; 105 takes either across the box with wall and standoff clearance.</td></tr>
+        <tr><td class="feat">Front / back height</td><td class="spec">25 / 62 mm</td><td>Front height is the parting plane. Back height follows from the slope angle.</td></tr>
+        <tr><td class="feat">Slope</td><td class="spec">21&#176;</td><td>Readable seated, and the 102 mm face swallows the panel&rsquo;s 50 mm with room for the encoder above it.</td></tr>
+        <tr><td class="feat">Parting plane</td><td class="spec">z = 25 mm</td><td>Connector centre height. Everything else was chosen to agree with it.</td></tr>
+        <tr><td class="feat">Reserved for PiSugar 3</td><td class="spec">10 mm under the Pi</td><td>Fitting the battery later must not mean re-printing the shell.</td></tr>
+        <tr><td class="feat">Stack above the floor</td><td class="spec">3 + 10 + 1.6 + 11 + 1.6 mm</td><td>Floor, battery volume, Pi, 2&#215;20 header, HAT &#8212; 27.2 mm, so the HAT sits 2 mm proud of the parting plane and into the lid&rsquo;s open volume.</td></tr>
+        <tr><td class="feat">Wall</td><td class="spec">3 mm</td><td>The connector lips are cut from it; thinner splits at the aperture corners.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What this layout costs</h2>
+  <ol class="notes">
+    <li><strong>The lid carries two live harnesses.</strong> Panel and encoder both mount to the sloped face, so opening the box lifts them. Leave 25&#8211;30 mm of slack in each and use silicone-insulated wire, which is what the build guide already recommends for exactly this case.</li>
+    <li><strong>The Pi&rsquo;s port edge faces the back wall with 24 mm of clearance.</strong> That is enough for the mini-HDMI and micro-B plugs plus a bend, but it is the tightest dimension in the box &#8212; measure your actual plug bodies before committing, because moulded boots vary.</li>
+    <li><strong>SPI still wants to be short.</strong> The 8-way harness runs from the HAT up to a panel on the lid, which is the longest run in the build. Keep MOSI and SCK under 10 cm as the build guide says; if it misbehaves, <code>--lcd-spi-hz 20000000</code> is the escape hatch, not a rewire.</li>
+    <li><strong>Vents on both side walls.</strong> Drawn on the left; mirror them on the right. A sealed wedge with a Zero 2 rendering at 29% of a core will throttle before it errors.</li>
+  </ol>
 
   <!-- ==================== PARTS ==================== -->
 
