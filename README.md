@@ -31,22 +31,26 @@ bottom right is rendering the same camera frames on its own 64 by 24 grid. The
 camera module is on the stand in the middle, wired back to the Pi through the
 breadboard.*
 
-Choosing hardware to run this on? **[`docs/display-selection-guide.html`](docs/display-selection-guide.html)**
-is a ranked guide to vintage terminals, VFDs, graphic LCDs and OLED modules,
-priced in AUD and sourced for a buyer in Sydney. Download it and open it in a
-browser — GitHub shows HTML as source.
+Three hardware guides go with this code, published at
+**[replicant1.github.io/AsciiArt-Pi](https://replicant1.github.io/AsciiArt-Pi/)**.
+Read them there rather than in this repo: GitHub shows HTML as source, and its
+raw view serves these as `text/plain`, so neither renders the drawings.
 
-Taking it off the breadboard? **[`docs/enclosure-build-guide.html`](docs/enclosure-build-guide.html)**
-covers the rebuild into a self-contained, battery-powered box: a soldered
-perfboard HAT that replaces every friction-fit joint, a pin-by-pin cut list for
-the panel, encoder and shutdown-button harnesses, a measured power budget, and
-the enclosure cutouts. Same caveat — download it and open it in a browser.
+- **[Choosing a display](https://replicant1.github.io/AsciiArt-Pi/display-selection-guide.html)**
+  — a ranked guide to running this on something other than an HDMI monitor:
+  vintage terminals, VFDs, graphic LCDs and OLED modules, priced in AUD and
+  sourced for a buyer in Sydney.
+- **[From breadboard to enclosure](https://replicant1.github.io/AsciiArt-Pi/enclosure-build-guide.html)**
+  — the rebuild into a self-contained, battery-powered box: a soldered perfboard
+  HAT that replaces every friction-fit joint, a pin-by-pin cut list for the
+  panel, encoder and shutdown-button harnesses, a measured power budget, and the
+  enclosure cutouts.
+- **[Panel connectors and controls](https://replicant1.github.io/AsciiArt-Pi/panel-connectors-guide.html)**
+  — section drawings and specs for the three things that have to cross the
+  enclosure wall: video out, power in and the shutdown button.
 
-Cutting the shell? **[`docs/panel-connectors-guide.html`](docs/panel-connectors-guide.html)**
-is section drawings and specs for the three things that have to cross the
-enclosure wall — video out, power in and the shutdown button — and it closes
-with the sloped console those three decisions imply, drawn rather than
-described. Same caveat as the other two.
+Each is a single self-contained page with no scripts or external assets, so
+saving one to disk works as well as reading it online.
 
 ## Running it
 
@@ -1393,11 +1397,10 @@ backwards, that flag is the whole fix.
 
 ## Putting it in an enclosure
 
-[`docs/enclosure-build-guide.html`](docs/enclosure-build-guide.html) covers taking the Pi,
-camera, SPI panel and encoder off the breadboard and into a self-contained, battery-powered
-box: connector choices, a pin-by-pin bench reference, power budget, and the enclosure cutouts.
-Like the display guide below, it is a single self-contained page — **download it and open it in
-a browser**, since GitHub renders HTML as source.
+[**From breadboard to enclosure**](https://replicant1.github.io/AsciiArt-Pi/enclosure-build-guide.html)
+covers taking the Pi, camera, SPI panel and encoder off the breadboard and into a
+self-contained, battery-powered box: connector choices, a pin-by-pin bench reference, power
+budget, and the enclosure cutouts.
 
 Two findings in it are measured on this Pi rather than estimated. The render loop costs **96% of
 one core** with the HDMI terminal running and **29%** with `--no-terminal`, so the enclosed
@@ -1406,9 +1409,9 @@ the encoder module can be dropped for a bare EC11 with no code change at all, be
 `src/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
 to run on nothing else.
 
-[`docs/panel-connectors-guide.html`](docs/panel-connectors-guide.html) is a set of section
-drawings and specs for the three things that have to cross the enclosure wall: video out, power
-in, and an off switch. Same caveat as the other two: download it and open it in a browser.
+[**Panel connectors and controls**](https://replicant1.github.io/AsciiArt-Pi/panel-connectors-guide.html)
+is a set of section drawings and specs for the three things that have to cross the enclosure
+wall: video out, power in, and an off switch.
 
 Only the first is hard. A panel-mount socket in **Type C mini-HDMI is not a stocked part
 anywhere**, so the answer is a short mini-HDMI extension held by the printed shell itself, and
@@ -1453,11 +1456,10 @@ than a re-print.
 
 ## Choosing a different display
 
-[`docs/display-selection-guide.html`](docs/display-selection-guide.html) is a ranked guide to
-running this app on something other than an HDMI monitor — vintage terminals, VFDs, graphic
-LCDs and OLED modules — priced in AUD and sourced for a buyer in Sydney. It is a single
-self-contained page: **download it and open it in a browser**, since GitHub shows HTML as
-source rather than rendering it.
+[**Choosing a display**](https://replicant1.github.io/AsciiArt-Pi/display-selection-guide.html)
+is a ranked guide to running this app on something other than an HDMI monitor — vintage
+terminals, VFDs, graphic LCDs and OLED modules — priced in AUD and sourced for a buyer in
+Sydney.
 
 Each option carries a live sample of the same scene rendered at that display's real character
 grid, so the difference between 80x24 and 42x8 is visible rather than asserted.
