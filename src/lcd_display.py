@@ -101,8 +101,11 @@ class LcdDisplay:
         """
         self.lcd = ILI9341(landscape=landscape, spi_freq=spi_freq)
         self.lcd.init()
-        self.lcd.backlight(brightness)
+        # Blank first, light second. The other order lights undefined frame
+        # memory and shows a bright flash of garbage before anything is drawn -
+        # about 200 ms, and very visible in a dark room.
         self.lcd.fill(0x0000)
+        self.lcd.backlight(brightness)
 
         self.font_path = font_path
         self.font_size = font_size
@@ -231,6 +234,22 @@ class LcdDisplay:
 
         self._region[..., 0] = ((r & 0xF8) | (g >> 5)).astype(np.uint8)
         self._region[..., 1] = (((g << 3) & 0xE0) | (b >> 3)).astype(np.uint8)
+
+    @property
+    def panel_size(self):
+        """(width, height) in pixels, in the panel's current orientation."""
+        return self.lcd.width, self.lcd.height
+
+    def show_image(self, image):
+        """
+        Push a whole PIL image, bypassing the character grid.
+
+        Only the start-up screen uses this.  It deliberately does not touch
+        `_frame`, so the first real camera frame overwrites the whole panel and
+        leaves nothing of the splash behind - including in the leftover strip
+        outside the character grid, which `_frame` keeps black.
+        """
+        self.lcd.show(image)
 
     def clear(self):
         """Blank the panel."""

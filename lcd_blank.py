@@ -43,10 +43,10 @@ SLEEP_IN = 0x10       # ILI9341 sleep-in; init() sends 0x11, sleep-out
 DISPLAY_OFF = 0x28
 
 lcd = ILI9341(landscape=True)
-lcd.backlight(0)      # first: __init__ starts the PWM at 100%, and frame memory
-lcd.reset()           # is undefined after a reset, so this avoids a flash of
-lcd.init()            # garbage at whoever is sitting in front of the panel
-lcd.fill(BLACK)
+lcd.backlight(0)      # belt and braces: the driver now starts the PWM at 0 for
+lcd.reset()           # this very reason - frame memory is undefined after a
+lcd.init()            # reset, and lighting it flashes garbage at whoever is
+lcd.fill(BLACK)       # sitting in front of the panel
 lcd._command(DISPLAY_OFF)
 lcd._command(SLEEP_IN)
 

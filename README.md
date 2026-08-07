@@ -137,6 +137,8 @@ rejected, listing the names that do work.
 | `--lcd-portrait` | flag | off | Run the panel as 240x320 instead of 320x240 |
 | `--lcd-spi-hz` | integer | `40000000` | SPI clock. Lower it if the wiring is long or on a breadboard |
 | `--lcd-brightness` | 0–100 | `100` | Backlight duty cycle, driven as PWM |
+| `--lcd-splash-seconds` | float | `3.0` | How long the start-up screen stays up once the camera is ready. `0` hands over the moment there is a picture. See [The start-up screen](#the-start-up-screen) |
+| `--version` | flag | — | Print `ascii_camera <version>` and exit |
 | `--encoder` | flag | off | Cycle colour schemes with a KY-040 rotary encoder. See [The rotary encoder](#the-rotary-encoder) |
 | `--encoder-clk` | integer | `19` | BCM pin for the encoder's CLK |
 | `--encoder-dt` | integer | `26` | BCM pin for the encoder's DT |
@@ -1172,6 +1174,64 @@ bash run_ascii_camera.sh fit --lcd --scheme amber
 
 The panel shows only the picture — no status bar, no border, no window
 furniture.
+
+### The start-up screen
+
+Between the panel coming up and the first camera frame arriving, there is
+nothing to draw. A black panel in that gap is indistinguishable from a panel
+that is not working, which matters here more than it looks: **nothing can
+screenshot this display** (see below), so "is it alive?" is otherwise
+unanswerable until a picture appears. So the panel shows its own start-up
+screen — the app name, what it is currently waiting on, an activity bar, the
+character grid it has chosen, and the version.
+
+It is drawn in the colours of the scheme you launched with, so `--scheme amber`
+comes up amber. The activity bar is a comet of ramp characters sweeping left to
+right rather than a percentage: nothing in the app knows how long libcamera will
+take, and a bar claiming 60% while guessing is worse than one that only shows it
+is alive.
+
+**The gap it covers is about 1.4 seconds**, measured on this Pi — LCD ready to
+first frame. That is worth stating because `docs/enclosure-build-guide.html`
+quotes 15–20 seconds for libcamera; that figure is from the Qt `camera_preview`
+program, not this one. A second and a half is too short to read anything, so the
+screen is held for `--lcd-splash-seconds` (3 by default) after frames start
+arriving, and camera frames are dropped until it expires. Pass `0` to hand over
+as soon as there is a picture.
+
+The animation is driven by the LCD worker's existing idle timeout rather than a
+thread of its own, and it stops by construction once the first frame is drawn.
+The comet advances three cells per redraw rather than one: a full panel write is
+about 33 ms, so speed has to come from distance per frame rather than frames per
+second, and the step is kept below the tail length so consecutive frames still
+overlap.
+
+`tests/lcd_splash_test.py` checks the layout, colours and the hold without any
+hardware, and `--panel` puts it on the real glass and holds it there, since a
+clean test run is not evidence that anything was lit.
+
+**The panel comes up dark on purpose.** `ILI9341.__init__` starts the backlight
+PWM at 0 and the caller turns it on once there is something worth seeing:
+lighting an uninitialised panel shows a bright flash of undefined frame memory
+for the ~200 ms that `init()` and the first `fill()` take. `LcdDisplay` blanks
+and then lights, in that order. Anything constructing `ILI9341` directly has to
+call `backlight()` itself — `tests/lcd_selftest.py` does, and without it that
+test runs on a dark panel and looks exactly like dead hardware.
+
+### Version
+
+`src/version.py` is the one place the version is written down, and it is
+deliberately a module with no imports so that argparse and the LCD worker can
+both read it without loading numpy, PIL or the camera. It is **not** derived
+from git: the copy that runs lives on the Pi, which is not a git checkout, so
+git would report nothing on the only machine where the number is visible.
+
+```bash
+python3 ascii_camera.py --version      # ascii_camera 1.0.0
+```
+
+It also appears at the bottom of the start-up screen and on the first line of
+every log file.
 
 ### Which displays to run
 

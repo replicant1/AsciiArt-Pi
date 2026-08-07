@@ -36,6 +36,11 @@ from camera import CameraCapture  # noqa: E402
 from display import NcursesDisplay  # noqa: E402
 from headless import HeadlessDisplay  # noqa: E402
 from image_processor import ImageProcessor, fit_grid  # noqa: E402
+# Only the default, so --help can state it. Safe at module scope where
+# LcdDisplay is not: the lazy imports in _start_lcd are there for spidev and
+# RPi.GPIO, which live in lcd.py, and lcd_worker pulls in neither.
+from lcd_worker import DEFAULT_SPLASH_HOLD  # noqa: E402
+from version import APP_NAME, __version__  # noqa: E402
 
 logger = logging.getLogger("ascii_camera")
 
@@ -126,10 +131,18 @@ class AsciiArtLiveCamera:
                 spi_freq=self.args.lcd_spi_hz,
                 brightness=self.args.lcd_brightness,
             )
-            worker = LcdWorker(display)
+            worker = LcdWorker(display, scheme=self.scheme,
+                               splash_hold=self.args.lcd_splash_seconds)
             worker.start()
             self._lcd_config_type = LcdConfig
             logger.info("LCD enabled: %dx%d grid", *display.grid_size)
+
+            # Something to look at straight away. The camera is 15-20 seconds
+            # off on a Zero 2, and until this existed the panel spent that time
+            # black, which looks exactly like a panel that is not working.
+            cols, rows = display.grid_size
+            worker.splash("panel ready",
+                          f"{cols}x{rows} grid - font {self.args.lcd_font_size}")
             return worker
         except Exception as e:
             logger.error("LCD unavailable, continuing without it: %s", e,
@@ -430,7 +443,13 @@ class AsciiArtLiveCamera:
         """Main loop."""
         self._install_signal_handlers()
         self.display.message("Starting camera, please wait...")
+        if self.lcd is not None:
+            self.lcd.splash("starting camera")
         self.camera.start()
+        if self.lcd is not None:
+            # camera.start() returns once libcamera is up, which is not the same
+            # as a frame being ready; the wait after it is short but not zero.
+            self.lcd.splash("waiting for first frame")
         self.is_running = True
         started = time.time()
 
@@ -521,6 +540,9 @@ def parse_args(argv=None):
         description="ASCII Art Live Camera Preview for Raspberry Pi",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument("--version", action="version",
+                        version=f"{APP_NAME} {__version__}",
+                        help="Print the version and exit")
     parser.add_argument("--width", type=int, default=320,
                         help="Camera capture width (the ISP downscales in "
                              "hardware, so smaller is much cheaper)")
@@ -590,6 +612,13 @@ def parse_args(argv=None):
                           "breadboard")
     lcd.add_argument("--lcd-brightness", type=int, default=100,
                      help="Backlight duty cycle, 0-100")
+    lcd.add_argument("--lcd-splash-seconds", type=float,
+                     default=DEFAULT_SPLASH_HOLD,
+                     help="How long the start-up screen stays on the panel "
+                          "once the camera is ready. The camera beats it by "
+                          "some margin, so without this the screen would be a "
+                          "flicker. 0 hands over as soon as there is a "
+                          "picture")
     knob = parser.add_argument_group(
         "KY-040 rotary encoder",
         "A knob that steps through the colour schemes, doing what s does from "
@@ -653,7 +682,8 @@ def main(argv=None):
         return 2
 
     setup_logging(args.log, args.verbose)
-    logger.info("=== ASCII Art Live Camera starting: %s ===", vars(args))
+    logger.info("=== %s %s starting: %s ===", APP_NAME, __version__,
+                vars(args))
 
     def bootstrap(stdscr):
         display = NcursesDisplay(stdscr)
