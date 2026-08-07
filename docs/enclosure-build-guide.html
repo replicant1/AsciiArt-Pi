@@ -282,6 +282,7 @@
   .wc-black  { stroke: #101010; }
   .wc-grey   { stroke: #6E7681; }
   .wc-violet { stroke: #8A45B5; }
+  .wc-pink   { stroke: #E0559A; }
 
   .sw { display: inline-block; width: 13px; height: 13px;
         border: 1px solid var(--ink-soft); vertical-align: -2px; margin-right: 7px; }
@@ -290,6 +291,7 @@
   .sw-green{background:#1A7A45} .sw-white{background:#FFFFFF}
   .sw-black{background:#101010} .sw-grey{background:#6E7681}
   .sw-violet{background:#8A45B5}
+  .sw-pink{background:#E0559A}
   figcaption {
     font-size: 0.85rem;
     color: var(--ink-soft);
@@ -591,7 +593,7 @@
 
     <figure>
       <div class="scroll">
-        <svg viewBox="0 0 1000 500" class="svg-xwide" role="img" aria-label="Plan view of the perfboard HAT from above with the Pi underneath and its microSD slot to the left. The 2 by 20 header has the even-numbered row outermost and the odd row inboard, pin 1 at the left of the inner row. Fourteen coloured wires run down to three JST-XH sockets. To the panel socket: red 3V3 from pin 1, black ground from pin 6, orange MOSI from pin 19, yellow SCK from pin 23, dark blue chip select from pin 24, dark green data-command from pin 22, white reset from pin 13 and dark grey backlight from pin 12. To the encoder socket: yellow quadrature A from pin 35, dark green B from pin 37, dark blue switch from pin 31 and black ground from pin 39. A third, two-way socket at the far left of the board carries the shutdown button: violet from GPIO 3 on pin 5 and black ground from pin 9, with a 100 nanofarad capacitor soldered across the two socket pins.">
+        <svg viewBox="0 0 1000 500" class="svg-xwide" role="img" aria-label="Plan view of the perfboard HAT from above with the Pi underneath and its microSD slot to the left. The 2 by 20 header has the even-numbered row outermost and the odd row inboard, pin 1 at the left of the inner row. Sixteen coloured wires run down to three JST-XH sockets. To the panel socket: red 3V3 from pin 1, black ground from pin 6, orange MOSI from pin 19, yellow SCK from pin 23, dark blue chip select from pin 24, dark green data-command from pin 22, white reset from pin 13 and dark grey backlight from pin 12. To the encoder socket: yellow quadrature A from pin 35, dark green B from pin 37, dark blue switch from pin 31 and black ground from pin 39. A third, four-way socket at the far left of the board carries the illuminated shutdown button: violet from GPIO 3 on pin 5 for the switch, black ground from pin 9, and pink from GPIO 4 on pin 7 for the button&#8217;s built-in LED through a 220 ohm resistor. The socket has two ground positions, joined on the board and fed by the one wire from pin 9, so the switch and the LED each get their own return to the button. A 100 nanofarad capacitor sits across the switch pair.">
           <text x="60" y="80" class="d-txt" font-size="13">Looking down on the HAT from above — component side up, Pi underneath,</text>
           <text x="60" y="98" class="d-txt" font-size="13">its pins pointing up into the header. Pi’s microSD slot to the left.</text>
           <rect x="60" y="118" width="880" height="282" class="d-box"/>
@@ -602,7 +604,7 @@
           <rect x="184" y="144" width="12" height="12" class="pad-on"/>
           <rect x="184" y="194" width="12" height="12" class="pad-on"/>
           <rect x="224" y="144" width="12" height="12" class="pad-off"/>
-          <rect x="224" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="224" y="194" width="12" height="12" class="pad-on"/>
           <rect x="264" y="144" width="12" height="12" class="pad-off"/>
           <rect x="264" y="194" width="12" height="12" class="pad-on"/>
           <rect x="304" y="144" width="12" height="12" class="pad-on"/>
@@ -641,41 +643,41 @@
           <text x="896" y="204" class="d-dim" font-size="11">odd row (1–39)</text>
           <!-- Sockets are laid down before the wires so that the pad names printed
                inside them, further down, are not buried by their own housing. -->
-          <rect x="120" y="352" width="240" height="44" class="d-part"/>
+          <rect x="190" y="352" width="240" height="44" class="d-part"/>
           <rect x="680" y="352" width="150" height="44" class="d-part"/>
-          <rect x="60" y="352" width="48" height="44" class="d-part"/>
-          <path d="M 110 206 L 110 336 L 135 336 L 135 352" class="wc-case"/>
-          <path d="M 110 206 L 110 336 L 135 336 L 135 352" class="wc wc-red"/>
+          <rect x="60" y="352" width="110" height="44" class="d-part"/>
+          <path d="M 110 206 L 110 210 L 205 210 L 205 352" class="wc-case"/>
+          <path d="M 110 206 L 110 210 L 205 210 L 205 352" class="wc wc-red"/>
           <text x="110" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">1</text>
-          <text x="135" y="380" text-anchor="middle" class="d-txt" font-size="11.5">VCC</text>
-          <path d="M 190 156 L 190 170 L 174 178 L 174 240 L 165 240 L 165 352" class="wc-case"/>
-          <path d="M 190 156 L 190 170 L 174 178 L 174 240 L 165 240 L 165 352" class="wc wc-black"/>
+          <text x="205" y="380" text-anchor="middle" class="d-txt" font-size="11.5">VCC</text>
+          <path d="M 190 156 L 190 170 L 174 178 L 174 256 L 235 256 L 235 352" class="wc-case"/>
+          <path d="M 190 156 L 190 170 L 174 178 L 174 256 L 235 256 L 235 352" class="wc wc-black"/>
           <text x="190" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">6</text>
-          <text x="165" y="380" text-anchor="middle" class="d-txt" font-size="11.5">GND</text>
-          <path d="M 470 206 L 470 238 L 195 238 L 195 352" class="wc-case"/>
-          <path d="M 470 206 L 470 238 L 195 238 L 195 352" class="wc wc-orange"/>
+          <text x="235" y="380" text-anchor="middle" class="d-txt" font-size="11.5">GND</text>
+          <path d="M 470 206 L 470 238 L 265 238 L 265 352" class="wc-case"/>
+          <path d="M 470 206 L 470 238 L 265 238 L 265 352" class="wc wc-orange"/>
           <text x="470" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">19</text>
-          <text x="195" y="380" text-anchor="middle" class="d-txt" font-size="11.5">DIN</text>
-          <path d="M 550 206 L 550 248 L 225 248 L 225 352" class="wc-case"/>
-          <path d="M 550 206 L 550 248 L 225 248 L 225 352" class="wc wc-yellow"/>
+          <text x="265" y="380" text-anchor="middle" class="d-txt" font-size="11.5">DIN</text>
+          <path d="M 550 206 L 550 248 L 295 248 L 295 352" class="wc-case"/>
+          <path d="M 550 206 L 550 248 L 295 248 L 295 352" class="wc wc-yellow"/>
           <text x="550" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">23</text>
-          <text x="225" y="380" text-anchor="middle" class="d-txt" font-size="11.5">CLK</text>
-          <path d="M 550 156 L 550 170 L 566 178 L 566 258 L 255 258 L 255 352" class="wc-case"/>
-          <path d="M 550 156 L 550 170 L 566 178 L 566 258 L 255 258 L 255 352" class="wc wc-blue"/>
+          <text x="295" y="380" text-anchor="middle" class="d-txt" font-size="11.5">CLK</text>
+          <path d="M 550 156 L 550 170 L 566 178 L 566 258 L 325 258 L 325 352" class="wc-case"/>
+          <path d="M 550 156 L 550 170 L 566 178 L 566 258 L 325 258 L 325 352" class="wc wc-blue"/>
           <text x="550" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">24</text>
-          <text x="255" y="380" text-anchor="middle" class="d-txt" font-size="11.5">CS</text>
-          <path d="M 510 156 L 510 170 L 526 178 L 526 268 L 285 268 L 285 352" class="wc-case"/>
-          <path d="M 510 156 L 510 170 L 526 178 L 526 268 L 285 268 L 285 352" class="wc wc-green"/>
+          <text x="325" y="380" text-anchor="middle" class="d-txt" font-size="11.5">CS</text>
+          <path d="M 510 156 L 510 170 L 526 178 L 526 268 L 355 268 L 355 352" class="wc-case"/>
+          <path d="M 510 156 L 510 170 L 526 178 L 526 268 L 355 268 L 355 352" class="wc wc-green"/>
           <text x="510" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">22</text>
-          <text x="285" y="380" text-anchor="middle" class="d-txt" font-size="11.5">DC</text>
-          <path d="M 350 206 L 350 278 L 315 278 L 315 352" class="wc-case"/>
-          <path d="M 350 206 L 350 278 L 315 278 L 315 352" class="wc wc-white"/>
+          <text x="355" y="380" text-anchor="middle" class="d-txt" font-size="11.5">DC</text>
+          <path d="M 350 206 L 350 278 L 385 278 L 385 352" class="wc-case"/>
+          <path d="M 350 206 L 350 278 L 385 278 L 385 352" class="wc wc-white"/>
           <text x="350" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">13</text>
-          <text x="315" y="380" text-anchor="middle" class="d-txt" font-size="11.5">RST</text>
-          <path d="M 310 156 L 310 170 L 326 178 L 326 288 L 345 288 L 345 352" class="wc-case"/>
-          <path d="M 310 156 L 310 170 L 326 178 L 326 288 L 345 288 L 345 352" class="wc wc-grey"/>
+          <text x="385" y="380" text-anchor="middle" class="d-txt" font-size="11.5">RST</text>
+          <path d="M 310 156 L 310 170 L 326 178 L 326 288 L 415 288 L 415 352" class="wc-case"/>
+          <path d="M 310 156 L 310 170 L 326 178 L 326 288 L 415 288 L 415 352" class="wc wc-grey"/>
           <text x="310" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">12</text>
-          <text x="345" y="380" text-anchor="middle" class="d-txt" font-size="11.5">BL</text>
+          <text x="415" y="380" text-anchor="middle" class="d-txt" font-size="11.5">BL</text>
           <path d="M 790 206 L 790 298 L 700 298 L 700 352" class="wc-case"/>
           <path d="M 790 206 L 790 298 L 700 298 L 700 352" class="wc wc-yellow"/>
           <text x="790" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">35</text>
@@ -692,30 +694,36 @@
           <path d="M 870 206 L 870 328 L 808 328 L 808 352" class="wc wc-black"/>
           <text x="870" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">39</text>
           <text x="808" y="380" text-anchor="middle" class="d-txt" font-size="11.5">C</text>
-          <path d="M 190 206 L 190 214 L 74 214 L 74 352" class="wc-case"/>
-          <path d="M 190 206 L 190 214 L 74 214 L 74 352" class="wc wc-violet"/>
+          <path d="M 190 206 L 190 244 L 152 244 L 152 352" class="wc-case"/>
+          <path d="M 190 206 L 190 244 L 152 244 L 152 352" class="wc wc-violet"/>
           <text x="190" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">5</text>
-          <text x="74" y="380" text-anchor="middle" class="d-txt" font-size="9.5">SIG</text>
-          <path d="M 270 206 L 270 224 L 180 224 A 6 6 0 0 1 168 224 L 94 224 L 94 352" class="wc-case"/>
-          <path d="M 270 206 L 270 224 L 180 224 A 6 6 0 0 1 168 224 L 94 224 L 94 352" class="wc wc-black"/>
+          <path d="M 270 206 L 270 232 L 180 232 A 6 6 0 0 1 168 232 L 100 232 L 100 352" class="wc-case"/>
+          <path d="M 270 206 L 270 232 L 180 232 A 6 6 0 0 1 168 232 L 100 232 L 100 352" class="wc wc-black"/>
           <text x="270" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">9</text>
-          <text x="94" y="380" text-anchor="middle" class="d-txt" font-size="9.5">GND</text>
-          <path d="M 74 300 L 80 300" class="d-line"/>
-          <line x1="80" y1="291" x2="80" y2="309" class="d-line"/>
-          <line x1="88" y1="291" x2="88" y2="309" class="d-line"/>
-          <path d="M 88 300 L 94 300" class="d-line"/>
-          <path d="M 114 300 L 97 300" class="d-dash"/>
-          <text x="118" y="304" class="d-dim" font-size="10">100 nF</text>
+          <path d="M 230 206 L 230 220 L 74 220 L 74 352" class="wc-case"/>
+          <path d="M 230 206 L 230 220 L 74 220 L 74 352" class="wc wc-pink"/>
+          <text x="230" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">7</text>
+          <text x="74" y="380" text-anchor="middle" class="d-txt" font-size="9.5">LED</text>
+          <text x="100" y="380" text-anchor="middle" class="d-txt" font-size="9.5">GND</text>
+          <text x="126" y="380" text-anchor="middle" class="d-txt" font-size="9.5">GND</text>
+          <text x="152" y="380" text-anchor="middle" class="d-txt" font-size="9.5">SIG</text>
+          <path d="M 100 344 L 126 344 L 126 352" class="wc-case"/>
+          <path d="M 100 344 L 126 344 L 126 352" class="wc wc-black"/>
+          <path d="M 100 300 L 120 300" class="d-line"/>
+          <line x1="120" y1="291" x2="120" y2="309" class="d-line"/>
+          <line x1="128" y1="291" x2="128" y2="309" class="d-line"/>
+          <path d="M 128 300 L 152 300" class="d-line"/>
+          <rect x="104" y="214" width="20" height="12" class="d-screen"/>
           <!-- Socket names sit below the board: at the old y=342 the wire drops
                into each socket ran straight through the lettering. -->
-          <text x="240" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 8 — to panel</text>
+          <text x="310" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 8 — to panel</text>
           <text x="755" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 4 — encoder</text>
-          <text x="84" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 2 — button</text>
+          <text x="115" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 4 — button</text>
           <text x="70" y="440" class="d-warn-txt" font-size="12" font-weight="650">Flip the board to solder its underside and this view mirrors left-to-right.</text>
-          <text x="70" y="462" class="d-dim" font-size="11">Only the fourteen pins in use are filled; the other twenty-six stay bare. Colours are listed below.</text>
+          <text x="70" y="462" class="d-dim" font-size="11">Only the fifteen pins in use are filled; the other twenty-five stay bare. Colours are listed below.</text>
         </svg>
       </div>
-      <figcaption><b>Fig. 3 &mdash; The HAT from above, and every wire you have to solder.</b> The fourteen connections on the HAT, drawn in the colour of the wire you actually cut. Colours are unique within each socket, so nothing is ambiguous while you solder. Pin numbering is as <code>pinout</code> reports it on this board: pin 1 sits on the <em>inner</em> row, so the even-numbered row is the outer one. Twenty-six of the forty pins are never touched. The only crossings are the button&rsquo;s two wires getting past the panel&rsquo;s power and ground on their way to the left edge &mdash; unavoidable, since GPIO 3 and its ground sit inside the panel&rsquo;s own run of pins. Where the button&rsquo;s ground crosses the panel&rsquo;s, the drawing hops it: two black wires meeting at right angles would otherwise read as a joint.</figcaption>
+      <figcaption><b>Fig. 3 &mdash; The HAT from above, and every wire you have to solder.</b> The sixteen wires on the HAT, drawn in the colour of the wire you actually cut. Colours are unique within each socket, so nothing is ambiguous while you solder. Pin numbering is as <code>pinout</code> reports it on this board: pin 1 sits on the <em>inner</em> row, so the even-numbered row is the outer one. Sixteen wires but only fifteen header pins: the button&#8217;s switch return and its LED return are both ground, so they share pin 9 and are joined on the board rather than run twice. Twenty-five of the forty pins are never touched. The crossings are all the button&rsquo;s three wires getting past the panel&rsquo;s power and ground on their way to the left edge &mdash; unavoidable, since GPIO 3, GPIO 4 and the ground they use sit inside the panel&rsquo;s own run of pins. The plain rectangle on the pink wire is the 220 &#937; LED resistor; the two plates across the switch pair are the 100 nF. Where the button&rsquo;s ground crosses the panel&rsquo;s, the drawing hops it: two black wires meeting at right angles would otherwise read as a joint.</figcaption>
     </figure>
 
 
@@ -757,19 +765,24 @@
           <tr><th>Wire</th><th>Carries</th><th class="pin">Header pin</th><th class="pin">Button pad</th></tr>
         </thead>
         <tbody>
-          <tr><td><span class="sw sw-violet"></span>violet</td><td>GPIO 3</td><td class="pin">5</td><td class="pin">SIG</td></tr>
-          <tr><td><span class="sw sw-black"></span>black</td><td>GND</td><td class="pin">9</td><td class="pin">GND</td></tr>
+          <tr><td><span class="sw sw-violet"></span>violet</td><td>GPIO 3 — switch</td><td class="pin">5</td><td class="pin">SIG</td></tr>
+          <tr><td><span class="sw sw-black"></span>black</td><td>GND — switch return</td><td class="pin">9</td><td class="pin">GND</td></tr>
+          <tr><td><span class="sw sw-pink"></span>pink</td><td>GPIO 4 — LED anode, via 220 Ω</td><td class="pin">7</td><td class="pin">LED</td></tr>
+          <tr><td><span class="sw sw-black"></span>black</td><td>GND — LED cathode</td><td class="pin">9</td><td class="pin">GND</td></tr>
         </tbody>
       </table>
     </div>
     <p><strong>Red for 3V3 and black for ground</strong> in all three harnesses, because that convention is worth more than any drawing — anyone opening this box later will read those two correctly without a legend.</p>
 
     <h3>What the button’s two wires are doing</h3>
-    <p>They are not a peripheral. Put <code>dtoverlay=gpio-shutdown</code> in <code>/boot/firmware/config.txt</code> and a plain momentary switch across <strong>GPIO 3 (pin 5)</strong> and ground halts the Pi cleanly — and, uniquely to GPIO 3, wakes it again from halt while power is still applied. That is a power button for the price of a $2 switch. Nothing else is needed at the HAT: the Pi already carries a 1k8 pull-up on that line, so fitting your own resistor is wrong rather than merely redundant.</p>
+    <p><strong>Four wires, because the button lights up.</strong> An <a href="https://core-electronics.com.au/16mm-illuminated-pushbutton-red-momentary.html">Adafruit 16 mm illuminated momentary pushbutton</a> (~$3 AUD) has four lugs: two for the switch and two for a built-in LED. Its plastic body matters — the panel connectors guide chose plastic over a metal anti-vandal switch precisely because metal offers an ESD path into a high-impedance GPIO that a human touches. Note it needs a <strong>16 mm hole</strong>, not the 6.35 mm bushing of the plain switch, and it is 29.4 mm deep, so check it against the parting plane before cutting.</p>
+    <p>The LED is the answer to a problem the panel cannot solve. Nothing can appear on the SPI display until <code>/dev/spidev0.0</code> exists, which is 8.6 s into boot; a GPIO set by <code>gpio=4=op,dh</code> in <code>config.txt</code> is driven by firmware <em>before the kernel starts</em>. So the button glows from the moment power arrives, and the app owns it from then on. It also answers the other ambiguity: press to shut down and the light going out tells you the press registered, which nothing does today.</p>
+    <p>Its two grounds — the switch return and the LED cathode — are both ground, so they share header pin 9 and are joined on the HAT. Four wires leave the board, three header pins are used, and swapping the two grounds at the socket does nothing, which is why two black wires in one socket is safe here where it would not normally be.</p>
+    <p>Put <code>dtoverlay=gpio-shutdown</code> in <code>/boot/firmware/config.txt</code> and the switch half, across <strong>GPIO 3 (pin 5)</strong> and ground, halts the Pi cleanly — and, uniquely to GPIO 3, wakes it again from halt while power is still applied. That is a power button for the price of a $2 switch. Nothing else is needed at the HAT: the Pi already carries a 1k8 pull-up on that line, so fitting your own resistor is wrong rather than merely redundant.</p>
     <p>The <strong>100 nF ceramic goes on the HAT</strong>, soldered directly across the two socket pins, and that is where the drawing puts it. Its job is to shunt noise picked up along the whole run out to a panel-mounted switch, which it cannot do from the switch end. It debounces the contacts for free, and because it dumps its charge into them on every press it keeps a dry-circuit contact wetted — this line switches microamps, which is exactly the regime where cheap silver contacts grow an oxide film that never breaks down. Run the pair as twisted wire, under 150 mm, crossing the SPI harness at right angles rather than lying alongside it.</p>
     <p>One thing to know before you commit: <strong>GPIO 2 and 3 are the I²C bus, and a PiSugar 3 talks to the Pi on those exact pins.</strong> If a battery goes in later, the button moves to GPIO 5 (pin 29) with <code>dtoverlay=gpio-shutdown,gpio_pin=5</code> and loses wake-from-halt — shutdown works on any GPIO, waking does not. That is one wire moved on a board that is already open for the battery, so it is not a reason to give up wake-from-halt now.</p>
 
-    <p>Three things fall out of this that are worth knowing before you start. The <strong>panel’s eight wires all land in the left half of the header</strong> (pins 1–24) and the <strong>encoder’s four all land in the right</strong> (pins 31–39), so those two sockets want to sit at opposite ends of the board and almost nothing has to cross. The <strong>button spoils that slightly</strong>: pins 5 and 9 sit inside the panel’s own run, so its two wires have to get past the panel’s power and ground on their way to the left edge — four crossings, all at right angles, which is how you want wires to cross when they must. And <strong>the three grounds are separate pins</strong> — 6 for the panel, 9 for the button, 39 for the encoder — which is worth keeping that way rather than daisy-chaining them, since it costs nothing and keeps two lots of switching current out of the panel’s return path.</p>
+    <p>Three things fall out of this that are worth knowing before you start. The <strong>panel’s eight wires all land in the left half of the header</strong> (pins 1–24) and the <strong>encoder’s four all land in the right</strong> (pins 31–39), so those two sockets want to sit at opposite ends of the board and almost nothing has to cross. The <strong>button spoils that slightly</strong>: pins 5 and 9 sit inside the panel’s own run, so its two wires have to get past the panel’s power and ground on their way to the left edge — four crossings, all at right angles, which is how you want wires to cross when they must. And <strong>the three grounds are separate pins</strong> — 6 for the panel, 9 for the button (both of its returns), 39 for the encoder — which is worth keeping that way rather than daisy-chaining them, since it costs nothing and keeps two lots of switching current out of the panel’s return path.</p>
     <p>Check every route with a multimeter in continuity mode before the HAT ever meets the Pi. A short between 3V3 and ground on a board you have just soldered is cheap to find now and expensive to find later.</p>
   </section>
 
