@@ -636,16 +636,16 @@
 
   <figure>
     <div class="figbody">
-      <svg viewBox="0 0 760 380" role="img" aria-label="Wiring for the shutdown button. GPIO 3 on header pin 5 and ground on pin 9 run as a twisted pair to a momentary panel switch mounted through the enclosure wall. A 100 nanofarad capacitor sits across the pair close to the Pi.">
+      <svg viewBox="0 0 760 400" role="img" aria-label="Wiring for the illuminated shutdown button. GPIO 3 on header pin 5 and ground on pin 9 run as a twisted pair to a momentary panel switch mounted through the enclosure wall, with a 100 nanofarad capacitor across the pair close to the Pi. A second twisted pair carries GPIO 4 on pin 7 through a 220 ohm resistor to the button&#39;s built-in LED, returning to the same ground.">
         <defs>
           <pattern id="hp5" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
           </pattern>
         </defs>
 
-        <rect x="50" y="90" width="140" height="140" class="f-surf"/>
-        <text class="t" x="120" y="155" text-anchor="middle">Pi Zero 2 W</text>
-        <text class="t t-dim" x="120" y="175" text-anchor="middle">40-pin header</text>
+        <rect x="50" y="90" width="140" height="260" class="f-surf"/>
+        <text class="t" x="120" y="212" text-anchor="middle">Pi Zero 2 W</text>
+        <text class="t t-dim" x="120" y="232" text-anchor="middle">40-pin header</text>
 
         <path class="st-wire" d="M190,140 H300"/>
         <path class="st-wire" d="M190,190 H300"/>
@@ -661,23 +661,35 @@
         <path class="st-wire" d="M300,140 C315,140 335,190 350,190 C365,190 385,140 400,140 C415,140 435,190 450,190 C465,190 485,140 500,140"/>
         <path class="st-wire" d="M300,190 C315,190 335,140 350,140 C365,140 385,190 400,190 C415,190 435,140 450,140 C465,140 485,190 500,190"/>
 
-        <rect x="520" y="135" width="60" height="70" class="f-surf"/>
+        <rect x="520" y="135" width="60" height="200" class="f-surf"/>
         <path class="st-wire" d="M500,140 H524"/>
         <path class="st-wire" d="M500,190 H524"/>
 
         <rect x="580" y="40"  width="20" height="115" style="fill:url(#hp5)" class="st-ink"/>
-        <rect x="580" y="185" width="20" height="85"  style="fill:url(#hp5)" class="st-ink"/>
+        <rect x="580" y="185" width="20" height="175" style="fill:url(#hp5)" class="st-ink"/>
         <rect x="576" y="155" width="28" height="30" class="f-surf"/>
         <rect x="600" y="150" width="10" height="40" class="f-surf"/>
         <rect x="610" y="158" width="26" height="24" class="f-metal"/>
 
+        <path class="st-wire" d="M190,280 H300"/>
+        <path class="st-wire" d="M190,330 H300"/>
+        <text class="t t-dim" x="198" y="272">pin 7 &middot; GPIO 4</text>
+        <text class="t t-dim" x="198" y="350">pin 9 &middot; GND, shared</text>
+        <rect x="238" y="272" width="34" height="16" class="f-surf"/>
+        <text class="t t-dim" x="255" y="308" text-anchor="middle">220 &#937;</text>
+        <path class="st-wire" d="M300,280 C315,280 335,330 350,330 C365,330 385,280 400,280 C415,280 435,330 450,330 C465,330 485,280 500,280"/>
+        <path class="st-wire" d="M300,330 C315,330 335,280 350,280 C365,280 385,330 400,330 C415,330 435,280 450,280 C465,280 485,330 500,330"/>
+        <path class="st-wire" d="M500,280 H524"/>
+        <path class="st-wire" d="M500,330 H524"/>
+        <circle cx="552" cy="300" r="13" class="f-metal"/>
+        <text class="t t-dim" x="500" y="356" text-anchor="middle">built-in LED</text>
         <text class="t t-dim" x="380" y="248" text-anchor="middle">twisted pair, &lt; 150 mm</text>
-        <text class="t t-dim" x="570" y="248" text-anchor="middle">panel switch, N.O. momentary</text>
-        <text class="t t-dim" x="620" y="300">enclosure wall</text>
-        <path class="st-thin" d="M618,292 L596,274"/>
+        <text class="t t-dim" x="470" y="124" text-anchor="middle">illuminated switch, N.O. momentary</text>
+        <text class="t t-dim" x="624" y="200">enclosure wall</text>
+        <path class="st-thin" d="M622,194 L600,178"/>
       </svg>
     </div>
-    <figcaption><b>Fig. 5 &#8212; The shutdown button: a contact closure to ground, and everything else is noise control.</b> GPIO 3 already carries a 1k8 pull-up on the Pi&rsquo;s own board, so no external resistor is wanted. The 100 nF sits at the Pi end, not the switch end &mdash; it has to shunt noise picked up along the whole run. The ground is pin 9 rather than the pin 6 alongside pin 5, because pin 6 is spoken for by the panel on the HAT; these are the same two wires drawn in Fig. 3 of the enclosure build guide.</figcaption>
+    <figcaption><b>Fig. 5 &#8212; The shutdown button: a contact closure to ground, and everything else is noise control.</b> GPIO 3 already carries a 1k8 pull-up on the Pi&rsquo;s own board, so no external resistor is wanted. The 100 nF sits at the Pi end, not the switch end &mdash; it has to shunt noise picked up along the whole run. The ground is pin 9 rather than the pin 6 alongside pin 5, because pin 6 is spoken for by the panel on the HAT; these are the same four wires drawn in Fig. 3 of the enclosure build guide, where both grounds share that one pin. The LED pair is what lets the box say anything at all in its first eight seconds: the SPI panel cannot light until <code>/dev/spidev0.0</code> exists at 8.6 s, but <code>gpio=4=op,dh</code> in <code>config.txt</code> is applied by firmware before the kernel starts.</figcaption>
   </figure>
 
   <h2>Noise is the failure mode, not the wiring</h2>
@@ -691,7 +703,9 @@
   <p>There is a pleasant accident in that first item. Switching a logic-level line at microamps is <em>dry-circuit</em> territory, where cheap silver contacts can build an oxide film that never breaks down. The 100 nF charges through the pull-up between presses and dumps into the contacts on closure &mdash; exactly the wetting pulse that keeps the surfaces clean. The part that&rsquo;s there for noise solves the contact problem too. If the button ever needs two or three presses after months idle, that is the mechanism, and a larger cap is the fix.</p>
 
   <h2>Which switch</h2>
-  <p><strong>SparkFun COM-11996, Momentary Button &mdash; Panel Mount (Black)</strong>, AU$2.15 from Core Electronics; also in red as COM-11992. SPST normally-open, &frac14;&Prime; threaded bushing with a nut, solder lugs, about 27 mm overall including leads. Three reasons it suits this build specifically: the nut takes finger force into the panel rather than into your solder joints, the solder lugs match thin twisted pair where spade terminals would not, and the plastic body simply does not offer the ESD path that a metal anti-vandal button does.</p>
+  <p><strong><a href="https://core-electronics.com.au/16mm-illuminated-pushbutton-red-momentary.html">Adafruit 16 mm Illuminated Pushbutton, Momentary</a></strong> (ADA1439, red; also green, white and yellow), AU$3.15 from Core Electronics. Four lugs &mdash; two for the switch, two for a built-in LED marked + and &minus; &mdash; a 16 mm panel hole, and 29.4 mm overall depth. The LED is about 2.2 V forward with no built-in resistor, so it wants 220 &#937; in series; at 3.3 V that is roughly 5 mA, well inside the Pi&rsquo;s per-pin limit.</p>
+  <p>The body is <strong>plastic</strong>, and that is the reason to prefer it over the metal illuminated buttons sold alongside it. A metal barrel offers an ESD path straight into a high-impedance GPIO that a human is invited to press; the series resistor below is a mitigation, not a cure. The nut still takes finger force into the panel rather than into your solder joints, and solder lugs still suit thin twisted pair.</p>
+  <p><strong>The plain alternative</strong>, if you do not want the light: SparkFun COM-11996, AU$2.15, SPST normally-open on a &frac14;&Prime; bushing, about 27 mm deep. It needs a much smaller hole &mdash; 6.35 mm against 16 mm &mdash; so decide before the panel is cut, because that is the part you cannot undo.</p>
   <p>Buying rules, in order of how often they are got wrong:</p>
   <ol class="notes">
     <li><strong>Momentary, not latching.</strong> Latching anti-vandal switches look identical in photographs and are frequently the default variant on a listing. A latching switch here misbehaves rather than fails cleanly.</li>
