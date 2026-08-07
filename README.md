@@ -1492,6 +1492,42 @@ alternatives are all worse:
   camera stopped, panel blanked, backlight driven low. Killed any harder, the
   panel is left lit showing the last frame.
 
+### The backlight during boot
+
+The ILI9341 module fits **its own pull-up on the backlight pin**. GPIO 18 is an
+input from power-on until the app claims it, so that pull-up lights the panel —
+and it sits lit, showing undefined frame memory, for the whole time systemd and
+Python take to reach the point of drawing anything. Measured on this Pi that is
+about **27 seconds**:
+
+| From power-on | |
+| --- | --- |
+| 0 – 16.3 s | systemd has not started the service yet |
+| 16.3 – 26.3 s | Python is importing — `picamera2` alone is 5.1 s, `numpy`+`PIL` 1.35 s |
+| 26.3 s | panel init, and the start-up screen appears |
+
+A lit panel showing garbage reads as broken hardware, which is worse than a dark
+one. One line in `/boot/firmware/config.txt` fixes it, and it has to be there
+rather than in any script because firmware applies it before userspace exists:
+
+```
+gpio=18=op,dl
+```
+
+Output, driven low. The pull-up never gets the chance, and `src/lcd.py` turns
+the backlight on only after blanking — so the panel goes straight from dark to
+the start-up screen with nothing ugly in between.
+
+> **This lives on the boot partition, not in this repo, so a reimage loses it
+> silently.** The same is true of `dtoverlay=gpio-shutdown` for the shutdown
+> button. Both are one-line additions to `/boot/firmware/config.txt`; if you
+> reflash, put them back.
+
+The 27 seconds themselves are still there — this only stops them being ugly. The
+lever for shortening them, if it ever matters, is that `spidev` and `RPi.GPIO`
+import in **0.02 s** against `picamera2`'s 5.1 s, so a small program could light
+the panel with a pre-rendered image long before the app is ready.
+
 ### Turning it on with no PiSugar
 
 There is no power switch on a Pi, so **applying power is the on-switch** — plug
