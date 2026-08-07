@@ -166,11 +166,12 @@ class SplashScreen:
         if detail:
             self._centre(draw, h * 0.79, detail, self.f_small, self._dim(0.55))
 
-        # Dimmer than the detail line and last in the reading order: it wants to
-        # be findable when someone asks "which build is on that box?", not to
-        # compete with what the screen is actually saying.
+        # Last in the reading order but not faint: at this size on a 2.4 inch
+        # panel it was legible in a rendering and not on the glass, which is
+        # the only test that counts. Brighter than the detail line above it
+        # on purpose - a version nobody can read is not serving its purpose.
         if self.version:
             self._centre(draw, h * 0.89, f"v{self.version}", self.f_small,
-                         self._dim(0.35))
+                         self._dim(0.85))
 
         return img
