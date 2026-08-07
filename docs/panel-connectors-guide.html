@@ -625,16 +625,18 @@
 
   <pre><code>dtoverlay=gpio-shutdown</code></pre>
 
-  <p>The default is GPIO 3, active-low, internal pull-up. Wire a momentary button between <strong>GPIO 3 (header pin 5)</strong> and <strong>GND (pin 6)</strong> and you get both halves of a power button:</p>
+  <p>The default is GPIO 3, active-low, internal pull-up. Wire a momentary button between <strong>GPIO 3 (header pin 5)</strong> and <strong>GND (pin 9)</strong> and you get both halves of a power button:</p>
   <ul class="notes">
     <li><strong>Press while running</strong> &rarr; clean shutdown.</li>
     <li><strong>Press again while halted, power still applied</strong> &rarr; the machine boots.</li>
   </ul>
   <p>That is the behaviour a PiSugar&rsquo;s power button gives you, for the price of a $2 switch and no battery module.</p>
 
+  <p><strong>Pin 9 for the ground, not the pin 6 sitting in the same column as pin 5.</strong> Electrically any ground pin does the job. But pin 6 is already the panel&rsquo;s ground on the perfboard HAT, and daisy-chaining a switch onto a display&rsquo;s return path is a false economy when a free ground sits two positions along the same row. The enclosure build guide draws the same two wires on the HAT itself.</p>
+
   <figure>
     <div class="figbody">
-      <svg viewBox="0 0 760 380" role="img" aria-label="Wiring for the shutdown button. GPIO 3 on header pin 5 and ground on pin 6 run as a twisted pair to a momentary panel switch mounted through the enclosure wall. A 100 nanofarad capacitor sits across the pair close to the Pi.">
+      <svg viewBox="0 0 760 380" role="img" aria-label="Wiring for the shutdown button. GPIO 3 on header pin 5 and ground on pin 9 run as a twisted pair to a momentary panel switch mounted through the enclosure wall. A 100 nanofarad capacitor sits across the pair close to the Pi.">
         <defs>
           <pattern id="hp5" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line class="hatch" x1="0" y1="0" x2="0" y2="7"/>
@@ -648,7 +650,7 @@
         <path class="st-wire" d="M190,140 H300"/>
         <path class="st-wire" d="M190,190 H300"/>
         <text class="t t-dim" x="198" y="130">pin 5 &middot; GPIO 3</text>
-        <text class="t t-dim" x="198" y="210">pin 6 &middot; GND</text>
+        <text class="t t-dim" x="198" y="210">pin 9 &middot; GND</text>
 
         <path class="st-wire" d="M250,140 V157"/>
         <path class="st-wire" d="M250,167 V190"/>
@@ -675,7 +677,7 @@
         <path class="st-thin" d="M618,292 L596,274"/>
       </svg>
     </div>
-    <figcaption><b>Fig. 5 &#8212; The shutdown button: a contact closure to ground, and everything else is noise control.</b> GPIO 3 already carries a 1k8 pull-up on the Pi&rsquo;s own board, so no external resistor is wanted. The 100 nF sits at the Pi end, not the switch end &mdash; it has to shunt noise picked up along the whole run.</figcaption>
+    <figcaption><b>Fig. 5 &#8212; The shutdown button: a contact closure to ground, and everything else is noise control.</b> GPIO 3 already carries a 1k8 pull-up on the Pi&rsquo;s own board, so no external resistor is wanted. The 100 nF sits at the Pi end, not the switch end &mdash; it has to shunt noise picked up along the whole run. The ground is pin 9 rather than the pin 6 alongside pin 5, because pin 6 is spoken for by the panel on the HAT; these are the same two wires drawn in Fig. 3 of the enclosure build guide.</figcaption>
   </figure>
 
   <h2>Noise is the failure mode, not the wiring</h2>
