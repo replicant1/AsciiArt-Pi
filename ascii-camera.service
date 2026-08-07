@@ -1,0 +1,58 @@
+# ASCII Art Live Camera - enclosed mode, started at boot.
+#
+# For a build with no keyboard and no monitor: the SPI panel is the only output,
+# and the only sign the machine is alive.
+#
+#   sudo cp ascii-camera.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ascii-camera
+#
+#   journalctl -u ascii-camera -f      # watch it
+#   sudo systemctl stop ascii-camera   # release the camera and blank the panel
+#
+# Running this and a hand-launched copy at the same time makes two processes
+# fight over the camera and /dev/spidev0.0. Stop the service first.
+
+[Unit]
+Description=ASCII Art Live Camera (SPI panel, no terminal)
+Documentation=https://replicant1.github.io/AsciiArt-Pi/
+
+# Deliberately NOT ordered after multi-user.target. On this Pi that is not
+# reached until 19.3 s, nearly all of it apt-daily-upgrade and cloud-init, none
+# of which this needs; basic.target is done by about 3 s. Starting early is most
+# of the point - in a sealed box every second before the start-up screen appears
+# is a second of blank glass that looks like broken hardware.
+After=basic.target
+
+# Never stop retrying. The default gives up after 5 starts in 10 s, which for an
+# appliance means one slow camera at boot leaves the panel dark until somebody
+# SSHes in to find out why. Restarting for ever is the better failure: the panel
+# comes up as soon as the hardware is ready.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=rod
+Group=rod
+
+# rod is already in spi, gpio, video, i2c and input, which covers the panel, the
+# encoder and the camera. No added capabilities and no root are needed.
+
+WorkingDirectory=/home/rod/Projects/AsciiArt
+ExecStart=/usr/bin/python3 -u /home/rod/Projects/AsciiArt/ascii_camera.py \
+          --lcd --encoder --no-terminal
+
+# SIGTERM is what the app installs a handler for, so `systemctl stop` takes the
+# clean path: camera stopped, panel blanked, backlight driven low. Without it
+# the panel would be left lit showing the last frame.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+Restart=always
+RestartSec=3
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

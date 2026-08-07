@@ -1455,6 +1455,68 @@ resolved by turning the real knob. As wired here, clockwise is forwards, which
 is why `--encoder-reverse` exists and is off. If the knob is rewired and runs
 backwards, that flag is the whole fix.
 
+## Running it at boot
+
+For a build with no keyboard and no monitor, `ascii-camera.service` starts the
+app in enclosed mode — `--lcd --encoder --no-terminal` — as soon as the Pi comes
+up:
+
+```bash
+sudo cp ascii-camera.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now ascii-camera
+
+journalctl -u ascii-camera -f      # watch it
+sudo systemctl stop ascii-camera   # release the camera, blank the panel
+```
+
+It runs as `rod`, who is already in `spi`, `gpio`, `video`, `i2c` and `input`,
+so no root and no added capabilities. Don't run it alongside a hand-launched
+copy — two processes will fight over the camera and `/dev/spidev0.0`.
+
+Three decisions in the unit file are worth knowing about, because the obvious
+alternatives are all worse:
+
+- **It is not ordered after `multi-user.target`.** On this Pi that is not
+  reached until **19.3 s**, and `systemd-analyze blame` puts nearly all of it in
+  `apt-daily-upgrade` and `cloud-init` — neither of which this needs.
+  `basic.target` is done by about 3 s. In a sealed box every second before the
+  start-up screen appears is a second of blank glass that looks like broken
+  hardware, so it starts as early as its dependencies allow.
+- **`StartLimitIntervalSec=0`.** systemd's default gives up after 5 starts in
+  10 s. For an appliance that means one slow camera at boot leaves the panel
+  dark until somebody SSHes in to find out why. Retrying for ever is the better
+  failure: the panel comes up whenever the hardware is ready.
+- **`KillSignal=SIGTERM` with a 15 s stop timeout**, because SIGTERM is what the
+  app installs a handler for. `systemctl stop` therefore takes the clean path —
+  camera stopped, panel blanked, backlight driven low. Killed any harder, the
+  panel is left lit showing the last frame.
+
+### Turning it on with no PiSugar
+
+There is no power switch on a Pi, so **applying power is the on-switch** — plug
+in the USB-C panel lead and it boots. The shutdown button on GPIO 3 is the other
+half:
+
+| Action | Result |
+| --- | --- |
+| Plug in, or switch on at the wall | Boots |
+| Press the button while running | Clean shutdown |
+| Press it again, still plugged in | Boots |
+| Unplug | Genuinely off |
+
+After a clean shutdown the Pi is **halted, not off** — the 5 V rail is still
+live and it still draws current. That is exactly why the button belongs on
+GPIO 3 and nowhere else: wake-from-halt is a hardware property of that pin, not
+a feature of the `gpio-shutdown` overlay. On any other pin the button becomes
+shutdown-only, and a halted Pi in a sealed box can only be revived by unplugging
+it. See
+[Panel connectors and controls](https://replicant1.github.io/AsciiArt-Pi/panel-connectors-guide.html).
+
+Note that boot itself takes about **25 seconds** here (4.5 s kernel + 20.4 s
+userspace), and the SPI panel is dark for the early part of it. The start-up
+screen covers the app's own start, not the boot.
+
 ## Putting it in an enclosure
 
 [**From breadboard to enclosure**](https://replicant1.github.io/AsciiArt-Pi/enclosure-build-guide.html)
