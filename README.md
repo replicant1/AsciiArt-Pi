@@ -1455,6 +1455,132 @@ resolved by turning the real knob. As wired here, clockwise is forwards, which
 is why `--encoder-reverse` exists and is off. If the knob is rewired and runs
 backwards, that flag is the whole fix.
 
+## Running it at boot
+
+For a build with no keyboard and no monitor, `ascii-camera.service` starts the
+app in enclosed mode — `--lcd --encoder --no-terminal` — as soon as the Pi comes
+up:
+
+```bash
+sudo cp ascii-camera.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now ascii-camera
+
+journalctl -u ascii-camera -f      # watch it
+sudo systemctl stop ascii-camera   # release the camera, blank the panel
+```
+
+It runs as `rod`, who is already in `spi`, `gpio`, `video`, `i2c` and `input`,
+so no root and no added capabilities. Don't run it alongside a hand-launched
+copy — two processes will fight over the camera and `/dev/spidev0.0`.
+
+Three decisions in the unit file are worth knowing about, because the obvious
+alternatives are all worse:
+
+- **It is not ordered after `multi-user.target`.** On this Pi that is not
+  reached until **19.3 s**, and `systemd-analyze blame` puts nearly all of it in
+  `apt-daily-upgrade` and `cloud-init` — neither of which this needs.
+  `basic.target` is done by about 3 s. In a sealed box every second before the
+  start-up screen appears is a second of blank glass that looks like broken
+  hardware, so it starts as early as its dependencies allow.
+- **`StartLimitIntervalSec=0`.** systemd's default gives up after 5 starts in
+  10 s. For an appliance that means one slow camera at boot leaves the panel
+  dark until somebody SSHes in to find out why. Retrying for ever is the better
+  failure: the panel comes up whenever the hardware is ready.
+- **`KillSignal=SIGTERM` with a 15 s stop timeout**, because SIGTERM is what the
+  app installs a handler for. `systemctl stop` therefore takes the clean path —
+  camera stopped, panel blanked, backlight driven low. Killed any harder, the
+  panel is left lit showing the last frame.
+
+### The backlight during boot
+
+The ILI9341 module fits **its own pull-up on the backlight pin**. GPIO 18 is an
+input from power-on until the app claims it, so that pull-up lights the panel —
+and it sits lit, showing undefined frame memory, for the whole time systemd and
+Python take to reach the point of drawing anything. Measured on this Pi that is
+about **27 seconds**:
+
+| From power-on | |
+| --- | --- |
+| 0 – 16.4 s | systemd has not started the service yet |
+| 16.4 – 18.4 s | Python starting and importing |
+| 18.4 s | panel lights with the start-up screen |
+| 24.4 s | the picture takes over |
+
+A lit panel showing garbage reads as broken hardware, which is worse than a dark
+one. One line in `/boot/firmware/config.txt` fixes it, and it has to be there
+rather than in any script because firmware applies it before userspace exists.
+See also [Why the panel lights at 18 s and not 27](#why-the-panel-lights-at-18-s-and-not-27).
+
+```
+gpio=18=op,dl
+```
+
+Output, driven low. The pull-up never gets the chance, and `src/lcd.py` turns
+the backlight on only after blanking — so the panel goes straight from dark to
+the start-up screen with nothing ugly in between.
+
+> **This lives on the boot partition, not in this repo, so a reimage loses it
+> silently.** The same is true of `dtoverlay=gpio-shutdown` for the shutdown
+> button. Both are one-line additions to `/boot/firmware/config.txt`; if you
+> reflash, put them back.
+
+### Why the panel lights at 18 s and not 27
+
+`src/camera.py` imports `picamera2` **inside `CameraCapture.start()`**, not at
+module scope, and that is worth leaving alone. Measured on this Pi:
+
+| Fresh-process import | |
+| --- | --- |
+| `camera` — with `picamera2` at module scope | **7.12 s** |
+| `camera` — with it deferred | **0.57 s** |
+| `lcd_display` + `lcd_splash` (`numpy`, `PIL`) | 1.11 s |
+| `spidev` + `RPi.GPIO` | 0.02 s |
+
+Nothing above `start()` needs the camera, so paying for it at import time meant
+the panel stayed dark through all six seconds of it. Deferred, the cost lands
+*while the start-up screen is already up and the comet is sweeping* — the log's
+gap between `starting camera` and `waiting for first frame` is exactly that
+import. First light moved from 27.5 s to **18.4 s**, and the picture from 30.4 s
+to 24.4 s.
+
+Note the last row: lighting the panel needs only `spidev` and `RPi.GPIO`, which
+load in 0.02 s. If the remaining wait ever matters, that is the lever — a small
+program could blit a pre-rendered RGB565 buffer seconds before the app exists.
+The bigger target now is the **16.4 s before systemd starts the service at
+all**, which is 89% of what is left; `cloud-init-main` is about 6 s of it and
+does nothing on a hand-configured Pi.
+
+> Timings here are from the journal's **monotonic** clock, not wall clock. With
+> no PiSugar there is no RTC, so the clock jumps when NTP corrects it partway
+> through boot, and wall-clock arithmetic across a boot is off by several
+> seconds.
+
+### Turning it on with no PiSugar
+
+There is no power switch on a Pi, so **applying power is the on-switch** — plug
+in the USB-C panel lead and it boots. The shutdown button on GPIO 3 is the other
+half:
+
+| Action | Result |
+| --- | --- |
+| Plug in, or switch on at the wall | Boots |
+| Press the button while running | Clean shutdown |
+| Press it again, still plugged in | Boots |
+| Unplug | Genuinely off |
+
+After a clean shutdown the Pi is **halted, not off** — the 5 V rail is still
+live and it still draws current. That is exactly why the button belongs on
+GPIO 3 and nowhere else: wake-from-halt is a hardware property of that pin, not
+a feature of the `gpio-shutdown` overlay. On any other pin the button becomes
+shutdown-only, and a halted Pi in a sealed box can only be revived by unplugging
+it. See
+[Panel connectors and controls](https://replicant1.github.io/AsciiArt-Pi/panel-connectors-guide.html).
+
+Note that boot itself takes about **25 seconds** here (4.5 s kernel + 20.4 s
+userspace), and the SPI panel is dark for the early part of it. The start-up
+screen covers the app's own start, not the boot.
+
 ## Putting it in an enclosure
 
 [**From breadboard to enclosure**](https://replicant1.github.io/AsciiArt-Pi/enclosure-build-guide.html)

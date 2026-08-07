@@ -15,7 +15,6 @@ from queue import Queue, Empty, Full
 from threading import Thread
 
 import numpy as np
-from picamera2 import Picamera2
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +83,13 @@ class CameraCapture:
         """Configure and start the camera plus its capture thread."""
         if self.is_running:
             return
+
+        # Imported here, not at module scope, because it costs about 6 seconds
+        # on a Zero 2 - measured, and by far the largest single delay in getting
+        # anything onto the SPI panel. Nothing above this line needs it, so
+        # paying for it at import time meant the panel sat dark through all of
+        # it. The LCD's own dependencies cost 1.1 s by comparison.
+        from picamera2 import Picamera2
 
         self.picam2 = Picamera2()
 
