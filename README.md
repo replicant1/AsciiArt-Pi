@@ -36,6 +36,18 @@ is a ranked guide to vintage terminals, VFDs, graphic LCDs and OLED modules,
 priced in AUD and sourced for a buyer in Sydney. Download it and open it in a
 browser — GitHub shows HTML as source.
 
+Taking it off the breadboard? **[`docs/enclosure-build-guide.html`](docs/enclosure-build-guide.html)**
+covers the rebuild into a self-contained, battery-powered box: a soldered
+perfboard HAT that replaces every friction-fit joint, a pin-by-pin cut list for
+the panel, encoder and shutdown-button harnesses, a measured power budget, and
+the enclosure cutouts. Same caveat — download it and open it in a browser.
+
+Cutting the shell? **[`docs/panel-connectors-guide.html`](docs/panel-connectors-guide.html)**
+is section drawings and specs for the three things that have to cross the
+enclosure wall — video out, power in and the shutdown button — and it closes
+with the sloped console those three decisions imply, drawn rather than
+described. Same caveat as the other two.
+
 ## Running it
 
 ```bash
