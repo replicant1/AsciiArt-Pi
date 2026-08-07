@@ -1502,13 +1502,15 @@ about **27 seconds**:
 
 | From power-on | |
 | --- | --- |
-| 0 – 16.3 s | systemd has not started the service yet |
-| 16.3 – 26.3 s | Python is importing — `picamera2` alone is 5.1 s, `numpy`+`PIL` 1.35 s |
-| 26.3 s | panel init, and the start-up screen appears |
+| 0 – 16.4 s | systemd has not started the service yet |
+| 16.4 – 18.4 s | Python starting and importing |
+| 18.4 s | panel lights with the start-up screen |
+| 24.4 s | the picture takes over |
 
 A lit panel showing garbage reads as broken hardware, which is worse than a dark
 one. One line in `/boot/firmware/config.txt` fixes it, and it has to be there
-rather than in any script because firmware applies it before userspace exists:
+rather than in any script because firmware applies it before userspace exists.
+See also [Why the panel lights at 18 s and not 27](#why-the-panel-lights-at-18-s-and-not-27).
 
 ```
 gpio=18=op,dl
@@ -1523,10 +1525,36 @@ the start-up screen with nothing ugly in between.
 > button. Both are one-line additions to `/boot/firmware/config.txt`; if you
 > reflash, put them back.
 
-The 27 seconds themselves are still there — this only stops them being ugly. The
-lever for shortening them, if it ever matters, is that `spidev` and `RPi.GPIO`
-import in **0.02 s** against `picamera2`'s 5.1 s, so a small program could light
-the panel with a pre-rendered image long before the app is ready.
+### Why the panel lights at 18 s and not 27
+
+`src/camera.py` imports `picamera2` **inside `CameraCapture.start()`**, not at
+module scope, and that is worth leaving alone. Measured on this Pi:
+
+| Fresh-process import | |
+| --- | --- |
+| `camera` — with `picamera2` at module scope | **7.12 s** |
+| `camera` — with it deferred | **0.57 s** |
+| `lcd_display` + `lcd_splash` (`numpy`, `PIL`) | 1.11 s |
+| `spidev` + `RPi.GPIO` | 0.02 s |
+
+Nothing above `start()` needs the camera, so paying for it at import time meant
+the panel stayed dark through all six seconds of it. Deferred, the cost lands
+*while the start-up screen is already up and the comet is sweeping* — the log's
+gap between `starting camera` and `waiting for first frame` is exactly that
+import. First light moved from 27.5 s to **18.4 s**, and the picture from 30.4 s
+to 24.4 s.
+
+Note the last row: lighting the panel needs only `spidev` and `RPi.GPIO`, which
+load in 0.02 s. If the remaining wait ever matters, that is the lever — a small
+program could blit a pre-rendered RGB565 buffer seconds before the app exists.
+The bigger target now is the **16.4 s before systemd starts the service at
+all**, which is 89% of what is left; `cloud-init-main` is about 6 s of it and
+does nothing on a hand-configured Pi.
+
+> Timings here are from the journal's **monotonic** clock, not wall clock. With
+> no PiSugar there is no RTC, so the clock jumps when NTP corrects it partway
+> through boot, and wall-clock arithmetic across a boot is off by several
+> seconds.
 
 ### Turning it on with no PiSugar
 
