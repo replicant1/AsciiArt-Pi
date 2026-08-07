@@ -36,6 +36,18 @@ is a ranked guide to vintage terminals, VFDs, graphic LCDs and OLED modules,
 priced in AUD and sourced for a buyer in Sydney. Download it and open it in a
 browser — GitHub shows HTML as source.
 
+Taking it off the breadboard? **[`docs/enclosure-build-guide.html`](docs/enclosure-build-guide.html)**
+covers the rebuild into a self-contained, battery-powered box: a soldered
+perfboard HAT that replaces every friction-fit joint, a pin-by-pin cut list for
+the panel, encoder and shutdown-button harnesses, a measured power budget, and
+the enclosure cutouts. Same caveat — download it and open it in a browser.
+
+Cutting the shell? **[`docs/panel-connectors-guide.html`](docs/panel-connectors-guide.html)**
+is section drawings and specs for the three things that have to cross the
+enclosure wall — video out, power in and the shutdown button — and it closes
+with the sloped console those three decisions imply, drawn rather than
+described. Same caveat as the other two.
+
 ## Running it
 
 ```bash
@@ -1393,6 +1405,51 @@ configuration is not merely tidier — it is 3.3x cheaper, which is most of the 
 the encoder module can be dropped for a bare EC11 with no code change at all, because
 `src/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
 to run on nothing else.
+
+[`docs/panel-connectors-guide.html`](docs/panel-connectors-guide.html) is a set of section
+drawings and specs for the three things that have to cross the enclosure wall: video out, power
+in, and an off switch. Same caveat as the other two: download it and open it in a browser.
+
+Only the first is hard. A panel-mount socket in **Type C mini-HDMI is not a stocked part
+anywhere**, so the answer is a short mini-HDMI extension held by the printed shell itself, and
+the drawings show where the plug force ends up, the geometry of the lip and rear stop that catch
+it, and why the shell has to split through the pocket. The two stops do opposite jobs, which is
+the part that is easy to get backwards: pushing a plug in drives the socket *inward*, so it is
+the stop *behind* the connector that resists insertion, while the lip at the aperture — just
+whatever wall is left once the hole is cut smaller than the connector body — is what stops it
+being pulled back out.
+
+The other two are cheap. **Power comes out as USB-C even though the Pi's socket is micro-B**,
+because the cutout is the irreversible part and USB-C is the one that survives fitting a PiSugar
+3 later; a voltage-budget graph shows that the whole modification costs about 90 mV at 1 A,
+against a 4.63 V undervoltage floor, and that the charger cable you don't control costs twice
+that. And with no PiSugar there is **no power button at all**, which `dtoverlay=gpio-shutdown`
+fixes for the price of a $2 momentary switch on GPIO 3 — press to shut down cleanly, press again
+to boot. Use GPIO 3 rather than any other pin: wake-from-halt is a property of that pin
+specifically, not of the overlay.
+
+It closes with the enclosure those three decisions imply, drawn rather than described: an
+isometric of the base with the lid lifted off, and a side section through the wedge. A **sloped
+console, 92 × 105 mm, 25 mm at the front and 62 at the back**, camera out of the vertical front
+face so the panel is a viewfinder.
+
+The isometric carries a compass — north is right-and-up, east is right-and-down — because
+"front" and "back" are useless words for an isometric. It also sits on a ground plane, casts a
+shadow, and has its two near walls cut away rather than drawn see-through: without those cues an
+open tray reads equally well as the underside of a closed one.
+
+The layout is decided by the Pi's port edge, not by preference. Pinning that edge **east, with
+PWR IN north and mini-HDMI south**, is a 90° rotation of the board, and a rotation carries
+everything with it — header pin 1 lands south, and the CSI connector lands on the **north**
+edge. Since the ribbon leaves the short edge travelling parallel to the long edge, the camera
+has to go on the **north wall** for that run to stay straight. Each wall pocket sits directly
+opposite the board port it serves, so the leads are short and cannot be crossed at assembly.
+
+The other load-bearing idea is the parting plane at **z = 25 mm**: it is the front wall height,
+it clears the Pi and HAT stack, it cuts both connectors exactly in half so they can be captured
+at all, and it keeps every hand-crimped joint in the base. Ten millimetres under the Pi are
+reserved for a PiSugar 3 that is not fitted, so adding the battery later costs a cable rather
+than a re-print.
 
 ## Choosing a different display
 
