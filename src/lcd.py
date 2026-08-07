@@ -83,7 +83,12 @@ class ILI9341:
         self.spi.mode = 0b00
 
         self._pwm = GPIO.PWM(self.bl, bl_freq)
-        self._pwm.start(100)
+        # Dark until a caller asks otherwise. The panel's frame memory holds
+        # whatever was in it before - undefined after a reset, and often near
+        # white - so lighting it here shows a bright flash of garbage for the
+        # ~200 ms that init() and the first fill() take. Callers turn it on
+        # once there is something on the glass worth seeing.
+        self._pwm.start(0)
 
         logger.info("ILI9341 on spidev%d.%d at %d Hz, %dx%d %s",
                     bus, device, spi_freq, self.width, self.height,

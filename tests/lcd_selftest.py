@@ -104,6 +104,12 @@ def test_hardware(hold):
     lcd.init()
     check("init() completed without an SPI/GPIO error", True)
 
+    # The driver leaves the backlight off so an uninitialised panel is never
+    # lit. Blank the frame memory, then turn it on - without this the rest of
+    # this test happens on a dark panel and looks like a dead one.
+    lcd.fill(0x0000)
+    lcd.backlight(100)
+
     print("\n3. Register read-back (informational, not a verdict)")
     for cmd, name, n in [(0x04, "RDDID", 4), (0x09, "RDDST", 5),
                          (0x0A, "power mode", 2), (0x0C, "pixel format", 2)]:

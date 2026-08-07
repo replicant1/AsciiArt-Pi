@@ -31,10 +31,11 @@ MODE="${1:-pull}"
 ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
             README.md piinput.py setup_uinput.sh lcd_blank.py)
 SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
-           window_plan.py lcd.py lcd_display.py lcd_worker.py palettes.py
-           encoder.py)
+           window_plan.py lcd.py lcd_display.py lcd_worker.py lcd_splash.py
+           palettes.py encoder.py version.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_selftest.py lcd_render_bench.py lcd_concurrency.py
+            lcd_splash_test.py
             palette_test.py keymap_test.py display_modes_test.py
             orientation_test.py encoder_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
