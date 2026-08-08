@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The enclosure, rendered — ASCII Art Camera</title>
+<meta name="description" content="Four raytraced views of the sloped console from the panel connectors guide, built from its stated dimensions.">
+
+<style>
+  :root {
+    --ground:    #E9E7DF;
+    --panel:     #F3F2EC;
+    --panel-2:   #DEDCD2;
+    --ink:       #2B2B28;
+    --ink-soft:  #5D5B53;
+    --ink-faint: #8B887E;
+    --rule:      #CBC7BA;
+    --accent:    #123A9E;
+    --warn-bg:   #F5EEDC;
+    --warn-edge: #C9A227;
+
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:    #131820;
+      --panel:     #1A2029;
+      --panel-2:   #232B36;
+      --ink:       #E2E6EC;
+      --ink-soft:  #A4ACB8;
+      --ink-faint: #6F7987;
+      --rule:      #2F3945;
+      --accent:    #8AB4F0;
+      --warn-bg:   #241F14;
+      --warn-edge: #8A7020;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 82ch;
+    margin: 0 auto;
+    padding: 3.6rem 1.4rem 4rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.8rem;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 4.4vw, 2.3rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.18;
+    margin: 0 0 0.8rem;
+    text-wrap: balance;
+  }
+
+  .rule-heavy { height: 3px; background: var(--ink); margin: 0 0 1.4rem; }
+
+  .standfirst {
+    color: var(--ink-soft);
+    font-size: 1.03rem;
+    margin: 0 0 2rem;
+  }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding-bottom: 0.4rem;
+    border-bottom: 1.5px solid var(--rule);
+    margin: 2.8rem 0 1.2rem;
+  }
+
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); }
+
+  .note {
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn-edge);
+    padding: 0.9rem 1.2rem;
+    margin: 0 0 2.4rem;
+    font-size: 0.94rem;
+  }
+  .note strong { font-family: var(--mono); font-size: 0.86rem; letter-spacing: 0.04em; }
+
+  figure {
+    margin: 0 0 2.6rem;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 0.7rem 0.7rem 0.1rem;
+  }
+  figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--panel-2);
+  }
+  figcaption {
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    padding: 0.7rem 0.5rem 0.8rem;
+  }
+  figcaption b {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.92rem;
+    margin: 0 0 1.6rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.42rem 0.7rem 0.42rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 700;
+  }
+  td.num { font-family: var(--mono); white-space: nowrap; }
+
+  ul { margin: 0 0 1.2rem; padding-left: 1.2rem; }
+  li { margin-bottom: 0.4rem; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--panel-2);
+    padding: 0.08em 0.34em;
+  }
+
+  .backlink {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    margin: 0 0 2.2rem;
+  }
+
+  footer {
+    border-top: 1.5px solid var(--rule);
+    padding-top: 0.8rem;
+    margin-top: 2.6rem;
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    font-family: var(--mono);
+  }
+  footer a { color: var(--ink-faint); }
+
+  @media (max-width: 34rem) {
+    .wrap { padding: 2.2rem 0.9rem 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <p class="eyebrow">Raspberry Pi Zero 2 WH · AsciiArt</p>
+  <h1>The enclosure, rendered</h1>
+  <div class="rule-heavy"></div>
+  <p class="standfirst">Four raytraced views of the sloped console that
+  <a href="panel-connectors-guide.html">Panel connectors and controls</a> arrives at. The
+  geometry is built from that guide's stated dimensions rather than sketched to look right,
+  so anything measurable in these pictures is the design being measured, not an artist's
+  impression of it.</p>
+
+  <p class="backlink">&larr; <a href="index.html">All build guides</a></p>
+
+  <div class="note">
+    <strong>NOT YET BUILT.</strong><br>
+    Nothing here has been printed or assembled. These are renders of a design on paper. The
+    parts inside the tray are stand-ins at the right sizes and positions, not models of the
+    real boards, and the picture on the panel is synthetic rather than a captured frame.
+  </div>
+
+  <h2>The console, from the south</h2>
+  <figure>
+    <img src="enclosure-hero.png" width="1400" height="1050"
+         alt="Three-quarter view of a grey 3D-printed sloped console from the low southern side. The sloped face carries a lit amber ASCII panel in the middle, a knurled metal encoder knob at the high northern end and a red illuminated button at the low southern end. Two connectors sit in the right-hand wall on the horizontal parting line between the base tray and the lid.">
+    <figcaption>
+      <b>Fig. R1 · south-east three-quarter</b>
+      The reader's own seat. The fascia falls away from the tall north side to the low south
+      one at 19°, so the panel tilts toward whoever is sitting in front of it. Encoder at the
+      top, panel in the middle, shutdown button nearest the hand. The flat ledge along the
+      southern lip is where the lid stops and the base carries the outer surface on its own.
+    </figcaption>
+  </figure>
+
+  <h2>What crosses the east wall</h2>
+  <figure>
+    <img src="enclosure-ports.png" width="1400" height="1050"
+         alt="Close-up of the right-hand wall of the enclosure. A horizontal seam runs the length of the wall, and two nickel-shelled sockets straddle it exactly: a wider mini-HDMI on the left and a narrower oval USB-C on the right, each cut in half by the seam.">
+    <figcaption>
+      <b>Fig. R2 · the parting plane doing its job</b>
+      The load-bearing idea of the whole design, in one picture. The plane at
+      <code>z&nbsp;=&nbsp;25&nbsp;mm</code> passes through the centreline of both connectors,
+      which is the only thing that lets a printed pocket capture them at all — half the pocket
+      is in the base, half in the lid, and closing the box clamps the connector between them.
+      Mini-HDMI to the south, USB-C power in to the north, each directly opposite the Pi port
+      it serves.
+    </figcaption>
+  </figure>
+
+  <h2>The camera end</h2>
+  <figure>
+    <img src="enclosure-north.png" width="1400" height="1050"
+         alt="Back three-quarter view of the enclosure showing the tall north wall, with a recessed circular camera lens low down and a stack of five horizontal vent slots above it.">
+    <figcaption>
+      <b>Fig. R3 · north-east three-quarter</b>
+      The tall wall the camera looks out of, lens centred on the enclosure's own centreline at
+      31&nbsp;mm — half of 62. The camera faces away over the top of the box while the panel
+      faces the reader, which is what makes the panel a viewfinder for the scene beyond rather
+      than a mirror. Vent slots sit above the lens. The two connectors are visible again on the
+      east wall at the left.
+    </figcaption>
+  </figure>
+
+  <h2>Lid off</h2>
+  <figure>
+    <img src="enclosure-exploded.png" width="1400" height="1050"
+         alt="The enclosure with its sloped lid floating above the open base tray. Inside the tray are a green board, a red protoboard above it on a black header strip, and a black camera module standing against the far wall. The lid carries the panel, knob and button.">
+    <figcaption>
+      <b>Fig. R4 · lid lifted 55 mm</b>
+      The same split as Fig. 6 of the connectors guide, in three dimensions. Everything on the
+      sloped face — panel, encoder, shutdown button — lifts with the lid, so all three harnesses
+      need a service loop. Inside the tray: the Pi (green) with the PiSugar 3 volume reserved
+      beneath it, the HAT protoboard (red) on its 2×20 header, and the camera module standing
+      against the north wall. The connectors stay behind in the base, which is where every
+      hand-crimped joint was put on purpose.
+    </figcaption>
+  </figure>
+
+  <h2>What is drawn from the spec, and what is not</h2>
+
+  <p>Everything in the table below is read out of the connectors guide and enters the model as
+  a number. If one of these looks wrong in a picture, the picture is wrong.</p>
+
+  <table>
+    <tr><th>Dimension</th><th>Value</th></tr>
+    <tr><td>Footprint</td><td class="num">92 × 105 mm</td></tr>
+    <tr><td>Height, north / south</td><td class="num">62 / 25 mm</td></tr>
+    <tr><td>Fascia slope</td><td class="num">19°</td></tr>
+    <tr><td>Parting plane</td><td class="num">z = 25 mm</td></tr>
+    <tr><td>Wall</td><td class="num">3 mm</td></tr>
+    <tr><td>Camera lens height</td><td class="num">31 mm, centred on the north face</td></tr>
+    <tr><td>Panel active area</td><td class="num">48.9 × 36.7 mm</td></tr>
+    <tr><td>Ports</td><td class="num">east wall, mini-HDMI south, USB-C north, both on z = 25</td></tr>
+    <tr><td>Fascia order, north to south</td><td class="num">encoder, panel, button</td></tr>
+  </table>
+
+  <p>These are not in the guide, and were chosen to make a picture:</p>
+
+  <ul>
+    <li>Knob and button styling, and the filament colour.</li>
+    <li>Vent slot count and spacing.</li>
+    <li>The exact north-south positions of the two ports along the east wall.</li>
+    <li>The picture on the panel — a synthetic bust, not a captured frame.</li>
+  </ul>
+
+  <p>One point had to be resolved rather than read off. A 3&nbsp;mm fascia whose outer surface
+  runs from 25&nbsp;mm at the south to 62 at the north has no thickness left at the southern
+  end, where it meets a base rim that is also at 25. The model gives the base a flat
+  10&nbsp;mm deck along the southern lip and starts the sloped lid north of it, which is the
+  step visible at the front of Fig. R1. A lap joint, with the lid wrapping down over the south
+  wall, would do the same job differently.</p>
+
+  <h2>How they were made</h2>
+
+  <p>The enclosure is a signed distance field, marched per pixel in numpy by
+  <code>tools/enclosure_render.py</code> in the repository. The floor is intersected
+  analytically and kept out of the field, which is where most of the speed comes from.
+  Shading is a three-light rig with SDF soft shadows and ambient occlusion, GGX specular with
+  a per-material Fresnel term, one cosine-weighted diffuse bounce at two samples, and an ACES
+  tonemap. Each image is 1400 × 1050 at 2× supersampling.</p>
+
+  <p>The panel is showing real ASCII: a 5 × 7 bitmap font over the app's own
+  <code>" .:-=+*#%@"</code> ramp at 64 × 24, which is the grid <code>src/lcd_display.py</code>
+  produces at its default font size of 8.</p>
+
+  <p>There is no renderer, modelling package or image library involved — numpy and the
+  standard library only, with the PNG written by hand and recompressed losslessly by
+  <code>tools/optimise_png.py</code>.</p>
+
+  <footer>
+    Source, and the app itself, at <a href="https://github.com/replicant1/AsciiArt-Pi">github.com/replicant1/AsciiArt-Pi</a>
+  </footer>
+
+</div>
+
+</body>
+</html>

@@ -52,6 +52,21 @@ raw view serves these as `text/plain`, so neither renders the drawings.
 Each is a single self-contained page with no scripts or external assets, so
 saving one to disk works as well as reading it online.
 
+Alongside them is a gallery, **[The enclosure,
+rendered](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)** —
+four raytraced views of the sloped console those guides arrive at, built from
+their stated dimensions rather than sketched to look right.
+
+[![The enclosure, rendered: a grey 3D-printed sloped console seen from the low southern side, with a lit amber ASCII panel on the sloped face, a knurled metal encoder knob above it and a red illuminated button below it](docs/enclosure-hero-thumb.png)](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)
+
+*Not yet built — this is a render of a design on paper, not a photograph. The
+geometry comes from the connectors guide: 92 by 105 mm, 62 mm tall at the north
+and 25 at the south, a 19° fascia, and a parting plane at z = 25 mm that halves
+both connectors so a printed pocket can capture them. Encoder at the high north
+end, panel in the middle, shutdown button nearest the hand.
+[Three more views, and what is spec versus what is
+invented](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html).*
+
 ## Running it
 
 ```bash
@@ -1699,6 +1714,31 @@ it clears the Pi and HAT stack, it cuts both connectors exactly in half so they 
 at all, and it keeps every hand-crimped joint in the base. Ten millimetres under the Pi are
 reserved for a PiSugar 3 that is not fitted, so adding the battery later costs a cable rather
 than a re-print.
+
+### Seeing it in three dimensions
+
+[**The enclosure, rendered**](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)
+is that same box raytraced from four angles: the fascia from the reader's seat, the east wall
+close up, the camera end, and the lid lifted 55 mm off the tray. **None of it has been printed
+yet** — these are renders of a design on paper, and the parts inside the tray are stand-ins at
+the right sizes rather than models of the real boards.
+
+The geometry is built from the numbers above rather than sketched, so the pictures can be
+measured. That is the point of the second one:
+
+[![Close-up of the enclosure's east wall: a horizontal parting line runs its full length, and two nickel-shelled sockets straddle it exactly, a wider mini-HDMI to the south and a narrower oval USB-C to the north](docs/enclosure-ports-thumb.png)](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)
+
+*The parting plane doing its job. `z = 25 mm` passes through the centreline of both
+connectors, which is the only thing that lets a printed pocket capture them at all — half the
+pocket in the base, half in the lid, and closing the box clamps the connector between them.
+Reading a plane through two section drawings takes a moment; seeing it cut both sockets in
+half does not.*
+
+The renders come from `tools/enclosure_render.py`, which marches a signed distance field in
+numpy — no modelling package, no renderer, not even an image library, with the PNG written by
+hand. The panel is showing real ASCII: a 5x7 bitmap font over the app's own `" .:-=+*#%@"`
+ramp at the 64x24 grid `src/lcd_display.py` produces at its default font size. The gallery
+page lists which dimensions came from the guide and which were invented to make a picture.
 
 ## Choosing a different display
 
