@@ -45,6 +45,10 @@ TEST_FILES=(bench_pipeline.py capture_reference.py
 DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
            scheme-montage.png display-selection-guide.html
            enclosure-build-guide.html panel-connectors-guide.html
+           enclosure-renders.html
+           enclosure-hero.png enclosure-ports.png
+           enclosure-north.png enclosure-exploded.png
+           enclosure-hero-thumb.png enclosure-ports-thumb.png
            index.html)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
