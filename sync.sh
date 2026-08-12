@@ -54,7 +54,7 @@ DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera, and
 # probe_encoder.py needs the encoder's GPIO pins.
-TOOL_FILES=(scheme_montage.py probe_encoder.py)
+TOOL_FILES=(scheme_montage.py probe_encoder.py watch_button.py)
 
 changed=0
 
