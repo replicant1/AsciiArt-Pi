@@ -333,7 +333,7 @@
     <div class="eyebrow">Raspberry Pi Zero 2 WH · Build guide</div>
     <h1>ASCII camera: from breadboard to enclosure</h1>
     <div class="rule-heavy"></div>
-    <p class="standfirst">Taking the Pi, Camera Module 2, Waveshare 2.4″ ILI9341 panel and rotary encoder off the bench and into a self-contained, battery-powered box — with every solderless joint replaced by something that survives being carried around.</p>
+    <p class="standfirst">Taking the Pi, Camera Module 2, Waveshare 2.4″ ILI9341 panel and rotary encoder off the bench and into a self-contained, mains-powered box — with every solderless joint replaced by something that survives being carried around.</p>
   </header>
 
   <section>
@@ -452,11 +452,11 @@
 
   <section>
     <h2>What you end up with</h2>
-    <p>Three boards sandwiched, three peripherals on latching harnesses, and one edge of the Pi left reachable. No enclosure in this view — this is the assembly you should be able to power up and test flat on the bench before anything gets printed.</p>
+    <p>Two boards sandwiched, three peripherals on latching harnesses, and one edge of the Pi left reachable. No enclosure in this view — this is the assembly you should be able to power up and test flat on the bench before anything gets printed.</p>
 
     <figure>
       <div class="scroll">
-        <svg viewBox="0 0 1000 745" class="svg-wide" role="img" aria-label="Wiring drawing of the assembly. A PiSugar battery board mounts under the Pi Zero 2 WH and a perfboard HAT sits above it on the 2 by 20 header. The camera plugs into the Pi's own CSI port. Eight individually labelled wires run from an 8-way JST-XH socket on the HAT to the plug supplied with the 2.4 inch panel, carrying 3V3, ground, MOSI on GPIO 10, SCK on GPIO 11, chip select on GPIO 8, data-command on GPIO 25, reset on GPIO 27 and backlight on GPIO 18. Four more run from a 4-way socket to the bare EC11 encoder, carrying quadrature A on GPIO 19, B on GPIO 26, the switch on GPIO 6 and a common ground.">
+        <svg viewBox="0 0 1000 745" class="svg-wide" role="img" aria-label="Wiring drawing of the assembly. A perfboard HAT sits above the Pi Zero 2 WH on the 2 by 20 header. The camera plugs into the Pi's own CSI port. Eight individually labelled wires run from an 8-way JST-XH socket on the HAT to the plug supplied with the 2.4 inch panel, carrying 3V3, ground, MOSI on GPIO 10, SCK on GPIO 11, chip select on GPIO 8, data-command on GPIO 25, reset on GPIO 27 and backlight on GPIO 18. Four more run from a 4-way socket to the bare EC11 encoder, carrying quadrature A on GPIO 19, B on GPIO 26, the switch on GPIO 6 and a common ground.">
           <defs>
             <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <polygon points="0,1 9,5 0,9" class="m-plain"/>
@@ -494,11 +494,6 @@
           <rect x="272" y="462" width="28" height="9" class="d-box"/>
           <polyline points="214,471 214,492 190,492" class="d-thin"/>
           <text x="184" y="496" text-anchor="end" class="d-dim" font-size="10">mini-HDMI + 2× micro-USB</text>
-          <path d="M 206 471 L 206 512" class="d-dash"/>
-          <path d="M 394 471 L 394 512" class="d-dash"/>
-          <rect x="180" y="512" width="240" height="52" class="d-box"/>
-          <text x="300" y="534" text-anchor="middle" class="d-txt" font-size="12.5">PiSugar 3 · 1200 mAh</text>
-          <text x="300" y="551" text-anchor="middle" class="d-dim" font-size="10">under the Pi; header stays free</text>
           <rect x="700" y="55" width="262" height="240" class="d-box"/>
         <rect x="682" y="70" width="20" height="204" class="d-screen"/>
         <text x="692" y="64" text-anchor="middle" class="d-txt" font-size="9.5">PLUG</text>
@@ -589,7 +584,7 @@
   <section>
     <h2>Inside the HAT</h2>
     <p>This is the part you actually solder. Every wire in the drawing above stops at a JST-XH socket — here is what has to happen underneath it, from each outgoing socket position back to the header pin it belongs on.</p>
-    <p>Three sockets, not two. The panel’s eight and the encoder’s four are the ones Fig. 2 accounts for; the third is a 2-way for the <strong>shutdown button</strong>, which is a feature of the box rather than of any peripheral and so has no place in a drawing of the bench assembly. It is two wires, and this is the board they land on.</p>
+    <p>Three sockets, not two. The panel’s eight and the encoder’s four are the ones Fig. 2 accounts for; the third is a 4-way for the <strong>shutdown button</strong>, which is a feature of the box rather than of any peripheral and so has no place in a drawing of the bench assembly. It is four wires — the switch pair and the LED pair, because the button lights up — and this is the board they land on.</p>
 
     <figure>
       <div class="scroll">
@@ -780,7 +775,198 @@
     <p>Its two grounds — the switch return and the LED cathode — are both ground, so they share header pin 9 and are joined on the HAT. Four wires leave the board, three header pins are used, and swapping the two grounds at the socket does nothing, which is why two black wires in one socket is safe here where it would not normally be.</p>
     <p>Put <code>dtoverlay=gpio-shutdown</code> in <code>/boot/firmware/config.txt</code> and the switch half, across <strong>GPIO 3 (pin 5)</strong> and ground, halts the Pi cleanly — and, uniquely to GPIO 3, wakes it again from halt while power is still applied. That is a power button for the price of a $2 switch. Nothing else is needed at the HAT: the Pi already carries a 1k8 pull-up on that line, so fitting your own resistor is wrong rather than merely redundant.</p>
     <p>The <strong>100 nF ceramic goes on the HAT</strong>, soldered directly across the two socket pins, and that is where the drawing puts it. Its job is to shunt noise picked up along the whole run out to a panel-mounted switch, which it cannot do from the switch end. It debounces the contacts for free, and because it dumps its charge into them on every press it keeps a dry-circuit contact wetted — this line switches microamps, which is exactly the regime where cheap silver contacts grow an oxide film that never breaks down. Run the pair as twisted wire, under 150 mm, crossing the SPI harness at right angles rather than lying alongside it.</p>
-    <p>One thing to know before you commit: <strong>GPIO 2 and 3 are the I²C bus, and a PiSugar 3 talks to the Pi on those exact pins.</strong> If a battery goes in later, the button moves to GPIO 5 (pin 29) with <code>dtoverlay=gpio-shutdown,gpio_pin=5</code> and loses wake-from-halt — shutdown works on any GPIO, waking does not. That is one wire moved on a board that is already open for the battery, so it is not a reason to give up wake-from-halt now.</p>
+    <p>One thing that is settled rather than open: <strong>GPIO 3 is permanent.</strong> It was contested once — GPIO 2 and 3 are the I²C bus, which is exactly where a PiSugar 3 would have talked to the Pi — but this build is externally powered and no battery is coming, so nothing competes for it. Keep it that way. Shutdown works on any GPIO; waking a halted Pi does not, and with no battery module there is no other way to switch this box on.</p>
+
+    <h3>Turning it properly off</h3>
+    <p><strong>Press the button and the panel goes dark, then lights up again and stays lit.</strong> Not showing its last frame — uniformly, blankly lit, for as long as the box is plugged in. It is the one part of this build that looks broken while every piece of it works as designed, and chasing it is what found the mistake in the design.</p>
+    <p>Two facts collide. The first is that <strong>this module’s backlight is on by default</strong>. GPIO 18 does not supply it: the module makes its own drive current from the display’s 3.3 V, and the GPIO switches the light <em>off</em> by sinking that current away. Driving the pin low is off, driving it high is on, and leaving it alone is also on. Measured here — with GPIO 18 released as a plain input the pad reads <em>low</em> while the backlight sits at full brightness, which is the signature of a transistor’s base clamping the line rather than of any pull-up.</p>
+    <p>The second is what <code>poweroff</code> does. A clean shutdown finishes by <strong>resetting the SoC</strong>, and that returns every GPIO pad to an input. The app’s <code>SIGTERM</code> handler really does blank the panel and drive GPIO 18 low — that is the dark moment you see — but the pad reverts a second later, nothing is sinking the backlight current any more, and the light comes back.</p>
+    <p>There is an obvious fix, and it is the wrong one. A transistor in the display’s 3.3 V feed, held off by a gate resistor so that a released pad means an unpowered display, does work — at the cost of four parts, a config line, an ordering rule in <code>src/lcd.py</code> and a new way to fail. But <strong>all of it is bookkeeping for a machine that never actually turned off.</strong> A halted Pi is not an off Pi: 5 V is still applied, the 3.3 V rail is still live, and the SoC is parked watching GPIO 3. Every symptom above is downstream of that one state, and the display is merely the part of it you can see. Remove the state and they all go together.</p>
+    <p>So <strong>cut the box’s own supply</strong>, at the end of the shutdown, with a latching power switch — <a href="https://www.pololu.com/product/2808">Pololu #2808</a>, about A$8.30, 2.2–20 V at up to 6 A against the under 1 A you draw, 15 × 18 mm, with reverse-voltage protection thrown in.</p>
+
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1100 720" class="svg-wide" role="img" aria-label="Wiring for the latching power switch, with the shutdown button drawn in full. The 5 volt supply from the USB-C inlet enters the Pololu 2808 module at VIN, and its VOUT feeds the Pi, so all power to the box passes through the module. Two thin control wires do the rest. The shutdown button, a single closure to ground, lands on both the module's A pad and GPIO 3 on header pin 5: grounding pad A gives on-only operation, so a press turns power on when the box is off and does nothing to the latch when it is already on, leaving that press free to mean shut down. GPIO 17 on header pin 11 runs to the module's OFF pad, which the gpio-poweroff overlay drives high as the last act of the shutdown, opening the latch. The button's other two wires are its built-in LED: GPIO 4 on header pin 7 through a 220 ohm resistor to the anode, cathode back to ground. A 100 nanofarad capacitor sits across the GPIO 3 line to ground at the Pi end. Both the switch return and the LED cathode land on header pin 9. Supply, module, Pi, button and LED all share a common ground.">
+          <text x="60" y="58" class="d-txt" font-size="13">All power now runs through the latch. Two thin wires control it;</text>
+          <text x="60" y="76" class="d-dim" font-size="13">nothing else in the box changes, and no code changes at all.</text>
+
+          <rect x="60" y="110" width="140" height="80" class="d-box"/>
+          <text x="130" y="145" class="d-txt" font-size="13" text-anchor="middle">5 V in</text>
+          <text x="130" y="164" class="d-dim" font-size="11" text-anchor="middle">USB-C inlet</text>
+
+          <rect x="300" y="110" width="300" height="190" class="d-part"/>
+          <text x="450" y="180" class="d-acc-txt" font-size="13" text-anchor="middle">Pololu #2808</text>
+          <text x="450" y="200" class="d-dim" font-size="11" text-anchor="middle">pushbutton power switch</text>
+          <text x="450" y="218" class="d-dim" font-size="11" text-anchor="middle">latching · 6 A · reverse-protected</text>
+          <text x="308" y="146" class="d-dim" font-size="10">VIN</text>
+          <text x="592" y="146" class="d-dim" font-size="10" text-anchor="end">VOUT</text>
+          <text x="308" y="264" class="d-dim" font-size="10">GND</text>
+
+          <rect x="760" y="110" width="280" height="310" class="d-box"/>
+          <text x="900" y="205" class="d-txt" font-size="13" text-anchor="middle">Pi Zero 2 W</text>
+          <text x="900" y="224" class="d-dim" font-size="11" text-anchor="middle">and everything on it</text>
+
+          <path class="d-wire" d="M200,150 H300"/>
+          <text x="250" y="140" class="d-dim" font-size="11" text-anchor="middle">5 V</text>
+          <path class="d-wire" d="M600,150 H760"/>
+          <text x="680" y="140" class="d-dim" font-size="11" text-anchor="middle">switched 5 V</text>
+
+          <path class="d-wire-acc" d="M760,250 H600"/>
+          <text x="680" y="240" class="d-acc-txt" font-size="10" text-anchor="middle">GPIO 17 · pin 11</text>
+          <text x="592" y="246" class="d-dim" font-size="10" text-anchor="end">OFF</text>
+
+          <path class="d-wire-acc" d="M250,440 H700 V300 H760"/>
+          <text x="390" y="414" class="d-dim" font-size="10">no external pull-up — GPIO 3 carries the Pi’s own 1k8</text>
+          <text x="470" y="432" class="d-acc-txt" font-size="11" text-anchor="middle">GPIO 3 · pin 5</text>
+          <path class="d-wire-acc" d="M360,440 V300"/>
+          <text x="368" y="318" class="d-dim" font-size="10">A</text>
+          <circle cx="360" cy="440" r="4" class="m-acc"/>
+
+          <circle cx="700" cy="440" r="4" class="m-acc"/>
+          <path class="d-wire" d="M700,440 V520"/>
+          <path class="d-line" d="M682,520 H718"/>
+          <path class="d-line" d="M682,532 H718"/>
+          <path class="d-wire" d="M700,532 V660"/>
+          <text x="726" y="530" class="d-txt" font-size="11">100 nF</text>
+          <text x="726" y="546" class="d-dim" font-size="10">at the Pi end, not the switch</text>
+
+          <path class="d-wire" d="M860,420 V490 H820"/>
+          <rect x="780" y="478" width="40" height="24" class="d-box"/>
+          <text x="800" y="470" class="d-dim" font-size="10" text-anchor="middle">220 Ω</text>
+          <text x="872" y="444" class="d-dim" font-size="10">GPIO 4 · pin 7</text>
+          <path class="d-wire" d="M780,490 H710 A10,10 0 0 0 690,490 H560 V575"/>
+          <polygon points="548,575 572,575 560,597" class="m-plain"/>
+          <path class="d-line" d="M546,597 H574"/>
+          <path class="d-line" d="M544,578 L529,563"/>
+          <polygon points="526,560 537,564 530,572" class="m-plain"/>
+          <path class="d-line" d="M550,588 L535,573"/>
+          <polygon points="532,570 543,574 536,582" class="m-plain"/>
+          <path class="d-wire" d="M560,597 V660"/>
+          <text x="518" y="600" class="d-dim" font-size="10" text-anchor="end">built-in LED</text>
+
+          <rect x="220" y="452" width="410" height="196" rx="8" class="d-dash"/>
+          <text x="300" y="640" class="d-dim" font-size="10">one part in the enclosure wall — four wires</text>
+
+          <path class="d-wire" d="M250,440 V466"/>
+          <circle cx="250" cy="470" r="3.5" class="m-plain"/>
+          <circle cx="250" cy="530" r="3.5" class="m-plain"/>
+          <path class="d-wire" d="M250,534 V660"/>
+          <path class="d-line" d="M250,470 H259"/>
+          <path class="d-line" d="M250,530 H259"/>
+          <path class="d-line" d="M270,462 V538"/>
+          <path class="d-line" d="M270,500 H296"/>
+          <path class="d-line" d="M296,486 V514"/>
+          <text x="312" y="490" class="d-txt" font-size="12">the button</text>
+          <text x="312" y="507" class="d-dim" font-size="10">momentary, normally open</text>
+          <text x="312" y="524" class="d-dim" font-size="10">on when off · shut down when on</text>
+
+          <path class="d-wire" d="M130,190 V660"/>
+          <path class="d-wire" d="M300,260 H210 V660"/>
+          <path class="d-wire" d="M980,420 V660"/>
+          <path class="d-wire" d="M130,660 H980"/>
+          <text x="400" y="682" class="d-dim" font-size="10" text-anchor="middle">switch return and LED cathode → pin 9</text>
+          <text x="850" y="682" class="d-dim" font-size="11" text-anchor="middle">common ground</text>
+          <circle cx="130" cy="660" r="4" class="m-plain"/>
+          <circle cx="210" cy="660" r="4" class="m-plain"/>
+          <circle cx="250" cy="660" r="4" class="m-plain"/>
+          <circle cx="560" cy="660" r="4" class="m-plain"/>
+          <circle cx="700" cy="660" r="4" class="m-plain"/>
+          <circle cx="980" cy="660" r="4" class="m-plain"/>
+        </svg>
+      </div>
+      <figcaption><b>Fig. 4 &mdash; The latch, and why one button is enough.</b> The whole supply passes through the module; the two accented wires are the only control. The sentence that makes this work is in Pololu’s own description: connect pad <strong>A through a switch to ground</strong> and you get <em>on-only</em> operation. So a press turns the box on when it is off, and does nothing to the latch when it is already on — which leaves that same press free to mean <em>shut down</em>, read as an ordinary closure to ground on GPIO 3, exactly as it is wired today. <strong>Do not use pads A and B instead</strong>, which is the tempting arrangement: that gives push-on/push-off, so the second press cuts power under a running Pi, which is the SD-card corruption this button exists to prevent. Pololu flag it themselves. It must also be <strong>momentary</strong>, which is why the symbol is a plunger over an open contact rather than a lever: a latching switch would hold pad A grounded, and on pad A grounded means <em>on</em>, so the latch could never stay open &mdash; power would be cut and immediately restored, booting in a loop. The return leg is <code>dtoverlay=gpio-poweroff,gpiopin=17</code> into the OFF pad, a recipe their staff give for a Pi specifically; GPIO 17 rather than a low-numbered pin because 0–8 idle high on this chip, and a stray high on OFF at boot would cut power before the kernel started.
+        <br><br>
+        <b>All four of the button’s wires are drawn</b>, so this and Fig. 5 of the panel connectors guide no longer have to be read together to know what to solder. Only the contact pair does anything to the latch; the capacitor and the LED pair are along for the ride, and pad <strong>A</strong> joins the contact’s <em>ungrounded</em> leg — the one on GPIO 3 — so that a press pulls A down through the switch. Tie A to the grounded leg instead and it is held on for ever. The 100 nF sits at the Pi end rather than the switch end because it has to shunt noise picked up along the whole run, and GPIO 3 wants no external pull-up: the Pi fits its own 1k8. Both returns land on pin 9 rather than the pin 6 alongside pin 5, which is already the panel’s ground on the HAT. Run each pair twisted and under 150 mm. The LED gains something from the latch, which is worth noticing because it is the same fault the display had: the poweroff SoC reset used to drop GPIO 4 to an input, so the light went out while 5 V was still applied and read <em>off</em> on a box that was still live. <code>gpio-poweroff</code> suppresses that reset, so the LED now stays lit until the supply is actually cut, and goes dark at the same instant as everything else.</figcaption>
+    </figure>
+
+    <p><strong>No code, anywhere.</strong> That is the measure of whether this was the right shape: the app needs no power-switch logic, <code>src/lcd.py</code> is untouched, and there is no ordering to get right, because there is no state left in which the display is powered and the Pi is not. One line goes into <code>config.txt</code> beside the <code>gpio-shutdown</code> that is already there:</p>
+    <pre><code>dtoverlay=gpio-poweroff,gpiopin=17</code></pre>
+    <p>The overlay’s two documented drawbacks both turn out to be harmless here, and one is an outright benefit. It <em>“disables the ability to trigger a boot by driving GPIO3 low”</em> — that was the wake-from-halt this build prized, and it is now irrelevant, because there is no halted machine to wake: the button turns the box on through the latch instead. And it prevents the kernel resetting the SoC, which is precisely the reset that let the backlight relight. The overlay also warns that it needs an external mechanism to cut the supply, or the kernel throws a BUG. That mechanism is the module. This is the arrangement it was written for.</p>
+    <p><code>reboot</code> still works, which is worth knowing before you commit: <code>gpio-poweroff</code> registers a power-off handler, not a reboot one, so <code>sudo reboot</code> comes back up rather than turning the box off.</p>
+
+    <div class="note caution">
+      <div class="label">Two numbers Pololu do not publish, and one habit</div>
+      <p>The idle voltage on <strong>pad A</strong> is not documented. If it sits at VIN, tying it to the same node as a 3.3 V GPIO puts 5 V on that pin. Measure it before you connect, or fit a small Schottky in the GPIO leg — cathode to the button node — so the pin can be pulled down but never pulled up. The <strong>on-resistance</strong> is not published either; it is a MOSFET so expect tens of millivolts at your current, but this build has a 4.63 V undervoltage floor and a 90 mV budget for the panel lead, so put a meter across VIN and VOUT once and add the answer to that budget. The habit: <strong>press and release, do not hold.</strong> ON and OFF asserted together is undefined, and a held button during the ten seconds of shutdown is the one way to arrange it.</p>
+    </div>
+
+    <h3>One press, end to end</h3>
+    <p>Six things act, in order, and only the first is yours. It is worth seeing laid out, because the interesting parts are all invisible and the last one is the whole point.</p>
+
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1200 690" class="svg-xwide" role="img" aria-label="Timeline of a shutdown, running left to right, with six actors in rows and the display's state in a ribbon at the bottom. You press the button, pulling GPIO 3 to 0 volts. The kernel's gpio-shutdown overlay reports it as KEY_POWER, key code 116, from a gpio-keys device. systemd-logind's default handling of that key starts a poweroff, and systemd sends SIGTERM to the ascii-camera service. The app's handler sets a flag, its render loop finishes the frame in hand, and its finally block stops the camera, releases the encoder and blanks the panel. The gpio-poweroff overlay then pulses GPIO 17 high as the kernel's last act, the Pololu module's latch opens, and power to the whole box is gone. The ribbon below shows the display going from its picture, to dark when the app blanks it, to no power at all.">
+          <defs>
+            <marker id="seqar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <polygon points="0,1 9,5 0,9" class="m-plain"/>
+            </marker>
+          </defs>
+
+          <text x="204" y="52" class="d-txt" font-size="13">One press of the button, from your thumb to a dead box.</text>
+          <text x="1141" y="52" class="d-dim" font-size="12" text-anchor="end">time →</text>
+
+          <text x="185" y="146" class="d-txt" font-size="12" text-anchor="end">you</text>
+
+          <text x="185" y="214" class="d-txt" font-size="12" text-anchor="end">kernel</text>
+          <text x="185" y="230" class="d-dim" font-size="11" text-anchor="end">gpio-shutdown</text>
+
+          <text x="185" y="289" class="d-txt" font-size="12" text-anchor="end">systemd</text>
+          <text x="185" y="305" class="d-dim" font-size="11" text-anchor="end">logind</text>
+
+          <text x="185" y="364" class="d-txt" font-size="12" text-anchor="end">the app</text>
+          <text x="185" y="380" class="d-dim" font-size="11" text-anchor="end">ascii-camera</text>
+
+          <text x="185" y="439" class="d-txt" font-size="12" text-anchor="end">kernel</text>
+          <text x="185" y="455" class="d-dim" font-size="11" text-anchor="end">gpio-poweroff</text>
+
+          <text x="185" y="514" class="d-txt" font-size="12" text-anchor="end">the latch</text>
+          <text x="185" y="530" class="d-dim" font-size="11" text-anchor="end">Pololu #2808</text>
+
+          <rect x="204" y="128" width="132" height="44" class="d-box"/>
+          <text x="270" y="146" class="d-txt" font-size="12" text-anchor="middle">press</text>
+          <text x="270" y="163" class="d-dim" font-size="10" text-anchor="middle">GPIO 3 → 0 V</text>
+
+          <rect x="354" y="203" width="132" height="44" class="d-box"/>
+          <text x="420" y="221" class="d-txt" font-size="12" text-anchor="middle">KEY_POWER</text>
+          <text x="420" y="238" class="d-dim" font-size="10" text-anchor="middle">gpio-keys, code 116</text>
+
+          <rect x="504" y="278" width="132" height="44" class="d-box"/>
+          <text x="570" y="296" class="d-txt" font-size="12" text-anchor="middle">SIGTERM</text>
+          <text x="570" y="313" class="d-dim" font-size="10" text-anchor="middle">stop ascii-camera</text>
+
+          <rect x="674" y="353" width="132" height="44" class="d-box"/>
+          <text x="740" y="371" class="d-txt" font-size="12" text-anchor="middle">blank, release</text>
+          <text x="740" y="388" class="d-dim" font-size="10" text-anchor="middle">finally runs</text>
+
+          <rect x="844" y="428" width="132" height="44" class="d-box"/>
+          <text x="910" y="446" class="d-txt" font-size="12" text-anchor="middle">GPIO 17 → OFF</text>
+          <text x="910" y="463" class="d-dim" font-size="10" text-anchor="middle">a high pulse</text>
+
+          <rect x="1009" y="503" width="132" height="44" class="d-part"/>
+          <text x="1075" y="521" class="d-acc-txt" font-size="12" text-anchor="middle">power gone</text>
+          <text x="1075" y="538" class="d-dim" font-size="10" text-anchor="middle">the latch opens</text>
+
+          <path class="d-line" d="M336,150 L354,214" marker-end="url(#seqar)"/>
+          <path class="d-line" d="M486,225 L504,289" marker-end="url(#seqar)"/>
+          <path class="d-line" d="M636,300 L674,364" marker-end="url(#seqar)"/>
+          <path class="d-line" d="M806,375 L844,439" marker-end="url(#seqar)"/>
+          <path class="d-line" d="M976,450 L1009,514" marker-end="url(#seqar)"/>
+
+          <path class="d-div" d="M740,397 V660"/>
+          <path class="d-div" d="M1009,547 V660"/>
+          <text x="748" y="588" class="d-dim" font-size="10">the app blanks it</text>
+          <text x="1000" y="588" class="d-acc-txt" font-size="10" text-anchor="end">power is cut here</text>
+
+          <text x="185" y="617" class="d-txt" font-size="12" text-anchor="end">the display</text>
+          <rect x="204" y="604" width="536" height="36" class="d-part"/>
+          <text x="472" y="626" class="d-acc-txt" font-size="11" text-anchor="middle">showing the picture</text>
+          <rect x="740" y="604" width="269" height="36" class="d-screen"/>
+          <text x="874" y="626" class="d-txt" font-size="11" text-anchor="middle">dark</text>
+          <rect x="1009" y="604" width="132" height="36" class="d-box"/>
+          <text x="1075" y="626" class="d-dim" font-size="11" text-anchor="middle">no power</text>
+        </svg>
+      </div>
+      <figcaption><b>Fig. 5 &mdash; The same press, from your thumb to a dead box.</b> The button does not shut the Pi down; it presses a <em>key</em>. The overlay makes GPIO 3 into a one-key keyboard emitting <code>KEY_POWER</code>, code 116, which <code>logind</code> handles as a poweroff by default &mdash; verified on this Pi, where the input device is <code>soc:shutdown_button@3</code> and its key bitmask decodes to bit 116. Only then does anything reach the app, as a plain <code>SIGTERM</code>: its handler merely clears a flag, so the render loop finishes the frame in hand before the <code>finally</code> block stops the camera, releases the encoder and blanks the panel. The ribbon is deliberately dull. The display goes dark because the app blanked it, and then stops being powered at all &mdash; there is no third state where something is live and lit, which is the entire reason for cutting the supply rather than managing the display. Ten seconds, give or take, from press to dead.</figcaption>
+    </figure>
 
     <p>Three things fall out of this that are worth knowing before you start. The <strong>panel’s eight wires all land in the left half of the header</strong> (pins 1–24) and the <strong>encoder’s four all land in the right</strong> (pins 31–39), so those two sockets want to sit at opposite ends of the board and almost nothing has to cross. The <strong>button spoils that slightly</strong>: pins 5 and 9 sit inside the panel’s own run, so its two wires have to get past the panel’s power and ground on their way to the left edge — four crossings, all at right angles, which is how you want wires to cross when they must. And <strong>the three grounds are separate pins</strong> — 6 for the panel, 9 for the button (both of its returns), 39 for the encoder — which is worth keeping that way rather than daisy-chaining them, since it costs nothing and keeps two lots of switching current out of the panel’s return path.</p>
     <p>Check every route with a multimeter in continuity mode before the HAT ever meets the Pi. A short between 3V3 and ground on a board you have just soldered is cheap to find now and expensive to find later.</p>
@@ -852,7 +1038,6 @@
         <tbody>
           <tr><td>Panel, 8 way</td><td><strong>JST-XH 2.5 mm</strong></td><td>Most forgiving to hand-crimp; latches; happy with 24–26 AWG</td></tr>
           <tr><td>Encoder, 4 way</td><td><strong>JST-XH 2.5 mm</strong></td><td>Same family again; header on a tail board so it unplugs at both ends</td></tr>
-          <tr><td>Battery</td><td>JST-PH 2.0 mm</td><td>Not a choice; it is what the pack ships with</td></tr>
         </tbody>
       </table>
     </div>
@@ -884,36 +1069,33 @@
 
   <section>
     <h2>Power</h2>
-    <p>How long it runs depends far more on <em>how you run it</em> than on which pack you buy. A PiSugar 3’s 1200 mAh at 3.7 V is 4.44 Wh, of which roughly <strong>3.9 Wh</strong> survives the boost to 5 V.</p>
+    <p><strong>Externally powered, permanently</strong> — 5 V in through the USB-C inlet in the enclosure wall, no battery anywhere in the build. <em>How you run it</em> still matters as much as it ever did; the currency has simply changed from hours to heat.</p>
     <div class="scroll">
       <table>
         <thead>
-          <tr><th>Configuration</th><th class="num">Measured CPU</th><th class="num">Est. draw</th><th class="num">PiSugar 3</th></tr>
+          <tr><th>Configuration</th><th class="num">Measured CPU</th><th class="num">Est. draw</th></tr>
         </thead>
         <tbody>
           <tr>
             <td>Terminal + panel, desktop up, WiFi on</td>
             <td class="num">96% of a core</td>
             <td class="num">~2.4 W</td>
-            <td class="num">~1.6 h</td>
           </tr>
           <tr>
             <td><strong>Headless</strong> — <code>--no-terminal</code>, console boot, WiFi off</td>
             <td class="num">29% of a core</td>
             <td class="num">~1.45 W</td>
-            <td class="num">~2.7 h</td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p>The CPU column is measured on this Pi, sampled from <code>/proc</code> over 15 s after a 35 s settle. The draw and runtime columns are estimates derived from it — a wattage needs a meter inline with the supply, which is worth doing once when the pack arrives.</p>
-    <p><strong>A 1200 mAh PiSugar 3 is fine for a demo piece or a desk object</strong>, and it is meaningfully smaller and lighter than the 5000 mAh Plus — which matters for something handheld. If you want all-day untethered use, that is the case where you would want the Plus instead. Either way the PiSugar mounts on the back <em>without consuming the GPIO header</em>, so your HAT stays free, and brings charging, a power button and a real-time clock with it.</p>
-    <p><strong>Recharging</strong> from flat takes roughly 2½–3 hours with the Pi shut down, and 4 hours or more if it is running from a small supply — your build draws ~600 mA, so a 1 A charger leaves only ~400 mA for the cell. Use a 2 A supply or better, and let the pack cool before charging: a battery straight out of a sealed enclosure is warm, and charging is throttled or inhibited until it drops back.</p>
-    <p>If you go with a plain USB bank instead, check it does not auto-shut-off below about 100 mA. At 600 mA you will not trip that in use, but some packs also refuse to start delivering power without a button press, which is awkward inside a sealed box.</p>
+    <p>The CPU column is measured on this Pi, sampled from <code>/proc</code> over 15 s after a 35 s settle. The draw column is an estimate derived from it — a real wattage needs a meter inline with the supply, which is worth doing once.</p>
+    <p><strong>Size the supply for the margin, not the current.</strong> The build draws well under 1 A with camera, panel and HDMI all running, against an official Zero 2 W spec of 5.1 V at 2.5 A. Use a 2 A supply or better anyway: the headroom is not for the amps, it is for keeping the voltage at the far end of a 300 mm panel lead above the 4.63 V where the Pi’s PMIC starts flagging undervoltage. The connectors guide budgets that drop conductor by conductor.</p>
+    <p><strong>Two things the battery would have brought, which this build does without.</strong> There is no real-time clock, so the box has no idea what time it is until NTP tells it — which matters mostly when reading boot logs, where you want the monotonic clock rather than wall time. And there is no reserve: the supply is the only supply, so an unannounced power cut lands directly on a running filesystem, which is what the next note is about.</p>
 
     <div class="note caution">
       <div class="label">Do this or you will corrupt an SD card</div>
-      <p>Pulling power from a running Pi is the failure you will actually hit in a sealed enclosure. Two defences, and I would fit both. First, a momentary button on a spare GPIO running a clean shutdown — the PiSugar’s own button does this out of the box. Second, and better: make the root filesystem <strong>read-only with an overlay</strong> (<code>raspi-config</code> → Performance → Overlay File System). Your app writes nothing but <code>ascii_camera.log</code>, which can live in tmpfs, so a power cut becomes an ordinary reboot and the box needs no shutdown ceremony at all.</p>
+      <p>Pulling power from a running Pi is the failure you will actually hit in a sealed enclosure, and on mains it is the <em>only</em> power-loss mode — a battery is an accidental UPS that rides out a glitch, and there isn’t one. Two defences, and fit both. First, the momentary button on GPIO 3 running a clean shutdown, which is the ceremony you control. Second, and the more important of the two now, because it covers the cut you don’t control: make the root filesystem <strong>read-only with an overlay</strong> (<code>raspi-config</code> → Performance → Overlay File System). Your app writes nothing but <code>ascii_camera.log</code>, which can live in tmpfs, so a power cut becomes an ordinary reboot and the box needs no shutdown ceremony at all.</p>
     </div>
   </section>
 
@@ -932,7 +1114,7 @@
           <tr>
             <td><strong>Enclosed</strong></td>
             <td><code>--lcd --encoder --no-terminal</code></td>
-            <td>On battery. Boot to console, no desktop, HDMI output off, WiFi off</td>
+            <td>In the box. Boot to console, no desktop, HDMI output off, WiFi off</td>
           </tr>
           <tr>
             <td><strong>Tethered</strong></td>
@@ -942,7 +1124,7 @@
         </tbody>
       </table>
     </div>
-    <p>Make the enclosed mode the one that starts at boot, and opt into tethered mode deliberately. Anything that starts the terminal render automatically will quietly cost you 3.3× the CPU on a battery that cannot spare it.</p>
+    <p>Make the enclosed mode the one that starts at boot, and opt into tethered mode deliberately. Anything that starts the terminal render automatically will quietly cost you 3.3× the CPU. That used to be an argument about battery life and is now an argument about heat: a sealed PETG box has no fan, and the Zero 2 throttles under this render loop — which is the last of the three things that will bite, at the end of this guide.</p>
     <p>Two further savings that cost you nothing in the box: <code>--fps 10</code> eases both the camera and the render loop, and <code>--lcd-brightness 60</code> takes roughly 40% off the backlight. Both are flags you already have.</p>
   </section>
 
@@ -995,7 +1177,7 @@
       <li>
         <div class="step-body">
           <h3>Build the HAT</h3>
-          <p>Solder a 2×20 female header to a Zero-sized protoboard so it mates with the Pi’s male pins. On the top side, fit the three JST-XH sockets — 8-way for the panel, 4-way for the encoder, 2-way for the shutdown button — then wire each socket pin to the correct header pin per the tables above. Solder the 100 nF ceramic straight across the button socket’s two pins while you are there. Verify every route with a multimeter in continuity mode <em>before</em> the Pi ever goes near it.</p>
+          <p>Solder a 2×20 female header to a Zero-sized protoboard so it mates with the Pi’s male pins. On the top side, fit the three JST-XH sockets — 8-way for the panel, 4-way for the encoder, 2-way for the shutdown button — then wire each socket pin to the correct header pin per the tables above. Solder the 100 nF ceramic straight across the button socket’s two pins while you are there. Verify every route with a multimeter in continuity mode <em>before</em> the Pi ever goes near it — a short between 3V3 and ground on a board you have just soldered is cheap to find now and expensive to find later.</p>
         </div>
       </li>
       <li>
@@ -1012,8 +1194,9 @@
       </li>
       <li>
         <div class="step-body">
-          <h3>Fit power and prove the shutdown path</h3>
-          <p>Add the battery, then deliberately test whatever shutdown you chose. If you went the overlay-filesystem route, yank the power mid-run on purpose and confirm it boots cleanly. Better to discover that now than in the field.</p>
+          <h3>Fit the latch, then prove the shutdown path</h3>
+          <p>Wire the Pololu #2808 into the supply per Fig. 4 — VIN from the inlet, VOUT to the Pi, pad <strong>A</strong> onto the button’s GPIO 3 leg — its <em>ungrounded</em> one, so that the press pulls A down through the switch; onto the grounded leg instead and the latch is held on for ever — and GPIO 17 to <code>OFF</code> — and add <code>dtoverlay=gpio-poweroff,gpiopin=17</code> to <code>config.txt</code>. Measure pad A’s idle voltage before you connect it to the GPIO, and put a meter across VIN and VOUT once it is running, for the voltage budget. Connect the supply through the panel socket you will actually use — not a bench lead — then deliberately test whatever shutdown you chose. If you went the overlay-filesystem route, yank the power mid-run on purpose and confirm it boots cleanly. With no battery to soften an unannounced cut, that is the failure the box will eventually meet, so meet it here instead.</p>
+          <p>Then press the button and watch the whole box: the picture should go, and about ten seconds later everything should die — no panel glow, no LEDs, nothing. Press again and it should boot. Two failures to tell apart if it does not. If the Pi shuts down cleanly but power stays on, either <code>gpio-poweroff</code> is not reaching the OFF pad — check <code>config.txt</code> and the GPIO 17 wire — or pad A is sitting on the button’s grounded leg, which holds the latch on against anything the OFF pad can do. A meter from pad A to ground tells the two apart in a second: with the button released it should read open, not a short. If power dies the instant you press rather than ten seconds later, the button is on pads A and B instead of pad A to ground, and it is hard-cutting a running machine — fix that one before it costs you a card.</p>
         </div>
       </li>
       <li>
@@ -1041,15 +1224,16 @@
         </thead>
         <tbody>
           <tr><td>Zero-sized protoboard</td><td class="num">8</td><td>Get two; the first is practice</td></tr>
-          <tr><td>2×20 female header</td><td class="num">3</td><td>Plain height unless stacking the PiSugar</td></tr>
+          <tr><td>2×20 female header</td><td class="num">3</td><td>Plain height; nothing stacks under the Pi</td></tr>
           <tr><td>Bare EC11 encoder + knob</td><td class="num">4</td><td>Threaded bushing for panel mount</td></tr>
           <tr><td>Panel-mount momentary button</td><td class="num">2</td><td>Momentary, not latching; plastic body</td></tr>
           <tr><td>100 nF ceramic capacitor</td><td class="num">—</td><td>Across the button socket, on the HAT</td></tr>
+          <tr><td>Pololu #2808 power switch</td><td class="num">8</td><td>Latching; cuts all power at shutdown</td></tr>
           <tr><td>Perfboard offcut for the tail board</td><td class="num">—</td><td>~15 mm square, from the HAT board</td></tr>
           <tr><td>JST-XH kit</td><td class="num">18</td><td>One family: housings, crimps, headers</td></tr>
           <tr><td>Crimp tool (SN-01BM)</td><td class="num">40</td><td>One-off; makes everything else work</td></tr>
           <tr><td>26 AWG silicone wire</td><td class="num">15</td><td>Several colours</td></tr>
-          <tr><td>PiSugar 3 · 1200 mAh</td><td class="num">60</td><td>~2.7 h headless; small and light</td></tr>
+          <tr><td>5 V 2 A USB supply</td><td class="num">15</td><td>A-to-C, or C-to-C only with the CC resistors fitted</td></tr>
           <tr><td>Mini-HDMI adapter or lead</td><td class="num">10</td><td>Tape it inside the lid</td></tr>
           <tr><td>M2 / M2.5 standoff kit</td><td class="num">12</td><td></td></tr>
           <tr><td>Stick-on heatsink</td><td class="num">3</td><td>No fan — noise defeats the point</td></tr>

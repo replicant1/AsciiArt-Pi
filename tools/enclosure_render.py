@@ -216,10 +216,18 @@ def sdf_parts(p, lift, interior):
 
     # ---- interior, exploded view only -----------------------------------
     if interior:
-        pi_z = FLOOR_T + 8 + 2                     # PiSugar board + pogo gap
+        # The Pi still rides 10 mm above the floor, but on standoffs rather than
+        # on a battery. That height was reserved for a PiSugar 3; the project is
+        # externally powered, so the volume is now the service loop the lid's
+        # two harnesses need. The number is unchanged, only its occupant.
+        pi_z = FLOOR_T + 8 + 2
         pcb = sd_box(p - np.array([12.0, 0.0, pi_z + 0.8], F), (15.0, 32.5, 0.8))
-        sugar = sd_box(p - np.array([12.0, -2.0, FLOOR_T + 4.0], F), (14.0, 30.0, 4.0), r=1.0)
-        out[M_PCB] = np.minimum(pcb, sugar)
+        out[M_PCB] = pcb
+        posts = BIG
+        for sx in (-12.5, 12.5):
+            for sy in (-29.0, 29.0):
+                posts = np.minimum(posts, sd_cyl(
+                    p - np.array([12.0 + sx, sy, FLOOR_T + 5.0], F), 2, 5.0, 1.6))
 
         hdr = sd_box(p - np.array([12.0 - 15.0 + 3.5, 0.0, pi_z + 1.6 + 5.5], F),
                      (2.5, 25.4, 5.5))
@@ -228,7 +236,7 @@ def sdf_parts(p, lift, interior):
         cammod = sd_box(p - np.array([0.0, D_NS / 2 - WALL - 4.5, CAM_Z], F),
                         (12.5, 4.5, 12.0), r=0.8)
         ribbon = sd_box(p - np.array([0.0, 34.0, pi_z + 3.0], F), (7.5, 8.0, 0.3))
-        out[M_BLACK] = np.minimum(conn_black,
+        out[M_BLACK] = np.minimum(np.minimum(conn_black, posts),
                                   np.minimum(hdr, np.minimum(cammod, ribbon)))
     else:
         out[M_PCB] = np.full(p.shape[:-1], BIG, F)
