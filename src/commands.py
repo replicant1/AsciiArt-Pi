@@ -34,6 +34,13 @@ FALSE_WORDS = ("off", "false", "no", "n", "0")
 # Commands that are not settings changes.
 WORDS = ("help", "show", "reset")
 
+# Resolved before a line ever reaches this module - the app's command socket
+# hands "ask ..." to the language model on its own thread, because a parse
+# crosses a network and the render loop cannot wait for it. Named here only so
+# that `help` can list it, and so a line that arrives with the parser switched
+# off gets an explanation instead of "there is no setting called 'ask'".
+ASK = "ask"
+
 
 class CommandError(ValueError):
     """A line that could not be turned into a delta, with a reason to print."""
@@ -61,6 +68,11 @@ def parse(line):
         return "none", None
 
     head = tokens[0].lower()
+    if head == ASK:
+        raise CommandError(
+            "natural language is not available on this run - either the app "
+            "was started without its command socket resolver, or there is no "
+            "API key. Every setting can still be set by name; try \"help\".")
     if head in WORDS:
         if head == "help":
             target = tokens[1].lower() if len(tokens) > 1 else None
@@ -179,6 +191,13 @@ def help_text(name=None, config=None):
             "    scheme green",
             "    contrast 2.4 invert on freeze off",
             "",
+            "Or say it in your own words, and a language model works out the",
+            "settings. The change it proposes is validated exactly as a typed",
+            "one is, so it can be refused the same way:",
+            "",
+            "    ask make it warmer and blockier",
+            "    ask undo that",
+            "",
             "Settings:",
             "",
         ]
@@ -195,6 +214,7 @@ def help_text(name=None, config=None):
         lines += [
             "Also:",
             "",
+            "  ask <words>      say it in your own words",
             "  help <setting>   just that one",
             "  show             every current value",
             "  reset            back to the start-up defaults",

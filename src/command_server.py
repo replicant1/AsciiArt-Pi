@@ -32,6 +32,7 @@ import os
 import socket
 import threading
 from queue import Empty, Queue
+from typing import NamedTuple
 
 logger = logging.getLogger(__name__)
 
@@ -51,17 +52,49 @@ MAX_LINE = 4096
 MAX_CLIENTS = 8
 
 
+class Ask(NamedTuple):
+    """
+    A delta already worked out, on its way to the render loop.
+
+    The resolver hook below turns a slow line - one that has to go and ask a
+    language model - into one of these, *on the client's own thread*. By the
+    time the render loop sees it there is nothing left to wait for: it applies
+    a dict, exactly as it would for a line somebody typed.
+
+    That split is not an optimisation. A parse takes seconds and crosses a
+    network; doing it on the render loop would stop the picture dead for the
+    duration, on both displays.
+    """
+
+    utterance: str
+    delta: dict
+    note: str
+
+
+class Reply(NamedTuple):
+    """A resolver's answer to send straight back, without troubling the loop."""
+
+    text: str
+
+
 class CommandServer(threading.Thread):
     """Accepts typed lines on a Unix socket and queues them for the app."""
 
-    def __init__(self, path, name="commands"):
+    def __init__(self, path, resolver=None, name="commands"):
         """
         Args:
             path: filesystem path for the socket. Created with mode 0600, so
                 only the user running the app can talk to it.
+            resolver: optional callable run on the client's thread before a
+                line is queued. Return None to pass the line through
+                unchanged, an Ask to hand the loop a ready-made delta, or a
+                Reply to answer without involving the loop at all. This is
+                where anything slow belongs - the render loop must never wait
+                on a network.
         """
         super().__init__(name=name, daemon=True)
         self.path = path
+        self.resolver = resolver
         self.inbox = Queue()
         self._stopping = threading.Event()
         self._sock = None
@@ -176,10 +209,32 @@ class CommandServer(threading.Thread):
                 if not line:
                     self._send(conn, "")
                     continue
-                self._send(conn, self._ask(line))
+                self._send(conn, self._prepare(line))
+
+    def _prepare(self, line):
+        """
+        Give the resolver first refusal, then hand the result to the loop.
+
+        Runs on the client's thread, so a resolver may take as long as it
+        needs. A resolver that raises is contained here: the client is told,
+        the loop never hears about it, and the connection stays up.
+        """
+        request = line
+        if self.resolver is not None:
+            try:
+                resolved = self.resolver(line)
+            except Exception as e:
+                logger.error("Resolver failed on %r: %s", line, e,
+                             exc_info=True)
+                return f"could not work that out: {e}"
+            if isinstance(resolved, Reply):
+                return resolved.text
+            if resolved is not None:
+                request = resolved
+        return self._ask(request)
 
     def _ask(self, line):
-        """Hand one line to the render loop and wait for its answer."""
+        """Hand one request to the render loop and wait for its answer."""
         answer = Queue(maxsize=1)
         self.inbox.put((line, answer))
         self.served += 1

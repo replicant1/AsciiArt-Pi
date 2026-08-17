@@ -30,7 +30,11 @@ END = b"\x00"
 
 def connect(path):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sock.settimeout(10.0)
+    # Generous, because "ask" sends the line to a language model and waits for
+    # it. A typed command answers within a frame; a parsed one takes seconds,
+    # and a client that gave up at ten would report a failure for a change the
+    # app had already made.
+    sock.settimeout(90.0)
     sock.connect(path)
     return sock
 

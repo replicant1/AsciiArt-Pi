@@ -70,6 +70,7 @@ def make_app():
     app.config = RenderConfig()
     app.notice = None
     app.refusal = None
+    app.previous_config = None
     app.grid_key = None
     app.lcd = None
     app._redraw = False

@@ -143,7 +143,57 @@ help text is generated from `SPECS`**, so a setting added to `RenderConfig` is
 documented the moment it exists and cannot be forgotten.
 
 This works against the systemd service, which has no terminal of its own and
-cannot otherwise be typed at — that is most of the reason it exists. It is a
+cannot otherwise be typed at — that is most of the reason it exists.
+
+### Saying it in your own words
+
+`ask` sends the line to a language model, which works out which settings the
+words mean:
+
+```
+ascii> ask make it warmer and blockier
+  scheme 'grey'->'amber'
+  (3.9s)
+ascii> ask undo that
+  scheme 'amber'->'grey'
+  (3.7s)
+ascii> ask green and turn the volume up
+  scheme 'grey'->'green'
+  (3.9s - There's no audio, so no volume to turn up.)
+ascii> ask make me a sandwich
+  I can only adjust the camera's display settings - no sandwiches here.
+```
+
+**The model proposes; `RenderConfig` disposes.** What comes back is a delta,
+and it goes through the same `apply()` a typed command uses and is refused in
+the same words — so a model that asks for `rotation 45` gets
+`rotation must be one of 0, 90, 180, 270`, exactly as you would. There is no
+path from the model to the hardware that skips the validator.
+
+Two things make it work at all on a Zero 2:
+
+- **The parse happens on the command socket's own thread, never the render
+  loop.** It crosses a network and takes about four seconds; the loop cannot
+  stop for that without stopping both displays. By the time the loop sees the
+  request it is a dict, indistinguishable from a typed one.
+- **The SDK is imported at start-up, in the background.** `import anthropic`
+  alone costs 11 seconds on this hardware — longer than the CLI used to wait
+  for any reply. Left lazy, the first `ask` after every restart timed out on
+  the client while quietly succeeding on the app: a reported failure *and* a
+  changed setting, which is the worst of both.
+
+`ask` needs an API key at `~/.config/asciicam/api_key` (or `ANTHROPIC_API_KEY`
+in the environment). Without one it says so and points at the fix; every other
+command works exactly as before. The key lives outside the project tree on
+purpose — `sync.sh` copies an explicit file list, and a key inside the tree is
+one careless `git add -A` from a public commit.
+
+The tool schema the model is given is **generated from `SPECS`**, the same
+source as the `help` text and the validator's own rules. Add a setting and it
+becomes typeable, documented, and askable at once — see
+[One config, one way in](#one-config-one-way-in). `tools/ask_parser.py` runs
+utterances against the parser without involving the camera, which is where the
+prompt gets tuned; it costs roughly 0.35p a sentence. It is a
 Unix socket with mode 0600, so it is not reachable from the network and only
 the user running the app can connect; `--no-commands` switches it off.
 

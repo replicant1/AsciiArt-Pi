@@ -22,6 +22,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 import time
 from collections import deque
 from pathlib import Path
@@ -97,6 +98,10 @@ class AsciiArtLiveCamera:
         self.config = render_config.from_args(args)
         self.notice = None          # (text, expiry), for the status line
         self.refusal = None         # why the last apply() said no, if it did
+        # The config as it stood before the most recent change. Only the
+        # parser reads it, and only so that "undo that" has something to
+        # undo to - a request that means nothing without a before.
+        self.previous_config = None
 
         self.camera = CameraCapture(
             resolution=(args.width, args.height),
@@ -301,6 +306,7 @@ class AsciiArtLiveCamera:
         # frozen, there is no next frame until something asks for one.
         self._redraw = True
 
+        self.previous_config = previous
         logger.info("Config: %s", config.describe_changes(previous))
 
     def _note(self, text):
@@ -379,11 +385,106 @@ class AsciiArtLiveCamera:
         try:
             from command_server import CommandServer
 
-            return CommandServer(self.args.command_socket).start()
+            server = CommandServer(self.args.command_socket,
+                                   resolver=self._resolve_ask).start()
+            self._warm_parser()
+            return server
         except Exception as e:
             logger.error("Command socket unavailable, continuing without "
                          "it: %s", e, exc_info=True)
             return None
+
+    def _warm_parser(self):
+        """
+        Import the model SDK in the background, so the first ask is not slow.
+
+        Measured on this Pi: `import anthropic` alone costs 11 seconds, which
+        is longer than the CLI used to wait for any reply at all. Left lazy,
+        the first "ask" after every restart timed out on the client while
+        quietly succeeding on the app - the worst of both, a reported failure
+        and a changed setting.
+
+        A daemon thread, started once, and only when there is a key to make it
+        worth paying for: without one, ask is off and an 11-second import buys
+        nothing but resident memory on a 416 MB machine.
+        """
+        try:
+            import parser as nl_parser
+        except Exception as e:
+            logger.info("Natural language unavailable: %s", e)
+            return
+        if nl_parser.api_key() is None:
+            logger.info("No API key found, so \"ask\" is off; every other "
+                        "command still works")
+            return
+
+        def warm():
+            import time
+            started = time.monotonic()
+            try:
+                import anthropic                            # noqa: F401
+            except Exception as e:
+                logger.error("Could not load the model SDK: %s", e)
+                return
+            logger.info("Model SDK ready in %.1f s; \"ask\" is available",
+                        time.monotonic() - started)
+
+        threading.Thread(target=warm, name="warm-parser", daemon=True).start()
+
+    def _resolve_ask(self, line):
+        """
+        Turn "ask warmer, and blockier" into a delta - on the caller's thread.
+
+        This is the one piece of the app that is allowed to be slow. It runs on
+        the command socket's client thread, never the render loop: a parse
+        crosses a network and takes seconds, and the loop cannot stop for that
+        without stopping both displays with it.
+
+        Returns None for any line that is not an ask, which is every ordinary
+        typed command - those go straight through untouched.
+        """
+        from command_server import Ask, Reply
+
+        head, _, rest = line.partition(" ")
+        if head.lower() != "ask":
+            return None
+
+        utterance = rest.strip()
+        if not utterance:
+            return Reply('say what you want changed, e.g. ask make it warmer')
+
+        try:
+            import parser as nl_parser
+        except Exception as e:
+            return Reply(f"the language model parser is unavailable: {e}")
+        if nl_parser.api_key() is None:
+            return Reply("no API key, so ask is off. Put one in "
+                         f"{nl_parser.KEY_FILE} to switch it on; every other "
+                         "command works without it.")
+
+        # Read the config from this thread. It is a frozen dataclass replaced
+        # wholesale on the loop's thread, so this either sees the change or
+        # does not - never a half-applied one. A parse that raced a keypress
+        # resolves against settings one change stale, which for "a bit warmer"
+        # is not worth a lock.
+        config, previous = self.config, self.previous_config
+        try:
+            parsed = nl_parser.parse(utterance, config, previous=previous)
+        except nl_parser.ParseError as e:
+            # Network down, key rejected, timeout. The panel and the terminal
+            # both have to survive this, so it is a sentence, not a traceback.
+            logger.warning("Ask failed for %r: %s", utterance, e)
+            return Reply(f"could not reach the model: {e}")
+
+        if parsed.declined is not None:
+            logger.info("Ask declined %r: %s", utterance, parsed.declined)
+            return Reply(f"  {parsed.declined}")
+
+        note = f"{parsed.seconds:.1f}s"
+        if parsed.unmet:
+            note += f" - {parsed.unmet}"
+        logger.info("Ask %r -> %s (%s)", utterance, parsed.delta, note)
+        return Ask(utterance=utterance, delta=parsed.delta, note=note)
 
     def _poll_commands(self):
         """
@@ -397,18 +498,38 @@ class AsciiArtLiveCamera:
         """
         if self.commands is None:
             return
-        for line, answer in self.commands.take():
+        for request, answer in self.commands.take():
             try:
-                answer.put_nowait(self._run_command(line))
+                answer.put_nowait(self._run_command(request))
             except Exception as e:
-                logger.error("Command %r failed: %s", line, e, exc_info=True)
+                logger.error("Command %r failed: %s", request, e, exc_info=True)
                 try:
                     answer.put_nowait(f"that went wrong: {e}")
                 except Exception:
                     pass
 
-    def _run_command(self, line):
-        """One typed line in, the text to print back out."""
+    def _run_command(self, request):
+        """
+        One request in, the text to print back out.
+
+        Usually a line somebody typed. Sometimes an Ask: a delta the resolver
+        already worked out on another thread, which from here is just a delta
+        like any other and goes down the same path with the same validation.
+        """
+        from command_server import Ask
+
+        if isinstance(request, Ask):
+            logger.info("Command: ask %s", request.utterance)
+            before = self.config
+            if self.apply(request.delta, note=False):
+                return (f"  {self.config.describe_changes(before)}"
+                        f"\n  ({request.note})")
+            if self.refusal:
+                return "\n".join("  " + line
+                                  for line in self.refusal.splitlines())
+            return f"  nothing changed ({request.note})"
+
+        line = request
         logger.info("Command: %s", line)
         try:
             kind, payload = commands.parse(line)

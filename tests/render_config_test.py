@@ -307,6 +307,7 @@ def make_app(lcd=None, draws=True):
     app.config = RenderConfig()
     app.notice = None
     app.refusal = None
+    app.previous_config = None
     app.grid_key = None
     app.grid = (80, 30)
     app.lcd = lcd
@@ -758,6 +759,159 @@ def test_headless_builds_nothing():
           f"{display.renders[:2]}")
 
 
+
+# --------------------------------------------------------------------------
+# 5. The "ask" path: a language model's delta, treated as an ordinary one
+# --------------------------------------------------------------------------
+#
+# No network here. A stub parser stands in for the model, because what needs
+# pinning down is the wiring - that a parsed delta goes through the same
+# apply() a typed one does, that a refusal changes nothing, and that a failure
+# to reach the model is a sentence rather than a traceback. Whether the model
+# picks good settings is a different question, and tools/ask_parser.py is where
+# it gets asked.
+#
+# The property that matters most is the one that is invisible in the output:
+# the parse happens in _resolve_ask, which the command socket runs on its own
+# thread. If it ever migrated into _run_command, every parse would stop the
+# render loop - and both displays - for the seconds it takes.
+
+class StubParser:
+    """Stands in for src/parser.py, with no API key and no network."""
+
+    KEY_FILE = "/nowhere/api_key"
+
+    class ParseError(RuntimeError):
+        pass
+
+    class _Parsed:
+        def __init__(self, delta=None, declined=None, unmet=None):
+            self.delta = delta
+            self.declined = declined
+            self.unmet = unmet
+            self.seconds = 1.5
+
+        @property
+        def ok(self):
+            return self.delta is not None
+
+    def __init__(self, key="k", result=None, raises=None):
+        self._key = key
+        self._result = result
+        self._raises = raises
+        self.calls = []
+
+    def api_key(self):
+        return self._key
+
+    def parse(self, utterance, config, previous=None):
+        self.calls.append((utterance, config, previous))
+        if self._raises is not None:
+            raise self._raises
+        return self._result
+
+
+def with_parser(app, stub):
+    """Put the stub where _resolve_ask's `import parser` will find it."""
+    import sys
+    sys.modules["parser"] = stub
+    return app
+
+
+def test_ask_is_resolved_off_the_loop():
+    print("\n34. An ordinary line is not touched by the ask resolver")
+    from command_server import Ask, Reply
+
+    app = make_app()
+    stub = StubParser(result=StubParser._Parsed(delta={"scheme": "green"}))
+    with_parser(app, stub)
+
+    check("a typed line passes straight through",
+          app._resolve_ask("scheme green") is None)
+    check("...and the model was never called", stub.calls == [])
+
+    print("\n35. An ask becomes a delta, worked out before the loop sees it")
+    resolved = app._resolve_ask("ask make it green")
+    check("the resolver returns an Ask", isinstance(resolved, Ask),
+          type(resolved).__name__)
+    check("carrying the delta", resolved.delta == {"scheme": "green"},
+          str(resolved.delta))
+    check("the model was asked exactly once", len(stub.calls) == 1)
+    check("...and given the live config to resolve against",
+          stub.calls[0][1] is app.config)
+    # Nothing has moved yet: resolving is not applying.
+    check("resolving on its own changes nothing", app.config.scheme == "grey",
+          app.config.scheme)
+
+    print("\n36. The loop applies it exactly like a typed delta")
+    before = app.config
+    reply = app._run_command(resolved)
+    check("the setting actually changed", app.config.scheme == "green",
+          app.config.scheme)
+    check("the display was told", app.display.scheme.name == "green")
+    check("the reply names the change", "green" in reply, reply.strip())
+    check("...and how long the model took", "1.5s" in reply, reply.strip())
+    check("it went through the real validator",
+          app.config == before.with_changes({"scheme": "green"}))
+
+
+def test_ask_failures_are_sentences():
+    print("\n37. A refusal from the model changes nothing")
+    from command_server import Reply
+
+    app = make_app()
+    with_parser(app, StubParser(
+        result=StubParser._Parsed(declined="I only change display settings.")))
+    resolved = app._resolve_ask("ask make me a sandwich")
+    check("a decline comes straight back", isinstance(resolved, Reply),
+          type(resolved).__name__)
+    check("with the model's own words",
+          "display settings" in resolved.text, resolved.text)
+    check("and nothing changed", app.config == RenderConfig())
+
+    print("\n38. An unreachable model is a sentence, not a traceback")
+    app = make_app()
+    stub = StubParser(raises=StubParser.ParseError("connection refused"))
+    with_parser(app, stub)
+    resolved = app._resolve_ask("ask make it green")
+    check("the failure is caught", isinstance(resolved, Reply),
+          type(resolved).__name__)
+    check("and says what went wrong",
+          "connection refused" in resolved.text, resolved.text)
+    check("the config is untouched", app.config == RenderConfig())
+
+    print("\n39. With no key, ask says so and points at the fix")
+    app = make_app()
+    with_parser(app, StubParser(key=None))
+    resolved = app._resolve_ask("ask make it green")
+    check("it is refused politely", isinstance(resolved, Reply))
+    check("...naming the key file",
+          "api_key" in resolved.text, resolved.text)
+    check("...and saying the rest still works",
+          "other command" in resolved.text, resolved.text)
+
+    print("\n40. A bare 'ask' asks for words rather than failing")
+    app = make_app()
+    with_parser(app, StubParser())
+    resolved = app._resolve_ask("ask")
+    check("bare ask is answered", isinstance(resolved, Reply))
+    check("...with an example", "warmer" in resolved.text, resolved.text)
+
+    print("\n41. A model delta the config refuses is refused in the usual words")
+    # The two-layer boundary, exercised deliberately. tools/ask_parser.py's
+    # smoke run never got here - the schema's enum stopped the model producing
+    # an invalid value - so nothing else in the suite covers it.
+    app = make_app()
+    with_parser(app, StubParser(
+        result=StubParser._Parsed(delta={"rotation": 45})))
+    resolved = app._resolve_ask("ask rotate it 45 degrees")
+    reply = app._run_command(resolved)
+    check("the delta is refused", "must be one of" in reply, reply.strip())
+    check("...naming rotation", "rotation" in reply, reply.strip())
+    check("and the config is untouched", app.config.rotation == 0,
+          str(app.config.rotation))
+
+
 def main():
     print("=" * 68)
     print("RenderConfig: the app's settings surface")
@@ -777,6 +931,8 @@ def main():
     test_frozen_picture_still_responds_to_settings()
     test_target_reshapes_the_loop()
     test_headless_builds_nothing()
+    test_ask_is_resolved_off_the_loop()
+    test_ask_failures_are_sentences()
 
     print("\n" + "=" * 68)
     if failures:
