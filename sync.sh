@@ -41,7 +41,7 @@ TEST_FILES=(bench_pipeline.py capture_reference.py
             palette_test.py keymap_test.py display_modes_test.py
             orientation_test.py encoder_test.py render_config_test.py
             lcd_font_size_test.py lcd_worker_test.py
-            commands_test.py)
+            commands_test.py parser_eval.py eval_cases.json)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.

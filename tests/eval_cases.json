@@ -1,0 +1,300 @@
+{
+  "_about": [
+    "Cases for tests/parser_eval.py. Each is self-contained: it carries the",
+    "settings it starts from, so a wrong answer at case 3 cannot corrupt case",
+    "30 and the set can run in any order, or in parallel.",
+    "",
+    "A case is one of:",
+    "  expect: {field: value}   a delta. The value may be a single value, a",
+    "                           list meaning any of these, or {min, max} for",
+    "                           the relative asks that have no one right",
+    "                           answer - 'a bit more contrast' is correct",
+    "                           anywhere in a band, and pinning it to one",
+    "                           number would score the prompt on a coin flip.",
+    "  expect: \"decline\"        refusing is the right answer.",
+    "",
+    "  now / before  the config the utterance is resolved against, and the one",
+    "                it had before that. Only 'undo' needs 'before', and only",
+    "                because undo is meaningless without it.",
+    "  allow         fields that may also appear without being counted wrong.",
+    "                A named look is a judgement, not a lookup: 'the Matrix'",
+    "                must be green, and a ramp choice alongside is reasonable.",
+    "  forbid        fields that must not appear.",
+    "  or_decline    declining is also acceptable. Used where the request is",
+    "                impossible to satisfy exactly - either a sensible clamp",
+    "                or an honest refusal is a good answer, and insisting on",
+    "                one would be scoring taste."
+  ],
+
+  "cases": [
+    {
+      "id": "plain-scheme",
+      "utterance": "make it green",
+      "expect": {"scheme": "green"},
+      "note": "The floor. If this fails nothing else matters."
+    },
+    {
+      "id": "plain-rotate",
+      "utterance": "rotate the picture 90 degrees",
+      "expect": {"rotation": 90}
+    },
+    {
+      "id": "plain-invert",
+      "utterance": "invert it",
+      "expect": {"invert": true}
+    },
+    {
+      "id": "plain-freeze",
+      "utterance": "freeze the picture",
+      "expect": {"freeze": true}
+    },
+    {
+      "id": "plain-mirror",
+      "utterance": "flip it left to right",
+      "expect": {"mirror": true}
+    },
+
+    {
+      "id": "multi-two",
+      "utterance": "amber, and freeze it there",
+      "expect": {"scheme": "amber", "freeze": true}
+    },
+    {
+      "id": "multi-three",
+      "utterance": "green, high contrast, and the fine character set",
+      "expect": {"scheme": "green", "contrast": {"min": 1.5, "max": 4.0},
+                 "ramp": "fine"}
+    },
+    {
+      "id": "multi-undo-two",
+      "utterance": "back to plain greyscale and unfreeze",
+      "now": {"scheme": "amber", "freeze": true},
+      "expect": {"scheme": "grey", "freeze": false}
+    },
+    {
+      "id": "multi-conflicting-order",
+      "utterance": "unfreeze it, and while you're there make it cyan",
+      "now": {"freeze": true},
+      "expect": {"freeze": false, "scheme": "cyan"},
+      "note": "Two asks in one sentence, the second parenthetical."
+    },
+
+    {
+      "id": "vocab-warmer",
+      "utterance": "make it warmer",
+      "expect": {"scheme": ["amber", "lime"]},
+      "note": "Warm on this device means amber or lime, per the prompt."
+    },
+    {
+      "id": "vocab-cooler",
+      "utterance": "something cooler",
+      "expect": {"scheme": ["cyan", "navy", "azure"]}
+    },
+    {
+      "id": "vocab-blockier",
+      "utterance": "blockier characters please",
+      "now": {"ramp": "fine"},
+      "expect": {"ramp": "coarse"}
+    },
+    {
+      "id": "vocab-finer",
+      "utterance": "give me finer detail",
+      "expect": {"ramp": "fine"}
+    },
+    {
+      "id": "vocab-punchy",
+      "utterance": "that's too punchy, flatten it out",
+      "now": {"contrast": 2.5},
+      "expect": {"contrast": {"min": 0.1, "max": 2.0}}
+    },
+    {
+      "id": "vocab-panel-glyphs",
+      "utterance": "bigger characters on the little screen",
+      "expect": {"lcd_font_size": {"min": 9, "max": 16}},
+      "forbid": ["ramp"],
+      "note": "Panel glyph size, not the character ramp. Confusing the two is the likeliest wrong answer here."
+    },
+
+    {
+      "id": "rel-more-contrast",
+      "utterance": "a bit more contrast",
+      "now": {"contrast": 1.0},
+      "expect": {"contrast": {"min": 1.05, "max": 2.0}},
+      "note": "A bit. Doubling it would be wrong; so would 1.01."
+    },
+    {
+      "id": "rel-much-more-contrast",
+      "utterance": "way more contrast",
+      "now": {"contrast": 1.0},
+      "expect": {"contrast": {"min": 2.0, "max": 4.0}},
+      "note": "Paired with the case above: the two must differ, or the model is ignoring the modifier."
+    },
+    {
+      "id": "rel-undo",
+      "utterance": "undo that",
+      "now": {"contrast": 2.5},
+      "before": {"contrast": 1.0},
+      "expect": {"contrast": 1.0},
+      "note": "One of the doc's four awkward ones. Meaningless without `before`."
+    },
+    {
+      "id": "rel-undo-multi",
+      "utterance": "undo that",
+      "now": {"scheme": "amber", "ramp": "fine"},
+      "before": {"scheme": "grey", "ramp": "coarse"},
+      "expect": {"scheme": "grey", "ramp": "coarse"},
+      "note": "Undo when the last change touched two fields."
+    },
+    {
+      "id": "rel-back-to-normal",
+      "utterance": "put everything back to normal",
+      "now": {"scheme": "lime", "contrast": 3.0, "invert": true},
+      "expect": {"scheme": "grey", "contrast": 1.0, "invert": false},
+      "allow": ["ramp", "colour_levels", "auto_levels", "mirror", "fill",
+                "rotation", "lcd_font_size", "freeze", "target"],
+      "note2": "allow covers every other field: 'everything' means everything, and resetting one of them is not a mistake."
+    },
+
+    {
+      "id": "look-matrix",
+      "utterance": "make it look like the Matrix",
+      "expect": {"scheme": "green"},
+      "allow": ["ramp", "invert", "colour_levels", "contrast"],
+      "note": "The doc's example. Green is the point; anything else alongside is taste."
+    },
+    {
+      "id": "look-cash-machine",
+      "utterance": "make it look like an old cash machine",
+      "expect": {"scheme": ["amber", "green"]},
+      "allow": ["ramp", "lcd_font_size", "contrast", "colour_levels"]
+    },
+    {
+      "id": "look-eink",
+      "utterance": "make it look like a Kindle",
+      "expect": {"scheme": ["paper", "azure"]},
+      "allow": ["ramp", "invert", "contrast", "colour_levels"],
+      "note": "E-ink on paper. The light-screen schemes are the point."
+    },
+    {
+      "id": "look-calmer",
+      "utterance": "something calmer",
+      "expect": {"scheme": ["azure", "cyan", "navy", "paper", "grey"]},
+      "allow": ["contrast", "ramp", "colour_levels"],
+      "now": {"scheme": "lime", "contrast": 3.0},
+      "note": "Deliberately vague. A wide set of right answers, but not every answer."
+    },
+
+    {
+      "id": "display-panel-only",
+      "utterance": "put it on the little screen only",
+      "expect": {"target": "lcd"}
+    },
+    {
+      "id": "display-same-but-big",
+      "utterance": "same but on the big screen",
+      "now": {"target": "lcd"},
+      "expect": {"target": "terminal"},
+      "note": "The doc's example. 'Same but' means change only the display."
+    },
+    {
+      "id": "display-both",
+      "utterance": "show it on both again",
+      "now": {"target": "lcd"},
+      "expect": {"target": "both"}
+    },
+    {
+      "id": "display-monitor-word",
+      "utterance": "just the monitor please",
+      "now": {"target": "both"},
+      "expect": {"target": "terminal"},
+      "note": "Monitor, not panel. A synonym the prompt names."
+    },
+
+    {
+      "id": "partial-volume",
+      "utterance": "make it green and turn the volume up",
+      "expect": {"scheme": "green"},
+      "unmet": true,
+      "note": "Do the half that maps, say what does not. Declining the whole thing is wrong."
+    },
+    {
+      "id": "partial-email",
+      "utterance": "warmer, and email the picture to my sister",
+      "expect": {"scheme": ["amber", "lime"]},
+      "unmet": true
+    },
+    {
+      "id": "partial-zoom",
+      "utterance": "zoom in a bit and make it amber",
+      "expect": {"scheme": "amber"},
+      "allow": ["fill"],
+      "unmet": true,
+      "note": "There is no zoom. fill crops, which is close but not the same - so it is allowed, not required. (The allow entry was missing on the first run and the case failed on its own omission, not the model's answer.)"
+    },
+
+    {
+      "id": "decline-gibberish",
+      "utterance": "asdfgh",
+      "expect": "decline",
+      "note": "The doc's example. A parser that always answers cannot be scored on this."
+    },
+    {
+      "id": "decline-weather",
+      "utterance": "what's the weather like",
+      "expect": "decline"
+    },
+    {
+      "id": "decline-sandwich",
+      "utterance": "make me a sandwich",
+      "expect": "decline"
+    },
+    {
+      "id": "decline-question-about-itself",
+      "utterance": "how many colour schemes are there",
+      "expect": "decline",
+      "note": "A question, not an instruction. Answering it by changing the scheme would be wrong."
+    },
+    {
+      "id": "decline-empty-ish",
+      "utterance": "hmm",
+      "expect": "decline"
+    },
+
+    {
+      "id": "invalid-rotate-45",
+      "utterance": "rotate it 45 degrees",
+      "expect": "decline",
+      "or_delta": {"rotation": [0, 90, 180, 270]},
+      "note": "Impossible exactly. Either an honest refusal or a sensible nearest is fine; an invalid delta is not."
+    },
+    {
+      "id": "invalid-contrast-eleven",
+      "utterance": "turn the contrast up to eleven",
+      "now": {"contrast": 1.0},
+      "expect": {"contrast": 4.0},
+      "or_decline": true,
+      "note": "Spinal Tap. Clamping to the maximum is the good answer."
+    },
+    {
+      "id": "invalid-scheme-name",
+      "utterance": "switch to the sepia scheme",
+      "expect": "decline",
+      "or_delta": {"scheme": ["amber", "lime", "paper"]},
+      "note": "No sepia. Refuse, or offer the nearest warm one - but never emit 'sepia'."
+    },
+    {
+      "id": "invalid-colour-levels",
+      "utterance": "give me a thousand colour levels",
+      "expect": {"colour_levels": 32},
+      "or_decline": true,
+      "note": "Clamp to the ceiling, or say no. Emitting 1000 would be the schema failing to guide it."
+    },
+    {
+      "id": "invalid-negative-contrast",
+      "utterance": "set the contrast to minus five",
+      "expect": "decline",
+      "or_delta": {"contrast": {"min": 0.1, "max": 1.0}},
+      "note": "Nonsense value. The floor is 0.1."
+    }
+  ]
+}
