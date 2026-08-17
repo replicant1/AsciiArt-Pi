@@ -318,6 +318,11 @@ class LcdWorker(threading.Thread):
         colours = None
         if scheme.kind == "live":
             colours = self.processor.colour_grid(frame, grey, cols, rows)
+            # The panel has no palette to quantise against, so colour_levels
+            # has to be applied to the RGB itself. The terminal gets the same
+            # effect for free by choosing among fewer cube steps. At the top of
+            # the range this returns the frame untouched.
+            colours = self._ascii.posterise(colours)
         elif scheme.kind == "tint":
             # One gather: ramp position -> the scheme's blend from screen to
             # ink. Full RGB here, not the terminal's palette approximation.

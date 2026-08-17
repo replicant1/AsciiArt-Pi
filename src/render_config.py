@@ -81,8 +81,9 @@ SPECS = (
     Spec("invert", "bool",
          "Reverse the ramp, for a light background."),
     Spec("colour_levels", "choice",
-         "Palette steps per channel in the live-colour scheme; fewer is "
-         "cheaper to redraw.",
+         "Steps per channel in the live-colour scheme, on both displays; "
+         "fewer means heavier banding. 6 means as many as the display can "
+         "manage.",
          choices=(2, 3, 4, 5, 6)),
     Spec("contrast", "float",
          "Contrast multiplier about mid-grey; 1.0 leaves the frame alone.",

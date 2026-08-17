@@ -53,6 +53,7 @@ class RecordingDisplay:
         self.ramps = []             # every set_ramp argument, in order
         self.frames = 0
         self.clears = 0
+        self.last_colours = None
 
     @property
     def grid_size(self):
@@ -74,6 +75,7 @@ class RecordingDisplay:
     def render(self, indices, colours=None, screen=(0, 0, 0)):
         self.frames += 1
         self.last = (indices, colours, screen)
+        self.last_colours = None if colours is None else colours.copy()
 
     def show_image(self, image):
         pass
@@ -89,6 +91,26 @@ class Frame:
     """Enough of a YuvFrame for the worker's greyscale path."""
 
     luma = np.zeros((48, 64), dtype=np.uint8)
+
+
+class ColourFrame:
+    """
+    A frame with a wide spread of colour, for the live-scheme path.
+
+    Deliberately not flat: a uniform frame quantises to one colour at every
+    setting, so it would pass whether or not colour_levels did anything.
+    """
+
+    def __init__(self, h=48, w=64):
+        self.luma = np.linspace(0, 255, h * w).reshape(h, w).astype(np.uint8)
+        u = np.linspace(0, 255, (h // 2) * (w // 2))
+        v = np.linspace(255, 0, (h // 2) * (w // 2))
+        self._uv = (u.reshape(h // 2, w // 2).astype(np.uint8),
+                    v.reshape(h // 2, w // 2).astype(np.uint8))
+
+    @property
+    def chroma(self):
+        return self._uv
 
 
 def drive(worker, display, config, frames=4, gap=0.05):
@@ -204,6 +226,56 @@ def test_fill_and_target_are_ignored():
         worker.stop()
 
 
+
+def test_colour_levels_reaches_the_panel():
+    """
+    colour_levels must change what the panel draws, not just what it stores.
+
+    Reported by a user: setting it made no visible difference. It was true -
+    the worker took the full-RGB colour_grid straight from the processor, and
+    the quantiser colour_levels configures was only ever called by the
+    terminal. On the headless service, where the panel is the only display,
+    the setting was entirely dead.
+
+    Counted in *distinct colours actually handed to the panel*, which is the
+    only thing a person can see. Asserting that the worker rebuilt its AsciiArt
+    would have passed the whole time the bug was there.
+    """
+    print("\n6. colour_levels changes the colours the panel is given")
+    display = RecordingDisplay()
+    worker = LcdWorker(display, splash_hold=0.0)
+    worker.start()
+    try:
+        counts = {}
+        for levels in (2, 3, 4, 6):
+            display.last_colours = None
+            config = RenderConfig(scheme="live", colour_levels=levels)
+            deadline = time.time() + 4
+            while display.last_colours is None and time.time() < deadline:
+                worker.submit(ColourFrame(), config)
+                time.sleep(0.05)
+            got = display.last_colours
+            if got is None:
+                check(f"a frame was drawn at colour_levels {levels}", False)
+                continue
+            counts[levels] = len(np.unique(got.reshape(-1, 3), axis=0))
+            print(f"        colour_levels {levels}: {counts[levels]} distinct "
+                  f"colours on the panel")
+
+        check("fewer levels really does mean fewer colours",
+              counts.get(2, 0) < counts.get(4, 0) < counts.get(6, 0),
+              str(counts))
+        # Two steps per channel is 2x2x2, so eight is the ceiling however
+        # colourful the scene. A number above it would mean the quantisation
+        # was not being applied to every channel.
+        check("two levels can produce at most eight colours",
+              counts.get(2, 99) <= 8, str(counts.get(2)))
+        check("...and the maximum leaves the panel at full colour",
+              counts.get(6, 0) > 100, str(counts.get(6)))
+    finally:
+        worker.stop()
+
+
 def main():
     print("=" * 66)
     print("The LCD worker's adoption of config changes")
@@ -212,6 +284,7 @@ def main():
     test_font_size_reaches_the_panel()
     test_ramp_reaches_the_panel()
     test_fill_and_target_are_ignored()
+    test_colour_levels_reaches_the_panel()
 
     print("\n" + "=" * 66)
     if failures:

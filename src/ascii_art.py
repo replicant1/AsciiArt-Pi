@@ -25,6 +25,33 @@ RAMPS = {
 # uniform division.
 CUBE_LEVELS = np.array([0, 95, 135, 175, 215, 255], dtype=np.int16)
 
+# The top of colour_levels' range, and the value that means "as many colours as
+# this display can manage" rather than a specific count. For the terminal that
+# is the whole 6x6x6 cube; for the panel it is full RGB565. Keeping the maximum
+# a no-op is what lets the setting work on both displays without the default
+# quietly degrading the panel, which draws far more than six steps per channel.
+MAX_COLOUR_LEVELS = 6
+
+_posterise_cache = {}
+
+
+def _posterise_lut(levels):
+    """
+    A 256-entry LUT snapping a channel value to one of `levels` even steps.
+
+    Even steps, unlike CUBE_LEVELS: those exist to match xterm's own uneven
+    axis, and the panel has no such constraint. Spreading the steps evenly over
+    0-255 is what "posterise to N levels" ordinarily means, and it keeps black
+    and white exact at both ends.
+    """
+    if levels not in _posterise_cache:
+        values = np.linspace(0, 255, levels).round().astype(np.int16)
+        nearest = np.abs(np.arange(256, dtype=np.int16)[:, None]
+                         - values[None, :])
+        _posterise_cache[levels] = values[nearest.argmin(axis=1)].astype(
+            np.uint8)
+    return _posterise_cache[levels]
+
 
 def _level_lut(levels):
     """
@@ -83,6 +110,35 @@ class AsciiArt:
         return (16 + 36 * q[..., 0].astype(np.int16)
                 + 6 * q[..., 1].astype(np.int16)
                 + q[..., 2].astype(np.int16))
+
+    def posterise(self, rgb):
+        """
+        Reduce per-cell RGB to `colour_levels` even steps per channel.
+
+        For the panel, which draws RGB directly and has no palette to quantise
+        against. The terminal gets the same effect for free from
+        to_colour_indices, since choosing among fewer cube steps *is* the
+        quantisation there - so this is the panel's half of one setting rather
+        than a second setting of its own.
+
+        Until this existed `colour_levels` did nothing at all on the panel:
+        lcd_worker took the full-RGB grid straight from the processor, and the
+        quantiser this class configures was only ever called by the terminal.
+        On a headless run - the deployed one - that made the setting dead.
+
+        At the top of the range the image is returned untouched, so the default
+        look of the panel is exactly what it always was.
+
+        Args:
+            rgb: uint8 array of shape (rows, cols, 3).
+
+        Returns:
+            uint8 array of the same shape. One LUT gather over a few thousand
+            values, which is nothing beside the frame's other work.
+        """
+        if self.colour_levels >= MAX_COLOUR_LEVELS:
+            return rgb
+        return _posterise_lut(self.colour_levels)[rgb]
 
     def _build_lut(self):
         """

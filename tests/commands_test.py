@@ -251,6 +251,85 @@ def test_show_and_reset():
           commands.defaults_delta(RenderConfig()) == {})
 
 
+
+def test_an_idle_client_does_not_starve_the_rest():
+    """
+    The bug a user hit: an interactive prompt sitting open blocked everyone.
+
+    The server used to serve one connection at a time, on the reasoning that
+    two people typing settings at one camera was not worth supporting. What
+    that missed is that a single person's prompt holds its connection for as
+    long as it is on screen - so every later client, including one-shot
+    commands, sat unaccepted until it timed out. The only symptom was
+    "lost the app: timed out", which looks exactly like a crashed camera.
+
+    Uses a real socket and real threads; nothing here stands in for anything.
+    """
+    print("\n14. An open connection does not block other clients")
+    import socket
+    import tempfile
+    import threading
+    import time
+    from pathlib import Path as _Path
+
+    sys.path.insert(0, str(ROOT / "src"))
+    from command_server import CommandServer
+
+    sock_path = str(_Path(tempfile.mkdtemp()) / "test.sock")
+    server = CommandServer(sock_path).start()
+
+    # Stand in for the render loop: answer whatever is queued.
+    draining = threading.Event()
+
+    def drain():
+        while not draining.is_set():
+            for line, answer in server.take():
+                answer.put(f"ok: {line}")
+            time.sleep(0.02)
+
+    loop = threading.Thread(target=drain, daemon=True)
+    loop.start()
+
+    def talk(sock, line):
+        sock.sendall((line + "\n").encode())
+        buf = b""
+        while b"\x00" not in buf:
+            buf += sock.recv(4096)
+        return buf.split(b"\x00", 1)[0].decode().strip()
+
+    try:
+        # An interactive client connects and then just sits there, exactly as
+        # a prompt waiting for typing does.
+        idle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        idle.settimeout(5)
+        idle.connect(sock_path)
+        check("the first client is served", talk(idle, "hello") == "ok: hello")
+
+        # It stays connected and says nothing more. A second client must still
+        # be served promptly.
+        second = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        second.settimeout(5)
+        started = time.monotonic()
+        second.connect(sock_path)
+        reply = talk(second, "second")
+        took = time.monotonic() - started
+
+        check("a second client is served while the first sits open",
+              reply == "ok: second", reply)
+        check("...and promptly, not after a timeout", took < 2.0,
+              f"{took:.2f}s")
+
+        # And the idle one still works afterwards.
+        check("the first client still works", talk(idle, "again")
+              == "ok: again")
+
+        second.close()
+        idle.close()
+    finally:
+        draining.set()
+        server.stop()
+
+
 def main():
     print("=" * 66)
     print("Typed commands: text in, validated delta out")
@@ -261,6 +340,7 @@ def main():
     test_the_boundary()
     test_help_comes_from_specs()
     test_show_and_reset()
+    test_an_idle_client_does_not_starve_the_rest()
 
     print("\n" + "=" * 66)
     if failures:

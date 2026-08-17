@@ -195,7 +195,7 @@ rejected, listing the names that do work.
 | `--fps` | integer | `15` | Target frame rate. The sensor is capped to this, which saves real CPU |
 | `--scheme` | `grey`, `live`, `green`, `amber`, `cyan`, `navy`, `azure`, `lime`, `paper` | `grey` | Colour scheme to start in. Step through them live with `s`. See [Colour schemes](#colour-schemes) |
 | `--colour`, `--color` | flag | off | Shorthand for `--scheme live`. Ignored if `--scheme` is given |
-| `--colour-levels` | 2–6 | `6` | Palette steps per channel. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding |
+| `--colour-levels` | 2–6 | `6` | Steps per channel in the live-colour scheme. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding. Applies to both displays: the terminal quantises to that many steps of the xterm cube, the panel posterises its RGB to the same number. `6` means “as many colours as this display can manage” and leaves the panel at full RGB565 |
 | `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
 | `--rotation` | 0, 90, 180, 270 | `0` | Camera rotation. Cycle with `r`. See [Rotation and handedness](#rotation-and-handedness) |
 | `--mirror` | flag | off | Flip the picture left to right, after any rotation |

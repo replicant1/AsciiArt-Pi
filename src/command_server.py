@@ -18,9 +18,13 @@ all. The app usually runs as a systemd service with no terminal attached, which
 rules out reading a command from stdin - and that is exactly the copy worth
 being able to drive.
 
-One connection is served at a time, deliberately. Two people typing settings at
-one camera is not a thing worth supporting, and serialising means a reply can
-never be delivered to the wrong client.
+Each connection gets its own thread. An earlier version served one at a time,
+reasoning that two people typing settings at one camera was not worth
+supporting - which missed that one person's *interactive prompt* holds its
+connection open for as long as it is on screen. A single idle client starved
+every other, including one-shot commands, and the only symptom was a timeout.
+Commands still cannot interleave where it matters: they are applied by the
+render loop, one at a time, in the order it takes them off the queue.
 """
 
 import logging
@@ -41,6 +45,11 @@ REPLY_TIMEOUT = 5.0
 # comes close, and it stops a stuck client growing memory without limit.
 MAX_LINE = 4096
 
+# Connections served at once. An interactive prompt holds one for as long as it
+# is open, so this is "how many shells may have the CLI up", not "how many
+# commands at a time" - the render loop applies those one at a time regardless.
+MAX_CLIENTS = 8
+
 
 class CommandServer(threading.Thread):
     """Accepts typed lines on a Unix socket and queues them for the app."""
@@ -56,6 +65,7 @@ class CommandServer(threading.Thread):
         self.inbox = Queue()
         self._stopping = threading.Event()
         self._sock = None
+        self._clients = []
         self.served = 0
 
     def start(self):
@@ -82,7 +92,7 @@ class CommandServer(threading.Thread):
         self._sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._sock.bind(self.path)
         os.chmod(self.path, 0o600)
-        self._sock.listen(1)
+        self._sock.listen(MAX_CLIENTS)
         # So the accept loop notices _stopping rather than blocking for ever.
         self._sock.settimeout(0.5)
         logger.info("Command socket listening on %s", self.path)
@@ -94,19 +104,54 @@ class CommandServer(threading.Thread):
             try:
                 conn, _ = self._sock.accept()
             except socket.timeout:
+                self._clients = [t for t in self._clients if t.is_alive()]
                 continue
             except OSError:
                 break
-            try:
-                self._serve(conn)
-            except Exception as e:
-                logger.error("Command connection failed: %s", e, exc_info=True)
-            finally:
+
+            self._clients = [t for t in self._clients if t.is_alive()]
+            if len(self._clients) >= MAX_CLIENTS:
+                # Refuse rather than queue: a client that is never served looks
+                # exactly like an app that has stopped answering, which is the
+                # confusion this whole change exists to remove.
+                logger.warning("Refusing a command client: %d already "
+                               "connected", len(self._clients))
+                self._send(conn, "too many clients connected")
                 try:
                     conn.close()
                 except OSError:
                     pass
+                continue
+
+            # Its own thread, so an interactive prompt sitting open cannot stop
+            # anything else being served.
+            worker = threading.Thread(target=self._run_client, args=(conn,),
+                                      name="command-client", daemon=True)
+            self._clients.append(worker)
+            worker.start()
+
         logger.info("Command server stopped after %d command(s)", self.served)
+
+    def _run_client(self, conn):
+        """
+        One client, start to finish, on its own thread.
+
+        Not called _handle. threading.Thread grew a private `_handle` attribute
+        in Python 3.13, and a method of that name on a subclass is shadowed by
+        it - so `target=self._handle` quietly passed a _ThreadHandle object
+        instead of a function and every client thread died on arrival with
+        "'_thread._ThreadHandle' object is not callable". Subclassing Thread
+        means sharing its namespace; check a new private name against it.
+        """
+        try:
+            self._serve(conn)
+        except Exception as e:
+            logger.error("Command connection failed: %s", e, exc_info=True)
+        finally:
+            try:
+                conn.close()
+            except OSError:
+                pass
 
     def _serve(self, conn):
         """Read lines from one client until it goes away."""
