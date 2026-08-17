@@ -43,11 +43,31 @@ from render_config import SPECS, ConfigError, RenderConfig
 
 logger = logging.getLogger(__name__)
 
-# Claude Opus 5. Deliberately not a cheaper model: picking one is a cost
-# decision that belongs to whoever pays the bill, and this is the model to
-# measure against before trading capability away. tools/eval_parser.py is the
-# place to find out what a smaller one costs in accuracy.
-MODEL = "claude-opus-5"
+# Claude Sonnet 5, chosen on measurement rather than instinct. Opus was the
+# starting point on the principle that you measure against the best before
+# trading capability away; tests/parser_eval.py is what did the trading.
+#
+# Three runs each of the 41 cases, after the prompt gained the defaults and the
+# schema disallowed empty deltas:
+#
+#     opus 5      100% 100% 98%    0.33p an ask    2.9s
+#     sonnet 5     95%  95% 95%    0.20p an ask    2.3s
+#     haiku 4.5    95%  90% 93%    0.18p an ask    1.8s
+#
+# Sonnet at 40% less per ask and half a second quicker, for about four points.
+# Haiku saves almost nothing beyond that and drops another two, and it never
+# fills in `unmet` - "make it green and email this to my sister" silently loses
+# half the request, which is worse at the camera than the score suggests.
+#
+# Where the four points go, so a future reader can judge whether the trade
+# still holds: vocab-panel-glyphs fails every run - "bigger characters on the
+# little screen" also switches target to lcd - and look-calmer, the vaguest
+# case in the set, does not change the scheme. Both look like prompt problems
+# rather than ceilings. Fixing either is a 13p experiment.
+#
+# Switching back is this one string. Run the eval before believing any change
+# to it, and more than once: the noise floor is about +/-2-3%.
+MODEL = "claude-sonnet-5"
 
 # Small, scoped work - one short utterance, one tool call - so the cheapest
 # effort level is the right starting point. Thinking is deliberately left at

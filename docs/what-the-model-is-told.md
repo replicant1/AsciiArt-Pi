@@ -35,14 +35,14 @@ Worth stating plainly, because everything below is easier to misread otherwise
 training set. They are not, but the reason is less obvious than it sounds, so
 it gets its own subsection below.
 
-**"The model" means `claude-opus-5`, running on Anthropic's servers, rented by
+**"The model" means `claude-sonnet-5`, running on Anthropic's servers, rented by
 the call.** It is stock and unmodified — the same general-purpose Claude anyone
 else calling that API gets. It is not on the Pi. There is no model file in this
-repo. `parse()` reaches it over HTTPS at `parser.py:333`, which is the only
+repo. `parse()` reaches it over HTTPS at `parser.py:435`, which is the only
 billable line in the project and the reason nothing works without a network.
 
 **Nothing in this project trains anything.** No dataset, no training run, no
-fine-tuning. The proof is one line: `MODEL = "claude-opus-5"` at `parser.py:49`
+fine-tuning. The proof is one line: `MODEL = "claude-sonnet-5"` at `parser.py:70`
 is an off-the-shelf model string. Fine-tuning would have meant a training job, a
 custom model ID, and a separate bill; none of those exist here.
 
@@ -65,7 +65,7 @@ Everything in this file falls out of that:
 
 | In the analogy | Here | Section |
 | --- | --- | --- |
-| The translator | `claude-opus-5`, over the network | — |
+| The translator | `claude-sonnet-5`, over the network | — |
 | The glossary | `SYSTEM_PROMPT` | 1 |
 | The form | the tool schema, from `SPECS` | 2 |
 | The clerk who rejects a badly filled form | `RenderConfig.with_changes()` | 4 |
@@ -112,7 +112,7 @@ picking up something real.
 
 When a case fails and the prompt changes in response, **that is an optimisation
 loop, with the eval as its objective function.** It is not training in the
-technical sense — no weights move, and `claude-opus-5` is exactly the same
+technical sense — no weights move, and `claude-sonnet-5` is exactly the same
 afterwards for this camera and for everyone else calling it. But the
 **overfitting hazard is identical in shape.** Patch the prompt case by case and
 you get a glossary tuned to 41 sentences that generalises to nothing, which is
@@ -359,13 +359,14 @@ Measured with `messages.count_tokens`, which is not billed.
 | Reply | ~150 | short think plus one tool call |
 
 The schema is nearly twice the prompt, and is the larger half of what caching
-saves. At list prices the prefix is $0.0099 uncached against $0.00099 cached —
-about **0.7p per ask**, roughly a third of a full eval run's bill.
+saves. At Sonnet's list prices the prefix is $0.0063 uncached against $0.00063
+cached — about **0.4p per ask**, against a measured
+0.20p total. Caching is most of what an ask costs.
 
 This is why the current settings go in the **user** turn and not the system
 prompt. The prompt and schema are byte-identical every call and so are the cache
 prefix; settings change every call, and putting them up top would move the
-prefix and cache nothing. `parser.py:337` says so in a comment, because it is
+prefix and cache nothing. `parser.py:439` says so in a comment, because it is
 the kind of thing that gets tidied by someone who does not know it is
 load-bearing.
 
