@@ -152,7 +152,7 @@
       "expect": {"scheme": "grey", "contrast": 1.0, "invert": false},
       "allow": ["ramp", "colour_levels", "auto_levels", "mirror", "fill",
                 "rotation", "lcd_font_size", "freeze", "target"],
-      "note2": "allow covers every other field: 'everything' means everything, and resetting one of them is not a mistake."
+      "note": "allow covers every other field: 'everything' means everything, and resetting one of them is not a mistake."
     },
 
     {
