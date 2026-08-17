@@ -488,6 +488,43 @@ def test_target():
     check("the target is unchanged", app.config.target == "both",
           app.config.target)
 
+    print("\n24b. 'both' is honourable whatever is missing")
+    # The bug this pins down: "both" means "draw wherever you can", and the
+    # constructor guarantees at least one output exists, so it can never mean
+    # "draw nowhere". Refusing it rejected the most inclusive setting on the
+    # headless service - and said the picture could not be shown on "both"
+    # alone, which is not a sentence that means anything.
+    app = make_app(lcd=None)                      # a terminal, no panel
+    app.apply({"target": "terminal"})
+    ok = app.apply({"target": "both"})
+    check("'both' is accepted when there is no panel",
+          ok and app.config.target == "both", app.config.target)
+
+    app = make_app(lcd=StubLcd(), draws=False)    # a panel, no terminal
+    app.apply({"target": "lcd"})
+    ok = app.apply({"target": "both"})
+    check("'both' is accepted when there is no terminal",
+          ok and app.config.target == "both", app.config.target)
+
+    print("\n24c. A refusal names the missing output, and never says 'alone'")
+    app = make_app(lcd=None)
+    app.apply({"target": "lcd"})
+    check("asking for the panel with none running says so",
+          app.refusal is not None and "LCD panel is not running"
+          in app.refusal, str(app.refusal))
+    check("...and suggests --lcd", "--lcd" in (app.refusal or ""),
+          str(app.refusal))
+
+    app = make_app(lcd=StubLcd(), draws=False)
+    app.apply({"target": "terminal"})
+    check("asking for a terminal with none says so",
+          app.refusal is not None and "no terminal" in app.refusal,
+          str(app.refusal))
+    check("...and blames --no-terminal", "--no-terminal" in (app.refusal or ""),
+          str(app.refusal))
+    check("no refusal describes an output as being 'alone'",
+          "alone" not in (app.refusal or ""), str(app.refusal))
+
     print("\n25. t does not stop on a target this run cannot honour")
     # With no panel, "both" and "terminal" both mean the same thing and "lcd"
     # is impossible, so the key must skip it rather than appear dead.

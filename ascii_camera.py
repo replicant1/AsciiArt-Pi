@@ -169,24 +169,41 @@ class AsciiArtLiveCamera:
         """True when frames should be handed to the panel."""
         return self.lcd is not None and self.config.target in ("both", "lcd")
 
-    def _feasible_target(self, target):
+    def _target_problem(self, target):
         """
-        The nearest target that actually draws something, given what started.
+        Why this target cannot be honoured on this run, or None if it can.
 
         RenderConfig validates a target against the list of names; it cannot
         know whether the panel came up or whether there is a terminal, because
         those are facts about this run rather than about the setting. So the
-        field-level check lives there and the runtime one lives here, and a
-        request that would black out the whole machine is turned into the
-        closest one that does not.
+        field-level check lives there and the runtime one lives here.
+
+        Only the two targets that name a *specific* output can fail. "both"
+        means "draw wherever you can", which is always honourable: the
+        constructor refuses to start with no output at all, so there is always
+        at least one, and asking for everything available can never ask for
+        nothing. An earlier version refused "both" whenever the terminal was
+        missing, which meant the most inclusive setting was rejected on the
+        headless service - and told the user it could not draw on "both" alone,
+        which is not a sentence that means anything.
         """
-        if target == "lcd" and self.lcd is None:
-            return "terminal" if self.display.draws else "both"
         if target == "terminal" and not self.display.draws:
-            return "lcd" if self.lcd is not None else "both"
-        if target == "both" and not self.display.draws:
-            return "lcd" if self.lcd is not None else "both"
-        return target
+            return ("there is no terminal to draw on - this run was started "
+                    "with --no-terminal")
+        if target == "lcd" and self.lcd is None:
+            return ("the LCD panel is not running - start the app with --lcd "
+                    "to use it")
+        return None
+
+    def _feasible_target(self, target):
+        """The nearest target that actually draws something, given what ran."""
+        if self._target_problem(target) is None:
+            return target
+        # Fall back to whatever exists. "both" covers the case where the one
+        # remaining output is the one that was not asked for.
+        if not self.display.draws:
+            return "lcd"
+        return "terminal" if self.lcd is None else "both"
 
     def apply(self, delta, note=True):
         """
@@ -216,15 +233,13 @@ class AsciiArtLiveCamera:
             return False
 
         if proposed.target != self.config.target:
-            settled = self._feasible_target(proposed.target)
-            if settled != proposed.target:
-                message = (f"cannot show the picture on the "
-                           f"{proposed.target} alone here")
-                logger.warning("%s; staying on %r", message,
-                               self.config.target)
-                self.refusal = message
+            problem = self._target_problem(proposed.target)
+            if problem is not None:
+                logger.warning("Refused target %r: %s; staying on %r",
+                               proposed.target, problem, self.config.target)
+                self.refusal = problem
                 if note:
-                    self._note(message)
+                    self._note(problem)
                 return False
 
         if proposed == self.config:
