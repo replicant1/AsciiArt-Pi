@@ -30,7 +30,17 @@ CUBE_LEVELS = np.array([0, 95, 135, 175, 215, 255], dtype=np.int16)
 # is the whole 6x6x6 cube; for the panel it is full RGB565. Keeping the maximum
 # a no-op is what lets the setting work on both displays without the default
 # quietly degrading the panel, which draws far more than six steps per channel.
-MAX_COLOUR_LEVELS = 6
+#
+# 32 rather than 6, which is where this started. Six is xterm's ceiling - its
+# cube has six steps per axis and there is no seventh to choose - and applying
+# it to the panel threw away most of the useful range: measured on one frame,
+# 6 steps gives 13 colours where 32 gives 85 and no posterising gives 107. The
+# terminal is unharmed by the higher cap because it saturates: _level_lut picks
+# N points along a six-step axis and dedupes back to six.
+#
+# 32 is also the panel's own weakest channel - RGB565 is 5 bits of red and blue
+# - so asking for more steps than that buys little on two channels out of three.
+MAX_COLOUR_LEVELS = 32
 
 _posterise_cache = {}
 
@@ -71,7 +81,8 @@ def _level_lut(levels):
 class AsciiArt:
     """Generates ASCII art from a greyscale array."""
 
-    def __init__(self, ramp="coarse", invert=False, colour_levels=6):
+    def __init__(self, ramp="coarse", invert=False,
+                 colour_levels=MAX_COLOUR_LEVELS):
         """
         Args:
             ramp: Key into RAMPS. There is deliberately no way to supply the
@@ -79,7 +90,11 @@ class AsciiArt:
             invert: Swap the ramp.  The default suits light-on-dark terminals,
                 where a bright part of the scene should be drawn with a dense
                 character (more lit pixels).  Invert for a light background.
-            colour_levels: Cube steps per channel used in colour mode, 2 to 6.
+            colour_levels: Steps per channel in colour mode, 2 to
+                MAX_COLOUR_LEVELS. The maximum means no quantising at all.
+                The terminal saturates at six of these whatever is asked
+                for, since that is all its cube has; the panel uses the
+                full range.
         """
         # A name only. This used to fall back to treating an unrecognised value
         # as a literal ramp, which meant a mistyped name silently drew the
@@ -93,7 +108,8 @@ class AsciiArt:
             self.chars = self.chars[::-1]
 
         self.lut = self._build_lut()
-        self.colour_levels = max(2, min(6, colour_levels))
+        self.colour_levels = max(2, min(MAX_COLOUR_LEVELS,
+                                        colour_levels))
         self._level_lut = _level_lut(self.colour_levels)
 
     def to_colour_indices(self, rgb):

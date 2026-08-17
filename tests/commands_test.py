@@ -143,7 +143,7 @@ def test_the_boundary():
     # saying no - the same one the model's deltas will meet.
     for line, field in [("rotation 45", "rotation"),
                         ("scheme purple", "scheme"),
-                        ("colour_levels 9", "colour_levels")]:
+                        ("target printer", "target")]:
         try:
             parsed = parses_to(line)
             check(f"{line!r} parses fine", isinstance(parsed, dict),

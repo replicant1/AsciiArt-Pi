@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from lcd_worker import LcdWorker              # noqa: E402
+from ascii_art import MAX_COLOUR_LEVELS       # noqa: E402
 from render_config import RenderConfig        # noqa: E402
 
 failures = []
@@ -247,7 +248,7 @@ def test_colour_levels_reaches_the_panel():
     worker.start()
     try:
         counts = {}
-        for levels in (2, 3, 4, 6):
+        for levels in (2, 4, 8, 16, MAX_COLOUR_LEVELS):
             display.last_colours = None
             config = RenderConfig(scheme="live", colour_levels=levels)
             deadline = time.time() + 4
@@ -263,15 +264,21 @@ def test_colour_levels_reaches_the_panel():
                   f"colours on the panel")
 
         check("fewer levels really does mean fewer colours",
-              counts.get(2, 0) < counts.get(4, 0) < counts.get(6, 0),
-              str(counts))
+              counts.get(2, 0) < counts.get(4, 0) < counts.get(8, 0)
+              < counts.get(16, 0), str(counts))
+        # The band that raising the ceiling from 6 to 32 opened up. At 6 this
+        # frame gives 13 colours; the settings above it are the difference
+        # between a hard posterise and a gentle one, and were unreachable.
+        check("the range above the old ceiling of 6 is usable",
+              counts.get(16, 0) > 20, str(counts.get(16)))
         # Two steps per channel is 2x2x2, so eight is the ceiling however
         # colourful the scene. A number above it would mean the quantisation
         # was not being applied to every channel.
         check("two levels can produce at most eight colours",
               counts.get(2, 99) <= 8, str(counts.get(2)))
         check("...and the maximum leaves the panel at full colour",
-              counts.get(6, 0) > 100, str(counts.get(6)))
+              counts.get(MAX_COLOUR_LEVELS, 0) > 100,
+              str(counts.get(MAX_COLOUR_LEVELS)))
     finally:
         worker.stop()
 

@@ -100,6 +100,9 @@ def test_surface():
     check("not frozen", default.freeze is False)
     check("panel font 8", default.lcd_font_size == 8,
           str(default.lcd_font_size))
+    check("colour_levels at its maximum, meaning no quantising",
+          default.colour_levels == render_config.MAX_COLOUR_LEVELS,
+          str(default.colour_levels))
 
     print("\n3. The scheme and ramp choices come from their own modules")
     # Restating them here would let a scheme be added to palettes.py and stay
@@ -143,6 +146,15 @@ def test_clamping():
           == 16)
     check("panel font 1 becomes 4",
           RenderConfig().with_changes({"lcd_font_size": 1}).lcd_font_size == 4)
+    # colour_levels used to be an enumeration of 2..6 and so was refused when
+    # out of range. With 31 values it is a range, and ranges clamp - which is
+    # the documented rule, and the reason it changed kind rather than growing
+    # thirty-one choices nobody would want listed in an error message.
+    check("colour_levels 900 becomes the maximum",
+          RenderConfig().with_changes({"colour_levels": 900}).colour_levels
+          == render_config.MAX_COLOUR_LEVELS)
+    check("colour_levels 1 becomes 2",
+          RenderConfig().with_changes({"colour_levels": 1}).colour_levels == 2)
 
     print("\n6. And is normalised to the field's own type")
     got = RenderConfig().with_changes({"lcd_font_size": 8.6})
@@ -164,7 +176,6 @@ def test_refusals():
         ({"scheme": "purple"}, "scheme"),
         ({"rotation": 45}, "rotation"),
         ({"ramp": "blocks"}, "ramp"),
-        ({"colour_levels": 7}, "colour_levels"),
         ({"target": "printer"}, "target"),
     ]:
         refused, said = refuses(delta)

@@ -36,7 +36,7 @@ from dataclasses import dataclass, fields, replace
 from typing import NamedTuple
 
 import palettes
-from ascii_art import RAMPS
+from ascii_art import MAX_COLOUR_LEVELS, RAMPS
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +80,12 @@ SPECS = (
          choices=tuple(RAMPS)),
     Spec("invert", "bool",
          "Reverse the ramp, for a light background."),
-    Spec("colour_levels", "choice",
+    Spec("colour_levels", "int",
          "Steps per channel in the live-colour scheme, on both displays; "
-         "fewer means heavier banding. 6 means as many as the display can "
-         "manage.",
-         choices=(2, 3, 4, 5, 6)),
+         "fewer means heavier banding. The maximum means as many as the "
+         "display can manage - full colour on the panel, the whole xterm cube "
+         "in the terminal, which saturates at 6 whatever this says.",
+         low=2, high=MAX_COLOUR_LEVELS),
     Spec("contrast", "float",
          "Contrast multiplier about mid-grey; 1.0 leaves the frame alone.",
          low=0.1, high=4.0),
@@ -127,7 +128,7 @@ class RenderConfig:
     scheme: str = "grey"
     ramp: str = "coarse"
     invert: bool = False
-    colour_levels: int = 6
+    colour_levels: int = MAX_COLOUR_LEVELS
     contrast: float = 1.0
     auto_levels: bool = True
     rotation: int = 0
@@ -254,20 +255,25 @@ def from_args(args):
     `--colour` is the old way of asking for the live scheme and `--scheme` wins
     over it, and `--no-terminal` is a target choice expressed as a flag.
     """
-    return RenderConfig(
-        scheme=args.scheme or ("live" if args.colour else "grey"),
-        ramp=args.ramp,
-        invert=args.invert,
-        colour_levels=args.colour_levels,
-        contrast=args.contrast,
-        auto_levels=not args.no_auto_levels,
-        rotation=args.rotation,
-        mirror=args.mirror,
-        fill=args.fill,
-        lcd_font_size=args.lcd_font_size,
-        target="lcd" if args.no_terminal else "both",
-        freeze=False,
-    )
+    # Built through with_changes rather than the constructor, so a command line
+    # goes through exactly the validation a typed command or a model's delta
+    # would. The dataclass itself checks nothing, so constructing directly let
+    # "--contrast 99" and "--colour-levels 900" straight through to the
+    # renderer; both are now clamped, and a bad value is refused by name.
+    return RenderConfig().with_changes({
+        "scheme": args.scheme or ("live" if args.colour else "grey"),
+        "ramp": args.ramp,
+        "invert": args.invert,
+        "colour_levels": args.colour_levels,
+        "contrast": args.contrast,
+        "auto_levels": not args.no_auto_levels,
+        "rotation": args.rotation,
+        "mirror": args.mirror,
+        "fill": args.fill,
+        "lcd_font_size": args.lcd_font_size,
+        "target": "lcd" if args.no_terminal else "both",
+        "freeze": False,
+    })
 
 
 def _check_specs_match_fields():

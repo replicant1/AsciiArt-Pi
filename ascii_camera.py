@@ -909,11 +909,16 @@ def parse_args(argv=None):
                         dest="colour",
                         help="Shorthand for --scheme live. Ignored if "
                              "--scheme is given")
-    parser.add_argument("--colour-levels", type=int, default=6,
-                        choices=[2, 3, 4, 5, 6],
-                        help="Palette steps per channel in colour mode. "
-                             "Fewer means longer runs of one colour and a "
-                             "cheaper redraw")
+    parser.add_argument("--colour-levels", type=int,
+                        default=render_config.MAX_COLOUR_LEVELS,
+                        help=f"Steps per channel in the live-colour scheme, "
+                             f"2 to {render_config.MAX_COLOUR_LEVELS}. Fewer "
+                             "means longer runs of one colour and a cheaper "
+                             "redraw, at the cost of banding. The maximum "
+                             "quantises nothing. The terminal saturates at 6 "
+                             "of these, which is all the xterm cube has; the "
+                             "panel uses the whole range. Out of range is "
+                             "clamped")
     parser.add_argument("--fill", action="store_true",
                         help="Crop the picture to fill the whole window "
                              "instead of letterboxing it to fit")

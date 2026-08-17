@@ -258,10 +258,8 @@ def test_hold_keeps_the_screen_up():
             luma = np.zeros((48, 64), dtype=np.uint8)
 
         # The app's own config object, rather than a private copy of the
-        # fields the panel reads. colour_levels is 6 and not 8 because the
-        # config validates it - 8 was never a legal value, it just had nothing
-        # to check it against.
-        config = RenderConfig(auto_levels=False, colour_levels=6)
+        # fields the panel reads, and its own defaults for the rest.
+        config = RenderConfig(auto_levels=False)
 
         # Frames from the moment the splash goes up - the worst case, and what
         # actually happens on this Pi.
@@ -310,10 +308,8 @@ def test_zero_hold_hands_over_at_once():
             luma = np.zeros((48, 64), dtype=np.uint8)
 
         # The app's own config object, rather than a private copy of the
-        # fields the panel reads. colour_levels is 6 and not 8 because the
-        # config validates it - 8 was never a legal value, it just had nothing
-        # to check it against.
-        config = RenderConfig(auto_levels=False, colour_levels=6)
+        # fields the panel reads, and its own defaults for the rest.
+        config = RenderConfig(auto_levels=False)
         for _ in range(5):
             worker.submit(Frame(), config)
             time.sleep(0.05)

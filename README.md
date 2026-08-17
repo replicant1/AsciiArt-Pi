@@ -195,7 +195,7 @@ rejected, listing the names that do work.
 | `--fps` | integer | `15` | Target frame rate. The sensor is capped to this, which saves real CPU |
 | `--scheme` | `grey`, `live`, `green`, `amber`, `cyan`, `navy`, `azure`, `lime`, `paper` | `grey` | Colour scheme to start in. Step through them live with `s`. See [Colour schemes](#colour-schemes) |
 | `--colour`, `--color` | flag | off | Shorthand for `--scheme live`. Ignored if `--scheme` is given |
-| `--colour-levels` | 2–6 | `6` | Steps per channel in the live-colour scheme. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding. Applies to both displays: the terminal quantises to that many steps of the xterm cube, the panel posterises its RGB to the same number. `6` means “as many colours as this display can manage” and leaves the panel at full RGB565 |
+| `--colour-levels` | 2–32 | `32` | Steps per channel in the live-colour scheme. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding. Applies to both displays: the terminal quantises to that many steps of the xterm cube, the panel posterises its RGB to the same number. `32` means “as many colours as this display can manage” and leaves the panel at full RGB565. Out of range is clamped |
 | `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
 | `--rotation` | 0, 90, 180, 270 | `0` | Camera rotation. Cycle with `r`. See [Rotation and handedness](#rotation-and-handedness) |
 | `--mirror` | flag | off | Flip the picture left to right, after any rotation |
@@ -227,8 +227,9 @@ Two things the table does not show on its own.
 `--colour`, reachable as `f`, `r`, `+`/`-`, `a`, `c`, `i` and `s` — so those
 flags mostly just set a starting state. The arguments fixed at startup are
 `--width`, `--height`, `--fps`, `--log`, `--verbose`, the five `--lcd*`
-arguments, the four `--encoder*` arguments, and `--colour-levels`, which is read
-as a setting rather than toggled.
+arguments, and the four `--encoder*` arguments. `--colour-levels` is no longer
+among them — like everything else in `RenderConfig` it can be set live, by name,
+from `tools/asciicam_cli.py`.
 
 **`run_ascii_camera.sh` supplies one of these arguments for you.** The launcher
 always passes `--cell-aspect`, computed from real Pango font metrics for the
@@ -1199,9 +1200,26 @@ Two things make it affordable:
    than per character, so ncurses emits a single escape sequence for each. A
    real scene averages a dozen or so runs per row at this grid size.
 
-`--colour-levels` (2 to 6, default 6) sets how many steps per channel are used
-from the xterm-256 colour cube. Fewer steps means longer runs of one colour and
-a cheaper redraw, at the cost of banding — the main lever if colour feels slow.
+`--colour-levels` (2 to 32, default 32) sets how many steps per channel the
+live-colour scheme uses. Fewer means longer runs of one colour and a cheaper
+redraw, at the cost of banding — the main lever if colour feels slow.
+
+**The two displays reach that number differently, and their ceilings differ.**
+The terminal picks that many steps from the xterm-256 cube, which has only six
+per axis, so it saturates at 6 whatever is asked for. The panel draws RGB
+directly and has no palette to quantise against, so `AsciiArt.posterise` snaps
+each channel to that many *even* steps — even rather than the cube's uneven
+axis, which exists only to match a palette the panel does not have.
+
+The cap used to be 6, which was xterm's limit imposed on a display that does
+not share it. Measured on one frame, the band it hid is the interesting one:
+
+| `--colour-levels` | 2 | 4 | 8 | 16 | 32 |
+|---|---|---|---|---|---|
+| Colours on the panel | 4 | 8 | 18 | 40 | 306 |
+
+The maximum is a sentinel rather than a count: it returns the frame untouched,
+so the default costs nothing and looks exactly as it always did.
 
 Terminal support was checked rather than assumed: inside lxterminal, curses
 reports `TERM=xterm-256color`, 256 colours and 65,536 pairs, so the 240 pairs
