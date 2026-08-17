@@ -34,14 +34,15 @@ ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
 SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
            window_plan.py lcd.py lcd_display.py lcd_worker.py lcd_splash.py
            palettes.py encoder.py render_config.py commands.py
-           command_server.py parser.py version.py)
+           command_server.py parser.py asklog.py version.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_selftest.py lcd_render_bench.py lcd_concurrency.py
             lcd_splash_test.py
             palette_test.py keymap_test.py display_modes_test.py
             orientation_test.py encoder_test.py render_config_test.py
             lcd_font_size_test.py lcd_worker_test.py
-            commands_test.py parser_eval.py eval_cases.json)
+            commands_test.py asklog_test.py
+            parser_eval.py eval_cases.json)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.

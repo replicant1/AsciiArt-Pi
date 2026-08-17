@@ -387,6 +387,13 @@ class AsciiArtLiveCamera:
 
             server = CommandServer(self.args.command_socket,
                                    resolver=self._resolve_ask).start()
+            try:
+                import asklog
+
+                self.asklog = asklog.AskLog()
+            except Exception as e:
+                # Asks still work; they are just not written down.
+                logger.error("Ask log unavailable: %s", e, exc_info=True)
             self._warm_parser()
             return server
         except Exception as e:
@@ -431,6 +438,12 @@ class AsciiArtLiveCamera:
 
         threading.Thread(target=warm, name="warm-parser", daemon=True).start()
 
+    # Set when the command socket comes up, which is the only way an ask can
+    # arrive. A class attribute rather than an __init__ line so that anything
+    # holding an app built without running __init__ - the tests do exactly
+    # this - still finds the name and gets a no-op instead of AttributeError.
+    asklog = None
+
     def _resolve_ask(self, line):
         """
         Turn "ask warmer, and blockier" into a delta - on the caller's thread.
@@ -474,17 +487,39 @@ class AsciiArtLiveCamera:
             # Network down, key rejected, timeout. The panel and the terminal
             # both have to survive this, so it is a sentence, not a traceback.
             logger.warning("Ask failed for %r: %s", utterance, e)
+            self._log_ask(utterance, config, previous, error=str(e))
             return Reply(f"could not reach the model: {e}")
 
         if parsed.declined is not None:
             logger.info("Ask declined %r: %s", utterance, parsed.declined)
+            self._log_ask(utterance, config, previous, parsed=parsed)
             return Reply(f"  {parsed.declined}")
 
         note = f"{parsed.seconds:.1f}s"
         if parsed.unmet:
             note += f" - {parsed.unmet}"
         logger.info("Ask %r -> %s (%s)", utterance, parsed.delta, note)
+        self._log_ask(utterance, config, previous, parsed=parsed)
         return Ask(utterance=utterance, delta=parsed.delta, note=note)
+
+    def _log_ask(self, utterance, config, previous, parsed=None, error=None):
+        """
+        Write one ask down, if there is anywhere to write it.
+
+        Runs on the socket's client thread with the parse, never the render
+        loop. Silent when there is no log: an ask that works is worth more than
+        a record of it, so this is the one place in the path allowed to do
+        nothing at all.
+        """
+        if self.asklog is None:
+            return
+        self.asklog.record(
+            utterance, config, previous=previous, error=error,
+            delta=None if parsed is None else parsed.delta or None,
+            declined=None if parsed is None else parsed.declined,
+            unmet=None if parsed is None else parsed.unmet,
+            seconds=None if parsed is None else parsed.seconds,
+            usage=None if parsed is None else parsed.usage)
 
     def _poll_commands(self):
         """

@@ -2,4 +2,10 @@
 # not worth versioning, since each is a timestamped snapshot of a stochastic
 # component rather than a fact about the code.
 runs/
+
+# What was said to the camera, on the camera that heard it. Same reasoning
+# as runs/: a record of one device's use, not a fact about the code. It is
+# also the raw material for future eval cases, so it wants reading, not
+# versioning.
+logs/
 .DS_Store
