@@ -46,6 +46,29 @@ from render_config import ConfigError, RenderConfig     # noqa: E402
 
 CASES = Path(__file__).resolve().parent / "eval_cases.json"
 
+# Input, cached-read and output dollars per million tokens, at list prices so
+# the figure is an upper bound and does not quietly go stale against a discount
+# nobody recorded here. Cached reads are a tenth of input. An unknown model is
+# costed at the most expensive row rather than guessed at, and says so: a
+# comparison that silently under-reports the price of the thing you are
+# thinking of switching to would be worse than no figure.
+PRICES = {
+    "claude-opus-5": (5.0, 0.5, 25.0),
+    "claude-opus-4-8": (5.0, 0.5, 25.0),
+    "claude-sonnet-5": (3.0, 0.3, 15.0),
+    "claude-sonnet-4-6": (3.0, 0.3, 15.0),
+    "claude-haiku-4-5": (1.0, 0.1, 5.0),
+}
+DEAREST = max(PRICES.values())
+
+
+def price_of(model):
+    """(input, cache-read, output) per million tokens, and whether it is known."""
+    if model in PRICES:
+        return PRICES[model], True
+    return DEAREST, False
+
+
 # What counts as a pass overall. Deliberately not 100%: the component is
 # stochastic, and a threshold it can only meet on a good day is a threshold
 # that gets ignored. Raise it when the prompt earns it.
@@ -206,7 +229,20 @@ def main(argv=None):
     ap.add_argument("--save", metavar="DIR", help="write the raw results here")
     ap.add_argument("--target", type=float, default=TARGET,
                     help="pass rate needed to exit 0")
+    ap.add_argument("--model", default=None,
+                    help="model to score instead of the app's own. The point "
+                         "of the exercise: a cheaper one is a one-string "
+                         "change, and this says what it costs in accuracy")
+    ap.add_argument("--effort", default=None,
+                    help="reasoning effort to score instead of the app's own")
     args = ap.parse_args(argv)
+
+    # Set before anything runs, so every case and the saved record agree on
+    # what was actually scored.
+    if args.model:
+        nl_parser.MODEL = args.model
+    if args.effort:
+        nl_parser.EFFORT = args.effort
 
     if nl_parser.api_key() is None:
         print(f"No API key. Set ANTHROPIC_API_KEY or write one to\n"
@@ -262,11 +298,13 @@ def main(argv=None):
     tokens_in = sum(r["usage"].get("input", 0) for r in results)
     tokens_out = sum(r["usage"].get("output", 0) for r in results)
     cached = sum(r["usage"].get("cache_read", 0) for r in results)
-    # List prices for this model, so the figure is an upper bound and does not
-    # quietly go stale against a discount nobody recorded here.
-    cost = (tokens_in * 5 + cached * 0.5 + tokens_out * 25) / 1_000_000
+    (in_price, cache_price, out_price), known = price_of(nl_parser.MODEL)
+    cost = (tokens_in * in_price + cached * cache_price
+            + tokens_out * out_price) / 1_000_000
+    unknown = "" if known else "  (unknown model, priced at the dearest row)"
     print(f"\n{BOLD}Cost{OFF}    {tokens_in} in, {cached} cached, "
-          f"{tokens_out} out - about ${cost:.3f} ({cost * 79:.0f}p)")
+          f"{tokens_out} out - about ${cost:.3f} ({cost * 79:.0f}p)"
+          f"{unknown}")
     print(f"{BOLD}Time{OFF}    {elapsed:.0f}s at {args.jobs} in parallel")
 
     if args.save:
@@ -277,6 +315,7 @@ def main(argv=None):
         path.write_text(json.dumps({
             "model": nl_parser.MODEL, "effort": nl_parser.EFFORT,
             "passed": passed, "of": len(results), "results": results,
+            "cost_usd": round(cost, 4), "seconds": round(elapsed, 1),
         }, indent=2))
         print(f"\nsaved {path}")
 

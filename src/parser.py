@@ -31,6 +31,7 @@ the right answer is no. Forcing a tool call means the reply is always one of
 those two and never a paragraph of prose.
 """
 
+import contextlib
 import json
 import logging
 import os
@@ -268,6 +269,44 @@ _client_lock = threading.Lock()
 _shared_client = None
 
 
+# Let exactly one request in this process run on its own, then get out of the
+# way. Sharing the client fixed half of a problem: building several at once is
+# not thread-safe, but neither is *parsing the first response*, because the SDK
+# builds its response models lazily and the first reply is what triggers it.
+# Four threads arriving with the first four replies at once has surfaced as
+# "BaseModel cannot be instantiated directly", which reads as a flaky model
+# rather than a race in our own process.
+#
+# Measured before assuming: the error appeared about once in every 123 parses,
+# both before and after the client was shared - three clean runs of a 1-in-123
+# event is what luck looks like 37% of the time, and it was over-read as a fix.
+#
+# The cost of this is one serialised request per process, at startup, on a path
+# that already waits seconds for the network. The app warms the import at boot
+# for the same reason.
+_first_call_lock = threading.Lock()
+_first_call_done = False
+
+
+@contextlib.contextmanager
+def _first_call_alone():
+    """Serialise the first successful request; a no-op after that."""
+    global _first_call_done
+    if _first_call_done:
+        yield
+        return
+    with _first_call_lock:
+        if _first_call_done:            # somebody got there while we waited
+            yield
+            return
+        yield
+        # Only on success. A call that raised never parsed a response, so
+        # nothing was warmed and the next one should still go alone - otherwise
+        # a camera that starts up with the network down loses the protection
+        # exactly when it finally reconnects and everything retries at once.
+        _first_call_done = True
+
+
 def _client(key=None):
     """
     The shared SDK client, built on first use.
@@ -330,30 +369,31 @@ def parse(utterance, config, previous=None, client=None):
 
     started = time.monotonic()
     try:
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=MAX_TOKENS,
-            output_config={"effort": EFFORT},
-            # The system prompt and the tool schema are identical on every
-            # call, so they are the cache prefix; the settings and the
-            # utterance vary and therefore come after it, in the user turn.
-            # Putting the current settings in the system prompt would change
-            # the prefix on every request and cache nothing.
-            system=[{
-                "type": "text",
-                "text": SYSTEM_PROMPT,
-                "cache_control": {"type": "ephemeral"},
-            }],
-            tools=tools(),
-            # One of the two tools, never prose. A parser that can reply with a
-            # paragraph has a third output shape nothing downstream handles.
-            tool_choice={"type": "any"},
-            messages=[{
-                "role": "user",
-                "content": (f"Settings: {json.dumps(state)}\n"
-                            f"Request: {utterance}"),
-            }],
-        )
+        with _first_call_alone():
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=MAX_TOKENS,
+                output_config={"effort": EFFORT},
+                # The system prompt and the tool schema are identical on every
+                # call, so they are the cache prefix; the settings and the
+                # utterance vary and therefore come after it, in the user turn.
+                # Putting the current settings in the system prompt would change
+                # the prefix on every request and cache nothing.
+                system=[{
+                    "type": "text",
+                    "text": SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral"},
+                }],
+                tools=tools(),
+                # One of the two tools, never prose. A parser that can reply with a
+                # paragraph has a third output shape nothing downstream handles.
+                tool_choice={"type": "any"},
+                messages=[{
+                    "role": "user",
+                    "content": (f"Settings: {json.dumps(state)}\n"
+                                f"Request: {utterance}"),
+                }],
+            )
     except Exception as e:
         # Anything from the SDK - connection, timeout, rate limit, bad key.
         # Deliberately widened: the caller's job is to put something on a
