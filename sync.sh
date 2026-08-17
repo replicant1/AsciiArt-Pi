@@ -52,7 +52,7 @@ DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
            enclosure-hero.png enclosure-ports.png
            enclosure-north.png enclosure-exploded.png
            enclosure-hero-thumb.png enclosure-ports-thumb.png
-           index.html)
+           index.html what-the-model-is-told.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera, and
