@@ -10,6 +10,11 @@ terminal on the HDMI screen.
     python3 ascii_camera.py --help
 
 Press 'q' to quit; other live controls are listed in the status line.
+
+Every live setting lives in one RenderConfig (src/render_config.py) and every
+change to one is a validated delta applied through AsciiArtLiveCamera.apply().
+Nothing here assigns a setting directly - not the keyboard, not the knob - so
+there is a single place that knows what each change costs to make.
 """
 
 import argparse
@@ -31,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 import curses  # noqa: E402
 
 import palettes  # noqa: E402
+import render_config  # noqa: E402
 from ascii_art import RAMPS, AsciiArt  # noqa: E402
 from camera import CameraCapture  # noqa: E402
 from display import NcursesDisplay  # noqa: E402
@@ -40,6 +46,7 @@ from image_processor import ImageProcessor, fit_grid  # noqa: E402
 # LcdDisplay is not: the lazy imports in _start_lcd are there for spidev and
 # RPi.GPIO, which live in lcd.py, and lcd_worker pulls in neither.
 from lcd_worker import DEFAULT_SPLASH_HOLD  # noqa: E402
+from render_config import ConfigError  # noqa: E402
 from version import APP_NAME, __version__  # noqa: E402
 
 logger = logging.getLogger("ascii_camera")
@@ -48,6 +55,26 @@ logger = logging.getLogger("ascii_camera")
 # one-line change in ascii_art.py and cannot leave the c key cycling through a
 # name that no longer exists.
 RAMP_CYCLE = list(RAMPS)
+
+# Panel font sizes the l key steps through. Every one of these tiles 320x240
+# exactly and gives a 4:3 character grid, so the picture fills the panel with
+# nothing cropped; the config accepts anything from 4 to 16, but there is no
+# reason to stop the knob-and-key path on a size that leaves a black margin.
+LCD_FONT_CYCLE = (6, 8, 9)
+
+# What the terminal shows when the picture has been sent to the panel alone.
+# Something has to be there: an empty window is what a crash looks like.
+TERMINAL_OFF = "picture on the LCD panel - press t to bring it back"
+
+# How long a refused or clamped change stays in the status line. Long enough to
+# read after looking down at the keyboard, short enough not to outlive the
+# next one.
+NOTICE_SECONDS = 4.0
+
+# Poll interval while the picture is frozen and nothing has changed. The camera
+# normally paces the loop; with no frame being waited for, this is what stops it
+# spinning a core for nothing.
+FROZEN_TICK = 0.05
 
 
 def _on_off(flag):
@@ -62,32 +89,19 @@ class AsciiArtLiveCamera:
         self.display = display
         self.args = args
 
+        # The single source of truth for every setting that can change while
+        # the camera runs. Nothing below keeps a second copy: the processor and
+        # the ASCII generator are given values out of it, and are re-given them
+        # by _adopt whenever it changes.
+        self.config = render_config.from_args(args)
+        self.notice = None          # (text, expiry), for the status line
+
         self.camera = CameraCapture(
             resolution=(args.width, args.height),
             frame_rate=args.fps,
         )
-        self.processor = ImageProcessor(
-            contrast=args.contrast,
-            auto_levels=not args.no_auto_levels,
-            rotation=args.rotation,
-            fill=args.fill,
-            cell_aspect=args.cell_aspect,
-            mirror=args.mirror,
-        )
-        # argparse has already restricted --ramp to a name in the cycle, so the
-        # index is always found and the two can never disagree.
-        self.ramp_name = args.ramp
-        self.ramp_index = RAMP_CYCLE.index(args.ramp)
-        self.invert = args.invert
-        self.colour_levels = args.colour_levels
-        # --scheme wins; --colour is kept as the old way of asking for the
-        # live-colour scheme, since run_ascii_camera.sh reads it to size the
-        # window.
-        start = args.scheme or ("live" if args.colour else "grey")
-        self.scheme_index = palettes.SCHEME_NAMES.index(palettes.by_name(
-            start).name)
-        self.display.set_scheme(self.scheme)
-        self._rebuild_ascii()
+        self.processor = ImageProcessor(cell_aspect=args.cell_aspect)
+        self.ascii_art = None
 
         self.grid = None            # (cols, rows), recomputed lazily
         self.grid_key = None        # inputs the grid was computed from
@@ -98,9 +112,30 @@ class AsciiArtLiveCamera:
         self.frame_times = deque(maxlen=20)
         self.is_running = False
 
-        self._lcd_config_type = None
-        self.lcd = self._start_lcd() if args.lcd else None
-        self.encoder = self._start_encoder() if args.encoder else None
+        # The most recent frame, kept so that `freeze` has something to hold and
+        # so a settings change while frozen has something to redraw.
+        self._held = None
+        # Set whenever something that affects the picture changes. Only read
+        # while frozen, where it is the difference between redrawing on demand
+        # and redrawing a still picture fifteen times a second.
+        self._redraw = True
+
+        # Declared before the first _adopt, which asks whether the panel is
+        # being drawn to and would otherwise be reading an attribute that does
+        # not exist yet. They are started below, once the settings they are
+        # built from have been applied.
+        self.lcd = None
+        self.encoder = None
+
+        # Everything the config touches is pushed out from here, so start-up
+        # and a later change go down exactly the same path. `previous=None`
+        # means "nothing has been told anything yet", so every field counts.
+        self._adopt(self.config, previous=None)
+
+        if args.lcd:
+            self.lcd = self._start_lcd()
+        if args.encoder:
+            self.encoder = self._start_encoder()
 
         # Losing the panel is survivable when there is a terminal to fall back
         # on, and _start_lcd deliberately treats it that way. With no terminal
@@ -110,6 +145,142 @@ class AsciiArtLiveCamera:
             raise RuntimeError(
                 "no output: the terminal is switched off and the LCD panel "
                 f"did not start. See {args.log} for why.")
+
+        # Which outputs actually exist is only known now, after both have had
+        # their chance to start. A target naming one that never came up would
+        # otherwise show the picture to nobody - see _feasible_target.
+        settled = self._feasible_target(self.config.target)
+        if settled != self.config.target:
+            logger.warning("Target %r is not available; using %r instead",
+                           self.config.target, settled)
+            self.config = self.config.with_changes({"target": settled})
+
+    @property
+    def terminal_on(self):
+        """True when the picture should be built for, and drawn in, the window."""
+        return self.display.draws and self.config.target in ("both", "terminal")
+
+    @property
+    def lcd_on(self):
+        """True when frames should be handed to the panel."""
+        return self.lcd is not None and self.config.target in ("both", "lcd")
+
+    def _feasible_target(self, target):
+        """
+        The nearest target that actually draws something, given what started.
+
+        RenderConfig validates a target against the list of names; it cannot
+        know whether the panel came up or whether there is a terminal, because
+        those are facts about this run rather than about the setting. So the
+        field-level check lives there and the runtime one lives here, and a
+        request that would black out the whole machine is turned into the
+        closest one that does not.
+        """
+        if target == "lcd" and self.lcd is None:
+            return "terminal" if self.display.draws else "both"
+        if target == "terminal" and not self.display.draws:
+            return "lcd" if self.lcd is not None else "both"
+        if target == "both" and not self.display.draws:
+            return "lcd" if self.lcd is not None else "both"
+        return target
+
+    def apply(self, delta, note=True):
+        """
+        Validate a delta and adopt it. The single way settings ever change.
+
+        Args:
+            delta: {field name: value}, as produced by a key, the knob, or -
+                once there is one - a parser. Values are checked by
+                RenderConfig before anything here touches the hardware.
+            note: Whether a refusal should be shown in the status line as well
+                as logged.
+
+        Returns:
+            True if the config changed, False if it was refused or was a no-op.
+        """
+        try:
+            proposed = self.config.with_changes(delta)
+        except ConfigError as e:
+            logger.warning("Refused %r: %s", delta, e)
+            if note:
+                self._note(str(e))
+            return False
+
+        if proposed.target != self.config.target:
+            settled = self._feasible_target(proposed.target)
+            if settled != proposed.target:
+                message = (f"cannot show the picture on the "
+                           f"{proposed.target} alone here")
+                logger.warning("%s; staying on %r", message,
+                               self.config.target)
+                if note:
+                    self._note(message)
+                return False
+
+        if proposed == self.config:
+            return False
+
+        previous, self.config = self.config, proposed
+        self._adopt(proposed, previous)
+        return True
+
+    def _adopt(self, config, previous):
+        """
+        Push a config out to everything that has to be told about it.
+
+        The one place that knows what each setting costs to change. Keeping it
+        together is the point: before this, "invert also has to rebuild the
+        ASCII generator" and "fill also has to invalidate the grid" were spread
+        across the key handler, and a new setting had to remember them all.
+        """
+        changed = set(config.changes_from(previous))
+        if not changed:
+            return
+
+        # Cheap: plain assignments the processor reads on the next frame.
+        self.processor.contrast = config.contrast
+        self.processor.auto_levels = config.auto_levels
+        self.processor.rotation = config.rotation
+        self.processor.fill = config.fill
+        self.processor.mirror = config.mirror
+
+        # The ramp string and its length; `invert` reverses it and
+        # `colour_levels` sets the quantisation, so all three rebuild it.
+        if changed & {"ramp", "invert", "colour_levels"}:
+            self._rebuild_ascii()
+
+        # The grid is fitted from the frame's shape and the window, so only the
+        # settings that change one of those invalidate it.
+        if changed & {"rotation", "fill"}:
+            self.grid_key = None
+        if "fill" in changed and self.display.draws:
+            # Letterboxing leaves cells the picture no longer writes to; without
+            # a clear they keep the previous frame's characters for good.
+            self.display.clear()
+
+        if "scheme" in changed:
+            self.display.set_scheme(self.scheme)
+
+        if "target" in changed:
+            if self.lcd is not None and not self.lcd_on:
+                self.lcd.blank()
+            if self.display.draws:
+                # Both directions need it: switching the terminal off leaves
+                # the picture on screen, and switching it back on leaves the
+                # off-message under a picture that no longer covers every cell.
+                self.display.clear()
+                self.grid_key = None
+
+        # The panel reads lcd_font_size out of the config it is handed with the
+        # next frame, so there is nothing to push here - but if the picture is
+        # frozen, there is no next frame until something asks for one.
+        self._redraw = True
+
+        logger.info("Config: %s", config.describe_changes(previous))
+
+    def _note(self, text):
+        """Put a short message in the status line for a few seconds."""
+        self.notice = (text, time.monotonic() + NOTICE_SECONDS)
 
     def _start_lcd(self):
         """
@@ -122,11 +293,12 @@ class AsciiArtLiveCamera:
         """
         try:
             from lcd_display import LcdDisplay
-            from lcd_worker import LcdConfig, LcdWorker
+            from lcd_worker import LcdWorker
 
+            font_size = self.config.lcd_font_size
             display = LcdDisplay(
                 ramp=self.ascii_art.chars,
-                font_size=self.args.lcd_font_size,
+                font_size=font_size,
                 landscape=not self.args.lcd_portrait,
                 spi_freq=self.args.lcd_spi_hz,
                 brightness=self.args.lcd_brightness,
@@ -134,7 +306,6 @@ class AsciiArtLiveCamera:
             worker = LcdWorker(display, scheme=self.scheme,
                                splash_hold=self.args.lcd_splash_seconds)
             worker.start()
-            self._lcd_config_type = LcdConfig
             logger.info("LCD enabled: %dx%d grid", *display.grid_size)
 
             # Something to look at straight away. The camera is 15-20 seconds
@@ -142,7 +313,7 @@ class AsciiArtLiveCamera:
             # black, which looks exactly like a panel that is not working.
             cols, rows = display.grid_size
             worker.splash("panel ready",
-                          f"{cols}x{rows} grid - font {self.args.lcd_font_size}")
+                          f"{cols}x{rows} grid - font {font_size}")
             return worker
         except Exception as e:
             logger.error("LCD unavailable, continuing without it: %s", e,
@@ -202,32 +373,17 @@ class AsciiArtLiveCamera:
         scheme every terminal can show, so this is the one jump that is always
         available - see the colour_ok test in _cycle_scheme.
         """
-        home = next(i for i, scheme in enumerate(palettes.SCHEMES)
+        home = next(scheme for scheme in palettes.SCHEMES
                     if scheme.kind == "grey")
-        if self.scheme_index == home:
-            return                  # already there; a repaint would only flash
-        self.scheme_index = home
-        self.display.set_scheme(self.scheme)
-        logger.info("Scheme: %s (%s) - knob pressed",
-                    self.scheme.name, self.scheme.note)
-
-    def _lcd_config(self):
-        """Snapshot of the settings the LCD mirrors from this display."""
-        return self._lcd_config_type(
-            rotation=self.processor.rotation,
-            contrast=self.processor.contrast,
-            auto_levels=self.processor.auto_levels,
-            invert=self.invert,
-            ramp=self.ramp_name,
-            scheme=self.scheme.name,
-            colour_levels=self.colour_levels,
-            mirror=self.processor.mirror,
-        )
+        # apply() is a no-op when the value is already there, so being home
+        # already costs nothing and no repaint flashes.
+        if self.apply({"scheme": home.name}):
+            logger.info("Scheme: %s (%s) - knob pressed", home.name, home.note)
 
     @property
     def scheme(self):
         """The active colour scheme."""
-        return palettes.SCHEMES[self.scheme_index]
+        return palettes.by_name(self.config.scheme)
 
     def _cycle_scheme(self, step=1):
         """
@@ -240,6 +396,7 @@ class AsciiArtLiveCamera:
         """
         count = len(palettes.SCHEMES)
         direction = 1 if step >= 0 else -1
+        start = palettes.SCHEME_NAMES.index(self.config.scheme)
 
         # Walk to the destination first and change the display once, rather
         # than changing it at every scheme on the way. set_scheme() repaints
@@ -252,7 +409,7 @@ class AsciiArtLiveCamera:
         #
         # A whole lap is the identity, so the count reduces modulo the list
         # length; clamping to it instead lands a lap off.
-        index = self.scheme_index
+        index = start
         for _ in range(abs(step) % count):
             for offset in range(1, count + 1):
                 candidate = (index + direction * offset) % count
@@ -263,14 +420,15 @@ class AsciiArtLiveCamera:
             else:
                 return
 
-        if index == self.scheme_index:
+        if index == start:
             return
-        self.scheme_index = index
-        self.display.set_scheme(self.scheme)
-        # No grid invalidation here on purpose: the grid does not depend on the
+        # No grid invalidation on purpose: the grid does not depend on the
         # scheme any more, so recomputing it would only produce the same answer
-        # and log a line claiming a change that did not happen.
-        logger.info("Scheme: %s (%s)", self.scheme.name, self.scheme.note)
+        # and log a line claiming a change that did not happen. _adopt knows
+        # this - the scheme is not in the set that clears grid_key.
+        scheme = palettes.SCHEMES[index]
+        if self.apply({"scheme": scheme.name}):
+            logger.info("Scheme: %s (%s)", scheme.name, scheme.note)
 
     def _colours_for(self, frame, processed, cols, rows):
         """
@@ -288,13 +446,14 @@ class AsciiArtLiveCamera:
         # Tinted: one gather straight from ramp position to palette index.
         indices = self.ascii_art.to_indices(processed)
         table = palettes.index_table(scheme, len(self.ascii_art.chars),
-                                     self.invert)
+                                     self.config.invert)
         return table[indices]
 
     def _rebuild_ascii(self):
         """Rebuild the generator, carrying every current setting."""
-        self.ascii_art = AsciiArt(ramp=self.ramp_name, invert=self.invert,
-                                  colour_levels=self.colour_levels)
+        self.ascii_art = AsciiArt(ramp=self.config.ramp,
+                                  invert=self.config.invert,
+                                  colour_levels=self.config.colour_levels)
 
     def _refresh_cell_aspect(self):
         """
@@ -350,34 +509,52 @@ class AsciiArtLiveCamera:
         Rather than let a fixed string get chopped mid-word, drop whole
         sections from the right until it fits.
         """
-        if len(self.frame_times) > 1:
+        config = self.config
+        if config.freeze:
+            # A frozen picture stops appending frame times, so the number would
+            # sit at whatever it was when the freeze started and slowly decay -
+            # a reading that looks live and is not.
+            rate = "frozen"
+        elif len(self.frame_times) > 1:
             span = self.frame_times[-1] - self.frame_times[0]
-            fps = (len(self.frame_times) - 1) / span if span > 0 else 0.0
+            rate = "%4.1ffps" % ((len(self.frame_times) - 1) / span
+                                 if span > 0 else 0.0)
         else:
-            fps = 0.0
+            rate = " 0.0fps"
 
         cols, rows = self.grid or (0, 0)
         geometry = f"{cols}x{rows}" if self.display.draws else "headless"
-        ramp = self.ramp_name
-        stats = (f" {fps:4.1f}fps {geometry} rot{self.processor.rotation}"
-                 f" con{self.processor.contrast:.1f}"
-                 f" sch:{self.scheme.name}"
-                 f" chr:{ramp}"
-                 f" auto:{_on_off(self.processor.auto_levels)}"
-                 f" fill:{_on_off(self.processor.fill)}"
-                 f" inv:{_on_off(self.invert)}")
+        stats = (f" {rate} {geometry} rot{config.rotation}"
+                 f" con{config.contrast:.1f}"
+                 f" sch:{config.scheme}"
+                 f" chr:{config.ramp}"
+                 f" auto:{_on_off(config.auto_levels)}"
+                 f" fill:{_on_off(config.fill)}"
+                 f" inv:{_on_off(config.invert)}"
+                 f" tgt:{config.target}")
 
         if self.lcd is not None:
             # Showing the panel's own grid makes its independence from the
             # terminal's visible: resizing the window moves one and not the
-            # other.
-            stats += " lcd:%dx%d" % self.lcd.display.grid_size
+            # other, and changing the panel font moves the panel's alone.
+            stats += " lcd:%dx%d@%d" % (self.lcd.display.grid_size
+                                        + (config.lcd_font_size,))
 
         width = self.display.cols - 1
+
+        # A refusal or a clamp beats the key list: the list is the same every
+        # frame and the message is the answer to what was just pressed.
+        if self.notice is not None:
+            text, expires = self.notice
+            if time.monotonic() < expires:
+                return f"{stats} | {text}"[:width]
+            self.notice = None
+
         for keys in (" | q:quit r:rotate f:fill i:invert c:chars +/-:contrast"
-                     " a:auto s:scheme",
-                     " | q:quit r:rotate f:fill i:invert c:chars s:scheme",
-                     " | q:quit r:rotate f:fill s:scheme",
+                     " a:auto s:scheme SPC:freeze t:target l:lcdfont",
+                     " | q:quit r:rotate f:fill i:invert c:chars s:scheme"
+                     " SPC:freeze t:target",
+                     " | q:quit r:rotate f:fill s:scheme SPC:freeze",
                      " | q:quit",
                      ""):
             if len(stats) + len(keys) <= width:
@@ -385,7 +562,17 @@ class AsciiArtLiveCamera:
         return stats
 
     def _handle_key(self, key):
-        """Apply a live control key. Returns False to quit."""
+        """
+        Apply a live control key. Returns False to quit.
+
+        Every branch builds a delta and hands it to apply(); none of them
+        assigns a setting. That is the whole point of the refactor - there is
+        one path in, so a key cannot forget to invalidate the grid or to tell
+        the panel, and the same path is the one a parser will use later.
+
+        Contrast is nudged rather than set: apply() clamps it to the config's
+        own range, so the end stops need no arithmetic here.
+        """
         if key in ("q", "Q"):
             logger.info("User quit")
             return False
@@ -393,27 +580,44 @@ class AsciiArtLiveCamera:
             self.display.refresh_size()
             self.grid_key = None
         elif key in ("r", "R"):
-            self.processor.rotation = (self.processor.rotation + 90) % 360
-            self.grid_key = None
+            self.apply({"rotation": (self.config.rotation + 90) % 360})
         elif key in ("s", "S"):
             self._cycle_scheme()
         elif key in ("f", "F"):
-            self.processor.fill = not self.processor.fill
-            self.grid_key = None
-            self.display.clear()
+            self.apply({"fill": not self.config.fill})
         elif key in ("i", "I"):
-            self.invert = not self.invert
-            self._rebuild_ascii()
+            self.apply({"invert": not self.config.invert})
         elif key in ("c", "C"):
-            self.ramp_index = (self.ramp_index + 1) % len(RAMP_CYCLE)
-            self.ramp_name = RAMP_CYCLE[self.ramp_index]
-            self._rebuild_ascii()
+            index = RAMP_CYCLE.index(self.config.ramp)
+            self.apply({"ramp": RAMP_CYCLE[(index + 1) % len(RAMP_CYCLE)]})
         elif key in ("+", "="):
-            self.processor.contrast = min(4.0, self.processor.contrast + 0.1)
+            self.apply({"contrast": self.config.contrast + 0.1})
         elif key in ("-", "_"):
-            self.processor.contrast = max(0.1, self.processor.contrast - 0.1)
+            self.apply({"contrast": self.config.contrast - 0.1})
         elif key in ("a", "A"):
-            self.processor.auto_levels = not self.processor.auto_levels
+            self.apply({"auto_levels": not self.config.auto_levels})
+        elif key == " ":
+            # The spacebar rather than a letter: every other binding is the
+            # first letter of what it does, "freeze" collides with "fill", and
+            # a pause key nobody has to be told about is better than a mnemonic
+            # that has to be bent to fit.
+            self.apply({"freeze": not self.config.freeze})
+        elif key in ("t", "T"):
+            order = render_config.TARGETS
+            nxt = order[(order.index(self.config.target) + 1) % len(order)]
+            # Step past any target this run cannot honour, rather than refusing
+            # and leaving the key looking dead. Landing back where it started
+            # means there is only one place to be, which is the honest answer.
+            for _ in range(len(order)):
+                if self._feasible_target(nxt) == nxt:
+                    break
+                nxt = order[(order.index(nxt) + 1) % len(order)]
+            self.apply({"target": nxt})
+        elif key in ("l", "L"):
+            sizes = LCD_FONT_CYCLE
+            here = (sizes.index(self.config.lcd_font_size)
+                    if self.config.lcd_font_size in sizes else -1)
+            self.apply({"lcd_font_size": sizes[(here + 1) % len(sizes)]})
         return True
 
     def _install_signal_handlers(self):
@@ -459,24 +663,49 @@ class AsciiArtLiveCamera:
                     self.grid_key = None
                     # A resize may also mean the font changed under us.
                     self._refresh_cell_aspect()
+                    self._redraw = True
 
-                frame = self.camera.get_frame(timeout=1.0)
-                if frame is None:
-                    # The camera caps its own rate, so a miss here means it is
-                    # still warming up (or has stalled) rather than that we are
-                    # polling too fast.
-                    self.dropped += 1
-                    self.display.message("Waiting for camera...")
-                    if not self._drain_input():
-                        break
-                    continue
+                if self.config.freeze and self._held is not None:
+                    # Frozen, so the picture is whatever was last captured. The
+                    # camera is deliberately left running: stopping it would
+                    # make unfreezing cost the 15-20 seconds libcamera takes to
+                    # come back, and its queue is one deep, so nothing piles up.
+                    if not self._redraw and self.notice is None:
+                        # Nothing has changed and nothing is moving, so there is
+                        # no picture to draw. Without this the loop would redraw
+                        # a still frame at the full rate - and push it down the
+                        # SPI bus - for no visible difference at all.
+                        #
+                        # A live notice is the exception: it has to appear and
+                        # then, four seconds later, go away, and _status is what
+                        # retires it. This settles by itself - the redraw that
+                        # shows the expired notice is the one that clears it.
+                        if not self._drain_input():
+                            break
+                        time.sleep(FROZEN_TICK)
+                        continue
+                    frame = self._held
+                else:
+                    frame = self.camera.get_frame(timeout=1.0)
+                    if frame is None:
+                        # The camera caps its own rate, so a miss here means it
+                        # is still warming up (or has stalled) rather than that
+                        # we are polling too fast.
+                        self.dropped += 1
+                        self.display.message("Waiting for camera...")
+                        if not self._drain_input():
+                            break
+                        continue
+                    self._held = frame
+
+                self._redraw = False
 
                 # Hand the panel the frame before doing any work for the
                 # terminal, so the two renders overlap instead of queueing.
-                if self.lcd is not None:
-                    self.lcd.submit(frame, self._lcd_config())
+                if self.lcd_on:
+                    self.lcd.submit(frame, self.config)
 
-                if self.display.draws:
+                if self.terminal_on:
                     cols, rows = self._grid_for(frame.shape)
                     try:
                         processed = self.processor.process(frame.luma,
@@ -488,8 +717,13 @@ class AsciiArtLiveCamera:
                         logger.error("Frame processing failed: %s", e,
                                      exc_info=True)
                         continue
+                elif self.display.draws:
+                    # There is a window, but the picture has been sent to the
+                    # panel alone. Say so rather than leave it blank, and skip
+                    # the build - which is the whole saving being asked for.
+                    ascii_lines, colours = (TERMINAL_OFF,), None
                 else:
-                    # No terminal: the panel does its own downscale and
+                    # No terminal at all: the panel does its own downscale and
                     # character mapping on its own thread, so building a
                     # picture here would be work nothing ever looks at.
                     ascii_lines, colours = (), None
@@ -591,7 +825,10 @@ def parse_args(argv=None):
                         help="Draw nothing on the HDMI screen: no curses, no "
                              "window. Needs --lcd, since otherwise there is "
                              "no output at all. The single-key controls still "
-                             "work when stdin is a terminal, as it is over SSH")
+                             "work when stdin is a terminal, as it is over "
+                             "SSH. Distinct from t, which moves the picture "
+                             "between outputs that both exist; this one "
+                             "declines to open a window at all")
     lcd = parser.add_argument_group(
         "ILI9341 SPI panel",
         "A second, independent output. Its grid is fixed by the font and is "
@@ -604,7 +841,8 @@ def parse_args(argv=None):
                      help="Glyph size, which sets the panel's grid. 8 gives "
                           "64x24, 6 gives 80x30 and 9 gives 64x20; all three "
                           "tile 320x240 exactly and match the camera's 4:3, so "
-                          "nothing is cropped or letterboxed")
+                          "nothing is cropped or letterboxed. Step through "
+                          "those three live with l")
     lcd.add_argument("--lcd-portrait", action="store_true",
                      help="Run the panel as 240x320 instead of 320x240")
     lcd.add_argument("--lcd-spi-hz", type=int, default=40_000_000,

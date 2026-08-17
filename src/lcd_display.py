@@ -116,7 +116,7 @@ class LcdDisplay:
                                dtype=np.uint8)
 
         self.atlas = None
-        self.set_ramp(ramp)
+        self._rebuild(ramp)
 
     def set_ramp(self, ramp):
         """
@@ -129,7 +129,30 @@ class LcdDisplay:
         """
         if self.atlas is not None and self.atlas.chars == ramp:
             return
+        self._rebuild(ramp)
 
+    def set_font_size(self, font_size):
+        """
+        Change the glyph size, and with it the panel's whole character grid.
+
+        Unlike a ramp change this *does* move the grid, so every caller holding
+        a (cols, rows) or a cell aspect has a stale one afterwards - which is
+        why LcdWorker re-reads both from here rather than caching them at
+        start-up.
+
+        Must be called on the thread that owns the panel.  Rebuilding the atlas
+        rasterises every glyph in the ramp, which at font size 8 is 10 glyphs
+        and a few milliseconds; it is not something to do per frame, and
+        nothing here does.
+        """
+        if font_size == self.font_size:
+            return
+        logger.info("LCD font size %d -> %d", self.font_size, font_size)
+        self.font_size = font_size
+        self._rebuild(self.atlas.chars)
+
+    def _rebuild(self, ramp):
+        """Re-rasterise the atlas and re-fit the grid to the panel."""
         self.atlas = GlyphAtlas(ramp, self.font_path, self.font_size)
         self.cols = max(1, self.lcd.width // self.atlas.cell_w)
         self.rows = max(1, self.lcd.height // self.atlas.cell_h)
@@ -138,6 +161,11 @@ class LcdDisplay:
         used_h = self.rows * self.atlas.cell_h
         x0 = (self.lcd.width - used_w) // 2
         y0 = (self.lcd.height - used_h) // 2
+        # Zero the whole buffer before re-pointing the view.  A larger font
+        # gives a smaller picture, and without this the old picture's outer
+        # pixels would survive in the margin the new one no longer reaches -
+        # nothing ever writes there again, so they would stay for good.
+        self._frame[:] = 0
         # A view, so writes through it land in the persistent frame buffer.
         self._region = self._frame[y0:y0 + used_h, x0:x0 + used_w]
 

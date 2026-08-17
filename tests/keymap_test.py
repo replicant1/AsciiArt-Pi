@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import palettes                                   # noqa: E402
 from ascii_camera import AsciiArtLiveCamera       # noqa: E402
 from image_processor import ImageProcessor        # noqa: E402
+from render_config import RenderConfig            # noqa: E402
 
 failures = []
 
@@ -37,6 +38,11 @@ def check(label, condition, detail=""):
 
 class StubDisplay:
     """Just enough display for the key handler to talk to."""
+
+    # Read by the target key and by apply()'s feasibility check: with no panel
+    # attached, whether there is a window at all is what decides where the
+    # picture is allowed to go.
+    draws = True
 
     def __init__(self):
         self.colour_ok = True
@@ -59,13 +65,13 @@ def make_app():
     app = object.__new__(AsciiArtLiveCamera)
     app.display = StubDisplay()
     app.processor = ImageProcessor()
-    app.invert = False
-    app.ramp_name = "coarse"
-    app.ramp_index = 0
-    app.colour_levels = 6
-    app.scheme_index = 0
+    # One object now, instead of six attributes that had to agree with each
+    # other and with the processor. See tests/render_config_test.py.
+    app.config = RenderConfig()
+    app.notice = None
     app.grid_key = None
     app.lcd = None
+    app._redraw = False
     app._rebuild_ascii()
     return app
 
@@ -97,14 +103,14 @@ def test_scheme_key():
 def test_g_is_free():
     print("\n3. 'g' no longer does anything")
     app = make_app()
-    before = (app.scheme.name, app.ramp_name, app.invert,
-              app.processor.fill, app.processor.rotation)
+    before = app.config
     for _ in range(5):
         alive = app._handle_key("g")
-    after = (app.scheme.name, app.ramp_name, app.invert,
-             app.processor.fill, app.processor.rotation)
 
-    check("'g' changes nothing", before == after, f"{before} -> {after}")
+    # The whole config, not a hand-picked tuple of five fields: an unbound key
+    # that quietly changed a sixth would have slipped past the old check.
+    check("'g' changes nothing", app.config == before,
+          app.config.describe_changes(before))
     check("'g' does not quit the app", alive)
 
 
@@ -112,12 +118,15 @@ def test_other_keys_intact():
     print("\n4. The other bindings still work, and match their first letter")
     app = make_app()
 
+    # Asserted against the processor, not the config, on purpose: the config is
+    # what the key sets, and the processor is what actually renders. Checking
+    # the processor is what proves the change was carried all the way out.
     app._handle_key("i")
-    check("i inverts", app.invert)
+    check("i inverts", app.config.invert)
 
     app._handle_key("c")
-    check("c changes the character ramp", app.ramp_name != "coarse",
-          app.ramp_name)
+    check("c changes the character ramp", app.config.ramp != "coarse",
+          app.config.ramp)
 
     app._handle_key("f")
     check("f toggles fill", app.processor.fill)
@@ -139,12 +148,17 @@ def test_other_keys_intact():
     check("- lowers contrast",
           abs(app.processor.contrast - contrast) < 1e-6)
 
+    app._handle_key(" ")
+    check("space freezes the picture", app.config.freeze)
+
     check("q quits", app._handle_key("q") is False)
 
     # Every scheme-affecting letter should be the first letter of what it does.
+    # Space is the exception and is deliberately not in this list: "freeze"
+    # cannot have 'f', which fill already owns.
     for key, word in [("s", "scheme"), ("i", "invert"), ("c", "chars"),
                       ("f", "fill"), ("r", "rotate"), ("a", "auto"),
-                      ("q", "quit")]:
+                      ("q", "quit"), ("t", "target"), ("l", "lcdfont")]:
         check(f"'{key}' matches {word!r}", word.startswith(key))
 
 

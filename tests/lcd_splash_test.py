@@ -219,6 +219,13 @@ class FakeDisplay:
     def set_ramp(self, ramp):
         pass
 
+    def set_font_size(self, font_size):
+        # A real panel re-rasterises its atlas and re-fits the grid here. The
+        # worker calls it on every config it has not seen before, so the stub
+        # has to have it or the splash tests fail on an attribute error that
+        # has nothing to do with the splash.
+        pass
+
     def close(self):
         pass
 
@@ -234,7 +241,8 @@ def test_hold_keeps_the_screen_up():
     """
     print("\nSplash hold")
     import numpy as np
-    from lcd_worker import LcdConfig, LcdWorker
+    from lcd_worker import LcdWorker
+    from render_config import RenderConfig
 
     display = FakeDisplay()
     worker = LcdWorker(display, splash_hold=1.0)
@@ -245,9 +253,11 @@ def test_hold_keeps_the_screen_up():
         class Frame:
             luma = np.zeros((48, 64), dtype=np.uint8)
 
-        config = LcdConfig(rotation=0, contrast=1.0, auto_levels=False,
-                           invert=False, ramp="coarse", scheme="grey",
-                           colour_levels=8, mirror=False)
+        # The app's own config object, rather than a private copy of the
+        # fields the panel reads. colour_levels is 6 and not 8 because the
+        # config validates it - 8 was never a legal value, it just had nothing
+        # to check it against.
+        config = RenderConfig(auto_levels=False, colour_levels=6)
 
         # Frames from the moment the splash goes up - the worst case, and what
         # actually happens on this Pi.
@@ -282,7 +292,8 @@ def test_hold_keeps_the_screen_up():
 def test_zero_hold_hands_over_at_once():
     print("\nSplash hold disabled")
     import numpy as np
-    from lcd_worker import LcdConfig, LcdWorker
+    from lcd_worker import LcdWorker
+    from render_config import RenderConfig
 
     display = FakeDisplay()
     worker = LcdWorker(display, splash_hold=0.0)
@@ -294,9 +305,11 @@ def test_zero_hold_hands_over_at_once():
         class Frame:
             luma = np.zeros((48, 64), dtype=np.uint8)
 
-        config = LcdConfig(rotation=0, contrast=1.0, auto_levels=False,
-                           invert=False, ramp="coarse", scheme="grey",
-                           colour_levels=8, mirror=False)
+        # The app's own config object, rather than a private copy of the
+        # fields the panel reads. colour_levels is 6 and not 8 because the
+        # config validates it - 8 was never a legal value, it just had nothing
+        # to check it against.
+        config = RenderConfig(auto_levels=False, colour_levels=6)
         for _ in range(5):
             worker.submit(Frame(), config)
             time.sleep(0.05)
