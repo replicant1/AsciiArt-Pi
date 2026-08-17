@@ -202,6 +202,12 @@ def tools():
             ),
             "input_schema": {
                 "type": "object",
+                # An empty call is not an answer: it reports success while
+                # changing nothing and saying nothing, which is a worse reply
+                # than an honest refusal. Tools here are not strict, so this is
+                # guidance rather than a gate - parse() still has to cope when
+                # it arrives anyway.
+                "minProperties": 1,
                 "properties": {
                     **properties,
                     "unmet": {
@@ -468,6 +474,21 @@ def parse(utterance, config, previous=None, client=None):
         if block.name == "set_render":
             fields = dict(block.input)
             unmet = fields.pop("unmet", None)
+            if not fields:
+                # set_render with nothing to set. Two different things wearing
+                # the same shape, and they deserve different answers.
+                if unmet:
+                    # "zoom in a bit" on its own: nothing here maps to a
+                    # setting, and it said so. That is a refusal with a reason,
+                    # which is exactly what decline is for, so report it as one
+                    # rather than as an empty change nobody can see.
+                    return Parsed(declined=unmet, usage=usage, seconds=seconds)
+                # Nothing changed and no reason given. Deliberately an error
+                # rather than a quiet decline: dressing it up as a refusal
+                # would hide a malformed answer from the eval, and hiding it
+                # is how a scoreboard stops measuring.
+                raise ParseError(
+                    "the model asked to change nothing, and gave no reason")
             return Parsed(delta=fields, unmet=unmet or None, usage=usage,
                           seconds=seconds)
 

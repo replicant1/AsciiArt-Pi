@@ -199,5 +199,60 @@ check("the sentence is built from SPECS in order",
 check("all twelve settings are named", len(nl._defaults_sentence().split(", ")),
       len(SPECS))
 
+# --- 7. an empty set_render is not an answer --------------------------------
+section("7. empty deltas")
+from types import SimpleNamespace as NS                # noqa: E402
+
+
+def fake_client(name, payload, stop_reason="tool_use"):
+    """A client that returns one canned tool call. No network, no key."""
+    usage = NS(input_tokens=10, output_tokens=5,
+               cache_read_input_tokens=0, cache_creation_input_tokens=0)
+    response = NS(stop_reason=stop_reason, usage=usage,
+                  content=[NS(type="tool_use", name=name, input=payload)])
+    return NS(messages=NS(create=lambda **kw: response))
+
+
+cfg = RenderConfig()
+# .get, not [], so a missing key reports a failure instead of a traceback
+check("the schema says an empty call is not one",
+      nl.tools()[0]["input_schema"].get("minProperties"), 1)
+
+# an ordinary answer is untouched
+got = nl.parse("make it green", cfg,
+               client=fake_client("set_render", {"scheme": "green"}))
+check("a normal delta still comes through", got.delta, {"scheme": "green"})
+check("...and is not a refusal", got.declined, None)
+
+# a delta plus unmet is still a delta
+got = nl.parse("green and louder", cfg, client=fake_client(
+    "set_render", {"scheme": "green", "unmet": "no volume control"}))
+check("unmet is split off the delta", got.delta, {"scheme": "green"})
+check("...and kept", got.unmet, "no volume control")
+
+# nothing to change, but it said why: that is a refusal with a reason
+got = nl.parse("zoom in a bit", cfg, client=fake_client(
+    "set_render", {"unmet": "there is no zoom on this camera"}))
+check("an empty delta with a reason becomes a decline",
+      got.declined, "there is no zoom on this camera")
+# Parsed documents that exactly one of delta and declined is set, so this
+# must look like every other refusal rather than a third shape.
+check("...carrying no delta, like any other refusal", got.delta, None)
+check("...and reports itself as not ok", got.ok, False)
+
+# nothing to change and no reason: malformed, and must not be dressed up
+try:
+    nl.parse("rotate it 45 degrees", cfg,
+             client=fake_client("set_render", {}))
+    check("a bare empty delta raises", "no error", "ParseError")
+except nl.ParseError as e:
+    check("a bare empty delta raises ParseError",
+          "change nothing" in str(e), True)
+
+# and decline itself is unaffected
+got = nl.parse("make me a sandwich", cfg, client=fake_client(
+    "decline", {"reason": "I only change settings."}))
+check("decline still works", got.declined, "I only change settings.")
+
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)
