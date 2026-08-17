@@ -1459,6 +1459,23 @@ is 4096, so a full 153,600-byte frame is 38 writes, and that syscall count
 dominates rather than the clock rate — `spidev.bufsiz=65536` on the kernel
 command line would help if refresh rate ever mattered more than memory.
 
+**Rebuilding the atlas is not a per-frame cost, and is cheap enough not to
+matter.** It happens when the ramp changes, when `invert` is toggled, or when
+`l` changes the panel's font size — never per frame. Measured over eleven
+rebuilds driven from the keyboard: **168 ms for the first, then 13–24 ms**. The
+first is the outlier by an order of magnitude, almost certainly because the font
+file is read from disk that once and found in the page cache afterwards; that
+explanation is inferred from the shape of the numbers rather than measured, but
+the numbers themselves are from the log. Either way it is a one-off at start-up,
+and a font change mid-run costs about one frame.
+
+The rebuild runs on the worker's own thread, which is what keeps it off the main
+loop — the terminal does not stutter when the panel's font changes. It also
+zeroes the frame buffer, because a larger font gives a *smaller* picture and
+nothing ever writes to the margin it no longer reaches; without that, the old
+picture's outer pixels would survive there for good.
+`tests/lcd_font_size_test.py` checks exactly that, on the real panel.
+
 ### You cannot verify this panel in software
 
 Two facts combine, and they are worth knowing before trying:
