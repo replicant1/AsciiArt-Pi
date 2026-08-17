@@ -287,7 +287,7 @@
       "utterance": "give me a thousand colour levels",
       "expect": {"colour_levels": 32},
       "or_decline": true,
-      "note": "Clamp to the ceiling, or say no. Emitting 1000 would be the schema failing to guide it."
+      "note": "Clamp to the ceiling, or say no. Emitting 1000 would be the schema failing to guide it. This is also the scope case: colour_levels does nothing outside the live scheme, and the model used to switch the scheme as well so the change would show. Unasked-for fields are scored as spurious, so that answer fails here - which is what makes this case the guard on the prompt's scope rule."
     },
     {
       "id": "invalid-negative-contrast",
