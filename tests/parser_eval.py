@@ -234,7 +234,9 @@ def main(argv=None):
                          "of the exercise: a cheaper one is a one-string "
                          "change, and this says what it costs in accuracy")
     ap.add_argument("--effort", default=None,
-                    help="reasoning effort to score instead of the app's own")
+                    help="reasoning effort to score instead of the app's "
+                         "own; 'none' omits the parameter, which models older "
+                         "than it require")
     args = ap.parse_args(argv)
 
     # Set before anything runs, so every case and the saved record agree on
@@ -242,7 +244,9 @@ def main(argv=None):
     if args.model:
         nl_parser.MODEL = args.model
     if args.effort:
-        nl_parser.EFFORT = args.effort
+        # "none" so a model that has no effort parameter can be scored at all;
+        # an empty string on a command line is easy to pass by accident.
+        nl_parser.EFFORT = None if args.effort == "none" else args.effort
 
     if nl_parser.api_key() is None:
         print(f"No API key. Set ANTHROPIC_API_KEY or write one to\n"

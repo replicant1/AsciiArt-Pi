@@ -56,6 +56,12 @@ MODEL = "claude-opus-5"
 # tool_use block, which completes the turn, runs nothing, and reports no error.
 # A parser cannot afford a failure mode that looks like success. Effort is the
 # lever for cost here, not the thinking switch.
+#
+# Not every model takes it. Haiku 4.5 rejects the request outright with "This
+# model does not support the effort parameter", a 400 that arrives before any
+# token is billed and reads like a broken key rather than a model that predates
+# the feature. Set this to None for those, and the parameter is left out
+# entirely rather than sent and refused.
 EFFORT = "low"
 
 # Enough headroom for a short think plus one tool call. max_tokens caps
@@ -369,11 +375,14 @@ def parse(utterance, config, previous=None, client=None):
 
     started = time.monotonic()
     try:
+        # Built rather than written out, so an unsupported parameter can be
+        # left out instead of sent and refused.
+        options = {"output_config": {"effort": EFFORT}} if EFFORT else {}
         with _first_call_alone():
             response = client.messages.create(
                 model=MODEL,
                 max_tokens=MAX_TOKENS,
-                output_config={"effort": EFFORT},
+                **options,
                 # The system prompt and the tool schema are identical on every
                 # call, so they are the cache prefix; the settings and the
                 # utterance vary and therefore come after it, in the user turn.
