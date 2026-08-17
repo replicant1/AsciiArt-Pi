@@ -28,9 +28,12 @@ rot — `grep -n` for the symbol if one looks wrong.
 
 ---
 
-## Nothing here is trained
+## Nothing here is trained (but something is tuned)
 
-Worth stating plainly, because everything below is easier to misread otherwise.
+Worth stating plainly, because everything below is easier to misread otherwise
+— and because the obvious reading of section 5 is that those 41 cases are a
+training set. They are not, but the reason is less obvious than it sounds, so
+it gets its own subsection below.
 
 **"The model" means `claude-opus-5`, running on Anthropic's servers, rented by
 the call.** It is stock and unmodified — the same general-purpose Claude anyone
@@ -69,12 +72,60 @@ Everything in this file falls out of that:
 | The marked test, kept in a drawer | `tests/eval_cases.json` | 5 |
 | Rewriting a confusing glossary entry | a text edit, then re-run the eval | 6 |
 
-`eval_cases.json` is a **test suite**, in exactly the sense `render_config_test.py`
-is. That file does not train `RenderConfig`; it checks it. Same relationship.
-The only reason the eval cases *feel* like training data is that they are the
-same shape as training data — inputs paired with correct outputs. Same shape,
-opposite purpose. Using them to write the prompt would be testing on your own
-training set: a wonderful score that means nothing.
+### But the eval cases look exactly like training data
+
+They do, and the resemblance is not superficial: **they are the same kind of
+object.** A set of inputs paired with expected outputs is a set of inputs paired
+with expected outputs. Nothing about the file marks it as one thing or the
+other.
+
+What differs is only what you do with the pairs:
+
+| | What it does | What it produces |
+| --- | --- | --- |
+| **Training** | Adjusts a model's weights until it emits those outputs | A new model |
+| **Testing** | Runs an existing model on the inputs and counts | A number. The model is untouched |
+
+Train and test are **roles, not properties.** This is not a quirk of this
+project — it is why machine learning talks about a *train/test split*: you take
+one collection of pairs and decide which half plays which part. The pairs
+themselves are interchangeable.
+
+> A driving examiner's checklist. You could use it to **coach** a learner —
+> drill them on every item until they pass — or to **examine** one, run it once
+> and mark it. Identical document. What separates the two is whether the
+> candidate saw it beforehand.
+
+`tests/eval_cases.json` is the examination. The model never sees the 41
+sentences; they appear nowhere in the prompt or the schema. That is what "held
+out" means, and it is the only thing that makes the score worth reading.
+
+And it is checkable rather than merely asserted: no training endpoint is called
+anywhere in this repository, and `MODEL` is a stock model string. Real training
+would need a different API, a job measured in hours, a custom model ID, and its
+own line on the bill. None of those exist here.
+
+### The part that really is like training
+
+One honest concession, because the instinct that spots the resemblance is
+picking up something real.
+
+When a case fails and the prompt changes in response, **that is an optimisation
+loop, with the eval as its objective function.** It is not training in the
+technical sense — no weights move, and `claude-opus-5` is exactly the same
+afterwards for this camera and for everyone else calling it. But the
+**overfitting hazard is identical in shape.** Patch the prompt case by case and
+you get a glossary tuned to 41 sentences that generalises to nothing, which is
+the same failure as training on your own test set, arrived at by hand and more
+slowly.
+
+So the precise statement is: *nothing here trains a model; something here tunes
+a prompt, and that carries training's characteristic danger.* Section 6 is the
+discipline that keeps it honest, and this is why it exists.
+
+The difference that still matters: what gets tuned is 2 KB of English you can
+read, diff and revert, not billions of weights you cannot inspect. A bad change
+is visible in `git log`.
 
 Three consequences worth holding on to:
 
@@ -512,6 +563,20 @@ Not hypothetical. In its first day:
 
 Only one of those led to a prompt change. Section 6 is how to tell which kind of
 failure you are looking at before reaching for the prompt.
+
+### The limit this set cannot fix by growing
+
+All 41 utterances were invented, by the same person who wrote the prompt. That
+is the measurement's real ceiling, and re-running does not touch it: a case file
+can only test the failure modes its author imagined, and 41 cases put the true
+pass rate somewhere above 93% rather than at the 100% the scoreboard prints.
+
+`src/asklog.py` is the way out. Every ask is written to `logs/asks.jsonl` with
+the config it resolved against, so utterances said by an actual person standing
+at the camera accumulate somewhere they can be read and promoted into cases.
+`asklog.as_case()` does the conversion, and deliberately labels the result a
+CANDIDATE — filling in `expect` from the model's own answer and then testing
+against it would be exactly the circularity this section is about.
 
 ## 6. When a case fails
 
