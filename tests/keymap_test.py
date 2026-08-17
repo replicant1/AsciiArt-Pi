@@ -69,6 +69,7 @@ def make_app():
     # other and with the processor. See tests/render_config_test.py.
     app.config = RenderConfig()
     app.notice = None
+    app.refusal = None
     app.grid_key = None
     app.lcd = None
     app._redraw = False

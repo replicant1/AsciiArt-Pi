@@ -295,10 +295,16 @@ def make_app(lcd=None, draws=True):
     app.processor = ImageProcessor()
     app.config = RenderConfig()
     app.notice = None
+    app.refusal = None
     app.grid_key = None
     app.grid = (80, 30)
     app.lcd = lcd
     app.encoder = None
+    # Built without __init__, so every attribute the loop touches has to be
+    # named here. None means "no command socket", which is what these tests
+    # want: they drive the app through keys, and a socket would only add a
+    # thread with nothing to say.
+    app.commands = None
     app._held = None
     app._redraw = False
     app.frame_times = []

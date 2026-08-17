@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 import curses  # noqa: E402
 
+import commands  # noqa: E402
 import palettes  # noqa: E402
 import render_config  # noqa: E402
 from ascii_art import RAMPS, AsciiArt  # noqa: E402
@@ -95,6 +96,7 @@ class AsciiArtLiveCamera:
         # by _adopt whenever it changes.
         self.config = render_config.from_args(args)
         self.notice = None          # (text, expiry), for the status line
+        self.refusal = None         # why the last apply() said no, if it did
 
         self.camera = CameraCapture(
             resolution=(args.width, args.height),
@@ -136,6 +138,8 @@ class AsciiArtLiveCamera:
             self.lcd = self._start_lcd()
         if args.encoder:
             self.encoder = self._start_encoder()
+        self.commands = (self._start_commands() if args.command_socket
+                         else None)
 
         # Losing the panel is survivable when there is a terminal to fall back
         # on, and _start_lcd deliberately treats it that way. With no terminal
@@ -197,11 +201,16 @@ class AsciiArtLiveCamera:
 
         Returns:
             True if the config changed, False if it was refused or was a no-op.
+            On a refusal `self.refusal` carries why, so a caller that shows the
+            user something other than the status line - the command socket - can
+            say what happened rather than only "nothing changed".
         """
+        self.refusal = None
         try:
             proposed = self.config.with_changes(delta)
         except ConfigError as e:
             logger.warning("Refused %r: %s", delta, e)
+            self.refusal = "\n".join(e.problems)
             if note:
                 self._note(str(e))
             return False
@@ -213,6 +222,7 @@ class AsciiArtLiveCamera:
                            f"{proposed.target} alone here")
                 logger.warning("%s; staying on %r", message,
                                self.config.target)
+                self.refusal = message
                 if note:
                     self._note(message)
                 return False
@@ -340,6 +350,90 @@ class AsciiArtLiveCamera:
             logger.error("Rotary encoder unavailable, continuing without "
                          "it: %s", e, exc_info=True)
             return None
+
+    def _start_commands(self):
+        """
+        Open the typed-command socket, or carry on without it.
+
+        Not fatal, for the same reason the panel and the knob are not: the
+        single-key controls still work, so a socket that cannot be bound should
+        cost a log line rather than the camera. The likeliest cause is another
+        instance already listening, and refusing to start over the top of a
+        running app is the correct outcome there.
+        """
+        try:
+            from command_server import CommandServer
+
+            return CommandServer(self.args.command_socket).start()
+        except Exception as e:
+            logger.error("Command socket unavailable, continuing without "
+                         "it: %s", e, exc_info=True)
+            return None
+
+    def _poll_commands(self):
+        """
+        Apply everything typed since the last frame, and answer each line.
+
+        Read here rather than on the socket's own thread because applying a
+        setting repaints the window, rebuilds the ASCII generator and talks to
+        the panel worker - none of which is safe off this thread. Every reply
+        is sent, including for the lines that changed nothing, so a client is
+        never left waiting.
+        """
+        if self.commands is None:
+            return
+        for line, answer in self.commands.take():
+            try:
+                answer.put_nowait(self._run_command(line))
+            except Exception as e:
+                logger.error("Command %r failed: %s", line, e, exc_info=True)
+                try:
+                    answer.put_nowait(f"that went wrong: {e}")
+                except Exception:
+                    pass
+
+    def _run_command(self, line):
+        """One typed line in, the text to print back out."""
+        logger.info("Command: %s", line)
+        try:
+            kind, payload = commands.parse(line)
+        except commands.CommandError as e:
+            return str(e)
+
+        if kind == "none":
+            return ""
+        if kind == "help":
+            return commands.help_text(payload, self.config)
+        if kind == "show":
+            return commands.show_text(self.config)
+        if kind == "reset":
+            payload = commands.defaults_delta(self.config)
+            # A delta is applied whole or not at all, so a single field this
+            # run cannot honour would take the other eleven down with it. That
+            # is right for a delta somebody typed - it says what they asked for
+            # and they should be told no - but wrong for "put everything back",
+            # which should restore what it can. Headless, the default target of
+            # "both" is unreachable, and reset used to refuse outright and
+            # report "nothing changed" over five non-default settings.
+            if "target" in payload:
+                payload["target"] = self._feasible_target(payload["target"])
+            payload = {name: value for name, value in payload.items()
+                       if getattr(self.config, name) != value}
+            if not payload:
+                return "already at the defaults"
+
+        # From here it is an ordinary delta, applied down the same path a
+        # keypress uses - so a typed setting and a pressed key cannot diverge,
+        # and neither can get past the validation the other would have hit.
+        before = self.config
+        # note=False: the reply says what happened, and a status-line notice
+        # would be saying it a second time to someone looking elsewhere.
+        if self.apply(payload, note=False):
+            return "  " + self.config.describe_changes(before)
+        if self.refusal:
+            return "\n".join("  " + line
+                             for line in self.refusal.splitlines())
+        return "  nothing changed"
 
     def _poll_encoder(self):
         """Turn accumulated knob movement and presses into scheme changes."""
@@ -748,6 +842,10 @@ class AsciiArtLiveCamera:
                 # Releasing the pins matters as much as it does for the panel:
                 # a claim left behind makes the next run's start() fail.
                 self.encoder.stop()
+            if self.commands is not None:
+                # Same reasoning again, for the socket file: one left behind
+                # makes the next run's bind fail with the address still in use.
+                self.commands.stop()
             logger.info("Rendered %d frames in %.1fs (%.1f avg fps), "
                         "%d camera timeouts", self.frame_count, elapsed,
                         avg, self.dropped)
@@ -758,9 +856,12 @@ class AsciiArtLiveCamera:
 
         The knob is read here rather than on its own timer so that it lands in
         the same place in the loop as a keypress: one scheme change per frame
-        at most, applied before the next frame is drawn.
+        at most, applied before the next frame is drawn. Typed commands arrive
+        by the same route, from the socket thread - and later, a phone's HTTP
+        handler will deliver into the same queue.
         """
         self._poll_encoder()
+        self._poll_commands()
         while True:
             key = self.display.get_key()
             if key is None:
@@ -878,6 +979,21 @@ def parse_args(argv=None):
                       help="Swap which way the knob steps. Which rotation "
                            "counts as forwards depends on which pin was wired "
                            "to CLK, so if the knob runs backwards, add this")
+    typed = parser.add_argument_group(
+        "Typed commands",
+        "A local socket for setting things by name rather than by key - "
+        "\"scheme green\", \"contrast 2.4 invert on\". Drive it with "
+        "tools/asciicam_cli.py from any shell, including against the systemd "
+        "service, which has no terminal to type at. It is a Unix socket with "
+        "mode 0600, so it is not reachable from the network and only this user "
+        "can connect.")
+    typed.add_argument("--command-socket",
+                       default=str(Path(__file__).resolve().parent
+                                   / "asciicam.sock"),
+                       help="Path to the command socket")
+    typed.add_argument("--no-commands", action="store_const", const="",
+                       dest="command_socket",
+                       help="Do not open the command socket at all")
     parser.add_argument("--log", default=str(Path(__file__).resolve().parent
                                              / "ascii_camera.log"),
                         help="Log file (stderr is redirected here too)")

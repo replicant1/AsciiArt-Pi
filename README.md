@@ -117,6 +117,44 @@ no panel attached it steps between `both` and `terminal` only. Asking for an
 output that would show the picture to nobody is refused and says so in the
 status bar.
 
+### Typing settings by name
+
+The single-key controls are quick but fixed: one key per setting, and no way to
+say *how much*. Alongside them the app opens a local command socket, so any
+setting can be set by name from a shell:
+
+```bash
+python3 tools/asciicam_cli.py            # a prompt
+python3 tools/asciicam_cli.py show       # or one command and out
+```
+
+```
+ascii> scheme green
+  scheme 'grey'->'green'
+ascii> contrast 2.4 invert on freeze off
+  contrast 1.0->2.4, invert False->True
+ascii> rotation 45
+  rotation must be one of 0, 90, 180, 270, not 45
+```
+
+`help` lists every setting with its permitted values and current value, `show`
+prints the values alone, and `reset` returns to the start-up defaults. **The
+help text is generated from `SPECS`**, so a setting added to `RenderConfig` is
+documented the moment it exists and cannot be forgotten.
+
+This works against the systemd service, which has no terminal of its own and
+cannot otherwise be typed at — that is most of the reason it exists. It is a
+Unix socket with mode 0600, so it is not reachable from the network and only
+the user running the app can connect; `--no-commands` switches it off.
+
+**The split is the point, not the parsing.** `src/commands.py` turns text into
+typed values and stops there; `RenderConfig` decides what is allowed. So
+`rotation 45` parses cleanly and is refused one layer down, in the same wording
+every other route gets. When a language model is added it will produce deltas
+the same way and be judged by the same code — which is the only thing that
+makes comparing them meaningful. A front end that quietly accepted more than
+the validated path would let a phrase work by hand and fail through the parser.
+
 With `--encoder`, a KY-040 rotary encoder cycles the colour schemes too:
 
 | Knob | Effect |

@@ -201,6 +201,7 @@ def make_app(steps, presses=0):
     # walks the list by index; it just does not store the result as one.
     app.config = RenderConfig()
     app.notice = None
+    app.refusal = None
     app.grid_key = None
     app.lcd = None
     app._redraw = False
