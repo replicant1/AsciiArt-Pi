@@ -510,7 +510,54 @@ Not hypothetical. In its first day:
   watching it fail is exactly how an eval gets quietly gamed, so both edits are
   recorded in the case notes.
 
-## 6. Changing it safely
+Only one of those led to a prompt change. Section 6 is how to tell which kind of
+failure you are looking at before reaching for the prompt.
+
+## 6. When a case fails
+
+**A failing case does not mean "change the prompt until it passes."** That
+reflex is the main way an eval goes bad. Tune case by case until all 41 are
+green and you have overfitted to 41 sentences: the score reaches 100% and says
+nothing about the 42nd. It is the same mistake as writing the prompt from the
+cases, arrived at more slowly.
+
+A failure has at least five meanings. The first day of running this harness
+produced four of them.
+
+| What it was | The example | Right response |
+| --- | --- | --- |
+| **The case is wrong** | `rel-back-to-normal` was missing `target` from `allow`; `partial-zoom` was missing `fill` | Fix the answer key. The model was right |
+| **The code is wrong** | `plain-scheme` threw a pydantic error — a client built per call, racing under parallelism | Fix the bug. Nothing to do with the prompt |
+| **It is noise** | `invalid-colour-levels` flipped pass to fail between two *identical* runs | Nothing. Run it again |
+| **It is a decision only a person can make** | Clamping `colour_levels` to 32 *and* switching `scheme` to `live` so the change would show | Ask. Do not guess on the model's behalf |
+| **The prompt is genuinely unclear** | …only once the four above are ruled out | Change the prompt |
+
+Five failure events, one prompt change — and that only after the overreach
+question had been put to a person and answered.
+
+### Two rules for when it really is the prompt
+
+**Change the rule, not the case.** Paragraph 6 says "change only what the
+request mentions", a general principle. It does *not* say "when someone asks for
+a thousand colour levels, leave the scheme alone". A prompt full of
+case-specific patches is an overfitted model with extra steps. The test: would
+this sentence help on an utterance that is not in the file?
+
+**Prefer the deterministic layer.** If a fix can live in the schema or the
+validator, put it there rather than asking the model nicely. `"sepia"` is
+impossible because it is not in the enum, not because the prompt forbids it. A
+prompt sentence is a request; a schema constraint is a guarantee. Reach for the
+prompt only when the thing wanted is a judgement rather than a rule.
+
+### Why the target is 90% and not 100%
+
+The eval is a **regression detector and a way of surfacing decisions**, not a
+number to maximise. A threshold a stochastic component can only meet on a good
+day is a threshold that gets ignored — and an eval being gamed has stopped
+measuring anything. If it ever sits at 100% for a long stretch, the useful
+response is harder cases, not satisfaction.
+
+### Then change it safely
 
 1. Edit the prompt in `src/parser.py`, or a `note` in `src/render_config.py`.
 2. `bash sync.sh push` — or copy the file into the mount.
