@@ -23,12 +23,16 @@ is the three things that can silently go wrong:
 """
 
 import sys
+from collections import deque
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
+import numpy as np                                # noqa: E402
+
+import ascii_camera                                # noqa: E402
 import palettes                                   # noqa: E402
 import render_config                              # noqa: E402
 from ascii_camera import AsciiArtLiveCamera       # noqa: E402
@@ -268,12 +272,19 @@ class StubLcd:
         self.display = self._Display()
         self.blanks = 0
         self.submitted = 0
+        self.splashes = []
 
     def blank(self):
         self.blanks += 1
 
     def submit(self, frame, config):
         self.submitted += 1
+
+    def splash(self, message, detail=None):
+        self.splashes.append(message)
+
+    def stop(self, timeout=3.0):
+        pass
 
 
 def make_app(lcd=None, draws=True):
@@ -505,6 +516,194 @@ def test_lcd_font_size():
           str(ascii_camera.LCD_FONT_CYCLE))
 
 
+
+# --------------------------------------------------------------------------
+# 4. The render loop itself, where freeze and target actually live
+# --------------------------------------------------------------------------
+#
+# Everything above stops at the config and its immediate collaborators. But
+# `freeze` and `target` are not settings the processor reads - they change the
+# shape of the loop in run(), and until this section existed nothing in
+# software ran that loop at all. Both were verified only by hand, on the Pi.
+#
+# The camera and the display are fakes, but the loop is the real one.
+
+class LoopCamera:
+    """A camera that hands out identical frames and counts how many."""
+
+    class Frame:
+        def __init__(self):
+            self.luma = np.zeros((240, 320), dtype=np.uint8)
+
+        @property
+        def shape(self):
+            return (240, 320)
+
+    def __init__(self):
+        self.served = 0
+        self.started = False
+        self.stopped = False
+
+    def start(self):
+        self.started = True
+
+    def get_frame(self, timeout=1.0):
+        self.served += 1
+        return self.Frame()
+
+    def stop(self):
+        self.stopped = True
+
+
+class LoopDisplay:
+    """A display that records what it drew and plays back scripted keys."""
+
+    draws = True
+
+    def __init__(self, keys=(), draws=True):
+        self.draws = draws
+        self.colour_ok = True
+        self.scheme = palettes.SCHEMES[0]
+        self.cols, self.rows = 200, 60
+        self.keys = list(keys)
+        self.polls = 0
+        self.renders = []           # the ascii_lines of every render
+        self.cleared = 0
+        self.repaints = 0
+        self.messages = []
+
+    # Running out of scripted keys quits, so a test can never hang: the loop
+    # always terminates, whatever the behaviour under test turns out to be.
+    def get_key(self):
+        self.polls += 1
+        return self.keys.pop(0) if self.keys else "q"
+
+    @property
+    def canvas_size(self):
+        return self.cols, max(1, self.rows - 1)
+
+    def cell_metrics(self):
+        return None
+
+    def refresh_size(self):
+        return False
+
+    def set_scheme(self, scheme):
+        self.repaints += 1
+        self.scheme = scheme
+
+    def clear(self):
+        self.cleared += 1
+
+    def render(self, ascii_lines, status="", colours=None):
+        self.renders.append(tuple(ascii_lines))
+
+    def message(self, text):
+        self.messages.append(text)
+
+
+def run_loop(keys, lcd=None, draws=True, config=None):
+    """Drive the real run() with fakes. Returns (app, camera, display)."""
+    app = make_app(lcd=lcd, draws=draws)
+    app.display = LoopDisplay(keys, draws=draws)
+    app.camera = LoopCamera()
+    app.frame_count = 0
+    app.dropped = 0
+    app.frame_times = deque(maxlen=20)
+    app.is_running = False
+    app.cell_aspect = 2.0
+    if config is not None:
+        app.config = config
+    app.run()
+    return app, app.camera, app.display
+
+
+def test_freeze_stops_the_loop_working():
+    print("\n27. Freezing stops the camera being read and the picture redrawn")
+    # One frame, then space, then a long quiet stretch. If freeze did nothing,
+    # the camera would be read once per pass for all of it.
+    app, camera, display = run_loop([None, " "] + [None] * 30)
+
+    check("the camera was read only while unfrozen", camera.served <= 3,
+          f"{camera.served} frames served")
+    check("the picture was drawn only when something changed",
+          len(display.renders) <= 3, f"{len(display.renders)} renders")
+    check("but the controls kept being polled", display.polls > 10,
+          f"{display.polls} polls")
+    check("the loop still ended cleanly and released the camera",
+          camera.stopped)
+
+    print("\n28. Unfreezing starts it again")
+    app, camera, display = run_loop([None, " "] + [None] * 15
+                                    + [" "] + [None] * 15)
+    check("the camera is read again after the second press",
+          camera.served > 3, f"{camera.served} frames served")
+    check("and the config ended up unfrozen", app.config.freeze is False)
+
+
+def test_frozen_picture_still_responds_to_settings():
+    print("\n29. A frozen picture is still redrawn when a setting changes")
+    # The point of freezing: adjust a still picture and watch it change. If a
+    # setting change did not force a redraw, the app would look like it had
+    # ignored the key.
+    app, camera, display = run_loop([None, " ", None, None, "i"]
+                                    + [None] * 10)
+    frozen_at = 3
+    check("inverting while frozen caused another draw",
+          len(display.renders) > frozen_at,
+          f"{len(display.renders)} renders")
+    check("and the camera was still not read for it", camera.served <= 3,
+          f"{camera.served} frames served")
+    check("the invert actually took effect", app.config.invert is True)
+
+
+def test_target_reshapes_the_loop():
+    print("\n30. The target decides which outputs do work at all")
+    lcd = StubLcd()
+    app, camera, display = run_loop([None, None] + [None] * 3, lcd=lcd)
+    check("with target=both, frames reach the panel", lcd.submitted > 0,
+          f"{lcd.submitted} submitted")
+    full = display.renders[-1]
+    check("...and the terminal gets a real picture", len(full) > 5,
+          f"{len(full)} lines")
+
+    print("\n31. target=terminal stops the panel being fed")
+    lcd = StubLcd()
+    app, camera, display = run_loop([None, "t"] + [None] * 6, lcd=lcd)
+    at_switch = lcd.submitted
+    check("the panel was blanked once", lcd.blanks == 1,
+          f"{lcd.blanks} blanks")
+    check("the terminal still draws a real picture",
+          len(display.renders[-1]) > 5, f"{len(display.renders[-1])} lines")
+    check("and the panel is fed no further frames",
+          lcd.submitted == at_switch or lcd.submitted < 4,
+          f"{lcd.submitted} submitted in total")
+
+    print("\n32. target=lcd says so in the window, and skips the build")
+    lcd = StubLcd()
+    app, camera, display = run_loop([None, "t", "t"] + [None] * 6, lcd=lcd)
+    check("the target arrived at the panel alone", app.config.target == "lcd",
+          app.config.target)
+    last = display.renders[-1]
+    check("the window says where the picture went",
+          last == (ascii_camera.TERMINAL_OFF,), str(last))
+    check("...which is one line, not a rendered grid", len(last) == 1,
+          f"{len(last)} lines")
+    check("and the panel is being fed", lcd.submitted > 0,
+          f"{lcd.submitted} submitted")
+
+
+def test_headless_builds_nothing():
+    print("\n33. With no terminal at all, no picture is built for one")
+    lcd = StubLcd()
+    app, camera, display = run_loop([None] * 5, lcd=lcd, draws=False,
+                                    config=RenderConfig(target="lcd"))
+    check("the panel is fed", lcd.submitted > 0, f"{lcd.submitted} submitted")
+    check("and nothing is built for the terminal",
+          all(lines == () for lines in display.renders),
+          f"{display.renders[:2]}")
+
+
 def main():
     print("=" * 68)
     print("RenderConfig: the app's settings surface")
@@ -520,6 +719,10 @@ def main():
     test_freeze()
     test_target()
     test_lcd_font_size()
+    test_freeze_stops_the_loop_working()
+    test_frozen_picture_still_responds_to_settings()
+    test_target_reshapes_the_loop()
+    test_headless_builds_nothing()
 
     print("\n" + "=" * 68)
     if failures:
