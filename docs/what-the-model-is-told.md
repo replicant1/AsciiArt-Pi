@@ -3,6 +3,10 @@
 Everything the natural-language layer knows about this camera, in one place:
 the system prompt and the tool schema, exactly as `src/parser.py` sends them.
 
+Section 5 is the deliberate complement — the 41 eval cases, which are the one
+thing kept *out* of what the model sees, and which are what say whether any of
+the rest is working.
+
 **This is a snapshot and it will go stale.** Both halves are read out of the
 code at call time, so the running system cannot drift from the code — but this
 file can drift from both. Regenerate it rather than trusting it:
@@ -14,7 +18,11 @@ file can drift from both. Regenerate it rather than trusting it:
 Neither needs a key or the network — `parser.py` imports the SDK lazily, inside
 `_client()`, so both commands run on the Mac with nothing installed.
 
-Captured at commit `c1b57ff`, 17 August 2026.
+Section 5 is a hand-written reading of `tests/eval_cases.json`; that file is the
+authority, and this listing was checked to quote all 41 of its utterances
+verbatim rather than transcribed by eye.
+
+Captured at commit `c1b57ff`, 17 August 2026; section 5 added at `5a1c9f4`.
 
 ---
 
@@ -279,7 +287,169 @@ Consequences worth keeping in mind:
   prompt, never write it. A prompt derived from its own test cases would score
   well and tell you nothing.
 
-## 5. Changing it safely
+## 5. What it is never told — the eval cases
+
+Everything above is input to the model. This section is the opposite: the 41
+cases in `tests/eval_cases.json` are **held out**. They only ever *grade* the
+prompt, and are never used to write it. A prompt derived from its own test cases
+would score beautifully and tell you nothing.
+
+Read the file itself for the authoritative version — its `_about` header
+documents the case format (`expect`, `now`, `before`, `allow`, `forbid`,
+`or_decline`, `or_delta`, `unmet`). What follows is the set as of `5a1c9f4`,
+with the reasoning behind each group, which the JSON has no room for.
+
+`now:` is the config the utterance resolves against, where it matters.
+
+### Plain — one setting, no ambiguity (5)
+
+| utterance | expected |
+| --- | --- |
+| make it green | `scheme: green` |
+| rotate the picture 90 degrees | `rotation: 90` |
+| invert it | `invert: true` |
+| freeze the picture | `freeze: true` |
+| flip it left to right | `mirror: true` |
+
+The floor. If these fail nothing else matters.
+
+### Vocabulary — the device's own words (6)
+
+| utterance | expected |
+| --- | --- |
+| make it warmer | `scheme: amber` or `lime` |
+| something cooler | `scheme: cyan`, `navy` or `azure` |
+| blockier characters please *(now: fine)* | `ramp: coarse` |
+| give me finer detail | `ramp: fine` |
+| that's too punchy, flatten it out *(now: 2.5)* | `contrast: 0.1–2.0` |
+| bigger characters on the little screen | `lcd_font_size: 9–16`, **forbid** `ramp` |
+
+The last is the trap: panel glyph size and the character ramp are different
+things, and confusing them is the likeliest wrong answer on this device. It is
+the only case in the set with a `forbid`.
+
+### Relative — meaningless without state (5)
+
+| utterance | state | expected |
+| --- | --- | --- |
+| a bit more contrast | now 1.0 | `1.05–2.0` |
+| way more contrast | now 1.0 | `2.0–4.0` |
+| undo that | now 2.5, before 1.0 | `contrast: 1.0` |
+| undo that | now amber + fine, before grey + coarse | `scheme: grey, ramp: coarse` |
+| put everything back to normal | now lime, 3.0, inverted | `grey, 1.0, invert false` |
+
+The two contrast cases are a matched pair and must come out *different*, or the
+model is ignoring the modifier and the bands are hiding it. The two `undo` cases
+differ in how many fields the last change touched.
+
+### Several at once (4)
+
+"amber, and freeze it there" · "green, high contrast, and the fine character
+set" · "back to plain greyscale and unfreeze" · "unfreeze it, and while you're
+there make it cyan".
+
+The last has its second instruction in a parenthetical, which is where a parser
+that latches onto the first verb comes unstuck.
+
+### Named looks — judgement, not lookup (4)
+
+"make it look like the Matrix" → green · "make it look like an old cash
+machine" → amber or green · "make it look like a Kindle" → paper or azure ·
+"something calmer" → any of five.
+
+These carry `allow` lists: a ramp or contrast choice alongside the scheme is
+taste, not error. Scoring them strictly would be scoring an opinion.
+
+### Displays (4)
+
+"put it on the little screen only" · "same but on the big screen" · "show it on
+both again" · "just the monitor please".
+
+Between them these exercise every synonym paragraph 3 of the prompt defines.
+
+### Partial — do half, admit the rest (3)
+
+"make it green and turn the volume up" · "warmer, and email the picture to my
+sister" · "zoom in a bit and make it amber".
+
+All three set `unmet: true`, so staying silent about the impossible half scores
+as a miss even when the possible half is perfect. Declining the whole request is
+also wrong. The zoom case allows `fill`, which crops and is close but not the
+same thing.
+
+### Should be declined (5)
+
+"asdfgh" · "what's the weather like" · "make me a sandwich" · "how many colour
+schemes are there" · "hmm".
+
+The fourth is the interesting one: a question, not an instruction. Answering it
+by changing the scheme would be wrong. Without this group a parser that always
+guesses would outscore an honest one.
+
+### Out of range on purpose (5)
+
+| utterance | expected |
+| --- | --- |
+| rotate it 45 degrees | decline, **or** a legal rotation |
+| turn the contrast up to eleven | `contrast: 4.0` (clamp), or decline |
+| switch to the sepia scheme | decline, or nearest warm — never `"sepia"` |
+| give me a thousand colour levels | `colour_levels: 32`, or decline |
+| set the contrast to minus five | decline, or `0.1–1.0` |
+
+These test the boundary rather than the model: `RenderConfig` must be the thing
+that says no, not the schema. `or_decline` and `or_delta` exist for exactly this
+group — where a sensible clamp and an honest refusal are both good answers, and
+insisting on one would be scoring taste.
+
+The colour-levels case doubles as the guard on the prompt's scope rule; see
+section 1.
+
+### What the harness does with them
+
+`tests/parser_eval.py` scores **field by field**, not pass/fail per utterance —
+two of three right on a three-part request is worth knowing, and a boolean would
+throw it away. Three shapes of expectation, because three kinds of question:
+
+    "green"                exactly this
+    ["amber", "lime"]      any of these — warm is not one colour
+    {"min": .., "max": ..} anywhere in this band — relative asks have no
+                           single right answer
+
+Outcomes land in seven buckets, and `refused-correctly` is one of them.
+
+Each case carries its own starting config, so they run in any order and four at
+a time, and a wrong answer at case 3 cannot corrupt case 30.
+
+It is deliberately **not** in the suite the other tests run in. It costs about
+13p and needs the network, so it is a test you choose to run:
+
+    python3 tests/parser_eval.py                 # the whole set
+    python3 tests/parser_eval.py --only decline  # cases whose id contains this
+    python3 tests/parser_eval.py --jobs 1        # serially, for clean logs
+    python3 tests/parser_eval.py --save runs/    # keep the raw results
+
+It exits 0 at or above a 90% pass rate, 1 below — not 100%, because a threshold
+a stochastic component can only meet on a good day is a threshold that gets
+ignored.
+
+### What it has actually caught
+
+Not hypothetical. In its first day:
+
+- The `colour_levels` overreach that produced paragraph 6 of the prompt.
+- A **concurrency bug in `parser.py`** — a client built per call, so two threads
+  racing into their first `anthropic.Anthropic()` hit pydantic's non-thread-safe
+  lazy model building. It surfaced as one flaky case in forty and read like a
+  flaky model until someone read the message. The CLI is serial and would never
+  have shown it.
+- Its own noise floor, ±2–3%, which is the only reason we knew to believe three
+  runs rather than one.
+- Two bugs in the case file itself, where a case failed on a missing `allow`
+  rather than on the model's answer. Worth saying plainly: changing a test after
+  watching it fail is exactly how an eval gets quietly gamed, so both edits are
+  recorded in the case notes.
+
+## 6. Changing it safely
 
 1. Edit the prompt in `src/parser.py`, or a `note` in `src/render_config.py`.
 2. `bash sync.sh push` — or copy the file into the mount.
