@@ -169,5 +169,35 @@ check("ranges have a minimum", props["contrast"]["minimum"], 0.1)
 check("...and say so in the description",
       "From 0.1 to 4.0." in props["contrast"]["description"], True)
 
+# --- 6. the defaults in the prompt are the real ones ------------------------
+section("6. the prompt states the actual defaults")
+from render_config import RenderConfig                # noqa: E402
+
+check("no placeholder left behind", "__DEFAULTS__" in nl.SYSTEM_PROMPT, False)
+check("the sentence is there",
+      "Normal, standard and default mean these values:" in nl.SYSTEM_PROMPT,
+      True)
+
+# every default must appear, with the value the dataclass actually holds
+defaults = RenderConfig()
+missing = []
+for spec in SPECS:
+    value = getattr(defaults, spec.name)
+    if isinstance(value, bool):
+        value = "true" if value else "false"
+    if f"{spec.name} {value}" not in nl.SYSTEM_PROMPT:
+        missing.append(f"{spec.name} {value}")
+check("every SPEC's real default is in the prompt", missing, [])
+
+# and it must be generated, not typed: booleans are the giveaway, since a
+# hand-written copy would say False rather than false
+check("booleans are written the way the model reads them",
+      "invert false" in nl.SYSTEM_PROMPT and "invert False" not in nl.SYSTEM_PROMPT,
+      True)
+check("the sentence is built from SPECS in order",
+      nl._defaults_sentence().split(", ")[0], "scheme grey")
+check("all twelve settings are named", len(nl._defaults_sentence().split(", ")),
+      len(SPECS))
+
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

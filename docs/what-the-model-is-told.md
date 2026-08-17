@@ -22,7 +22,7 @@ Section 5 is a hand-written reading of `tests/eval_cases.json`; that file is the
 authority, and this listing was checked to quote all 41 of its utterances
 verbatim rather than transcribed by eye.
 
-Captured at commit `c1b57ff`, 17 August 2026; section 5 added at `5a1c9f4`.
+Captured at commit `b78f2d1`, 17 August 2026; section 5 added at `5a1c9f4`.
 Line numbers cited below are as of that commit and are the first thing to
 rot — `grep -n` for the symbol if one looks wrong.
 
@@ -47,7 +47,7 @@ is an off-the-shelf model string. Fine-tuning would have meant a training job, a
 custom model ID, and a separate bill; none of those exist here.
 
 So what makes a general-purpose model understand this camera? Only the
-684-token glossary in the system prompt. Claude already knows English, and
+794-token glossary in the system prompt. Claude already knows English, and
 already knows amber is warmer than cyan. The one thing it cannot know is that
 *this device's* warm schemes are called `amber` and `lime` — so it is told, in a
 paragraph, on every single call.
@@ -140,13 +140,13 @@ Three consequences worth holding on to:
 
 ## 1. The system prompt
 
-684 tokens, 2,139 characters. Wrapped here for reading; as sent it is 19 lines,
+794 tokens, 2,447 characters. Wrapped here for reading; as sent it is 21 lines,
 because the `\` continuations in the source join each paragraph into one long
 line. The blank lines between paragraphs are real.
 
 ```
-You turn spoken or typed requests into settings changes for an ASCII art camera -
-a Raspberry Pi that renders its camera feed as characters, on two displays at
+You turn spoken or typed requests into settings changes for an ASCII art camera
+- a Raspberry Pi that renders its camera feed as characters, on two displays at
 once: a terminal window on an HDMI monitor, and a 2.4 inch LCD panel of 320x240
 pixels.
 
@@ -175,6 +175,11 @@ the current settings and the ones before the last change, so resolve them
 against those and emit absolute values. Undo means returning the settings that
 last changed to what they were before.
 
+Normal, standard and default mean these values: scheme grey, ramp coarse, invert
+false, colour_levels 32, contrast 1.0, auto_levels true, rotation 0, mirror
+false, fill false, lcd_font_size 8, target both, freeze false. A request to put
+things back to normal is asking for those, and counts as naming them.
+
 A request can ask for several things at once, and can ask for something you can
 only partly do. Do the part that maps to a setting rather than declining the
 whole thing, and say what you could not do in the `unmet` field.
@@ -195,6 +200,7 @@ is not yet visible. Say so in `unmet` instead.
 | 4 | Relative requests resolve against `now`/`before` | `undo` is impossible; "a bit more" has no anchor |
 | 5 | Partial answers, via `unmet` | "make it green and turn the volume up" gets refused whole |
 | 6 | Scope discipline | A one-setting request quietly changes two |
+| 7 | States the defaults, generated from `RenderConfig` | "put everything back to normal" has no target |
 
 Paragraph 3 is the only genuinely hand-authored knowledge in the system. Nothing
 else could supply it — that amber is warmer than cyan is general knowledge, but
@@ -345,9 +351,9 @@ Measured with `messages.count_tokens`, which is not billed.
 
 | | tokens | note |
 | --- | ---: | --- |
-| System prompt | 684 | identical every call |
+| System prompt | 794 | identical every call |
 | Tool schema | 1,300 | identical every call |
-| **Cached prefix** | **1,984** | what `cache_control` protects |
+| **Cached prefix** | **2,094** | what `cache_control` protects |
 | Settings + utterance | ~150 | varies, full price |
 | Reply | ~150 | short think plus one tool call |
 

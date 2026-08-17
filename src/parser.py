@@ -80,6 +80,30 @@ MAX_RETRIES = 1
 # the tree is one careless addition away from a public commit.
 KEY_FILE = Path.home() / ".config" / "asciicam" / "api_key"
 
+def _defaults_sentence():
+    """
+    The defaults, read from RenderConfig rather than written out again.
+
+    Stating them in prose would be a second copy, and the copy is the one that
+    goes stale: change a default in the dataclass and the model would go on
+    confidently restoring the old one, in the one situation - "put everything
+    back" - where being wrong is least visible.
+
+    Worth having at all because a weaker model noticed it was missing. Asked to
+    put everything back to normal, Haiku 4.5 declined with "you haven't told me
+    what the normal defaults are", which was correct; Opus and Sonnet inferred
+    them and hid the gap.
+    """
+    default = RenderConfig()
+    parts = []
+    for spec in SPECS:
+        value = getattr(default, spec.name)
+        if isinstance(value, bool):
+            value = "true" if value else "false"
+        parts.append(f"{spec.name} {value}")
+    return ", ".join(parts)
+
+
 SYSTEM_PROMPT = """\
 You turn spoken or typed requests into settings changes for an ASCII art \
 camera - a Raspberry Pi that renders its camera feed as characters, on two \
@@ -111,6 +135,9 @@ the current settings and the ones before the last change, so resolve them \
 against those and emit absolute values. Undo means returning the settings that \
 last changed to what they were before.
 
+Normal, standard and default mean these values: __DEFAULTS__. A request to put \
+things back to normal is asking for those, and counts as naming them.
+
 A request can ask for several things at once, and can ask for something you \
 can only partly do. Do the part that maps to a setting rather than declining \
 the whole thing, and say what you could not do in the `unmet` field.
@@ -119,7 +146,7 @@ Change only what the request mentions. Do not change a second setting in order \
 to make the first one take effect: the person may have chosen the current \
 settings deliberately, and a change they did not ask for is worse than one \
 that is not yet visible. Say so in `unmet` instead.\
-"""
+""".replace("__DEFAULTS__", _defaults_sentence())
 
 
 def _json_type(value):
