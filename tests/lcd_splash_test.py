@@ -209,6 +209,7 @@ class FakeDisplay:
     def __init__(self):
         self.splash_frames = 0
         self.picture_frames = 0
+        self.clears = 0
 
     def show_image(self, image):
         self.splash_frames += 1
@@ -225,6 +226,9 @@ class FakeDisplay:
         # has to have it or the splash tests fail on an attribute error that
         # has nothing to do with the splash.
         pass
+
+    def clear(self):
+        self.clears += 1
 
     def close(self):
         pass
@@ -320,6 +324,51 @@ def test_zero_hold_hands_over_at_once():
         worker.stop()
 
 
+def test_blank_cancels_the_start_up_screen():
+    """
+    Blanking the panel must actually leave it blank, splash or no splash.
+
+    Found by review on PR #22 and confirmed by reproduction before it was
+    fixed. The start-up screen is retired on the *frame* path, and blank() is
+    called precisely when frames have stopped arriving - so a blank raised
+    while the screen was still up cleared the panel and then had the idle tick
+    redraw the screen over it, every tick, with nothing left that could ever
+    retire it. The panel sat animating "starting camera" until the target was
+    switched back.
+
+    The window this is reachable in is the first several seconds of every run
+    with --lcd, which is exactly when someone is most likely to be pressing
+    keys and wondering why nothing has appeared yet.
+    """
+    print("\nBlanking while the start-up screen is up")
+    from lcd_worker import LcdWorker
+
+    display = FakeDisplay()
+    worker = LcdWorker(display, splash_hold=3.0)
+    worker.start()
+    try:
+        worker.splash("starting camera", "64x24 grid")
+        time.sleep(0.6)
+        check("the start-up screen is up to begin with",
+              display.splash_frames > 0, f"{display.splash_frames} draws")
+
+        worker.blank()
+        time.sleep(0.4)
+        at_blank = display.splash_frames
+        check("blanking clears the panel", display.clears >= 1,
+              f"{display.clears} clears")
+
+        # No frames from here on, exactly as when the target has moved away.
+        time.sleep(1.2)
+        check("and nothing redraws the start-up screen over it",
+              display.splash_frames == at_blank,
+              f"{at_blank} draws at the blank, {display.splash_frames} after")
+        check("the panel was cleared once, not repeatedly",
+              display.clears == 1, f"{display.clears} clears")
+    finally:
+        worker.stop()
+
+
 def hold_on_panel(seconds, message, detail):
     """
     Drive the real ILI9341 and leave the start-up screen on it.
@@ -375,6 +424,7 @@ def main():
     test_missing_font_still_draws()
     test_hold_keeps_the_screen_up()
     test_zero_hold_hands_over_at_once()
+    test_blank_cancels_the_start_up_screen()
 
     out = os.path.join(os.path.dirname(__file__), "..", "splash_test.png")
     SplashScreen(320, 240).render("starting camera",

@@ -159,7 +159,18 @@ class LcdWorker(threading.Thread):
         otherwise keep showing whichever frame happened to be last, which reads
         as a crashed display rather than a switched-off one.  Honoured on the
         worker's next tick, so within the idle timeout.
+
+        Cancelling any pending start-up screen is part of blanking, not a
+        separate courtesy.  The screen is retired on the *frame* path, and
+        blanking happens precisely when frames have stopped arriving - so
+        without this the idle tick would redraw the start-up screen over the
+        cleared panel, every tick, with nothing left that could ever retire it.
+        The panel would sit animating "starting camera" until the target was
+        switched back. Clearing it here is safe from this thread for the same
+        reason splash() is: the assignment is atomic, and the blank is honoured
+        at the top of the loop, *after* any tick already in flight.
         """
+        self._splash = None
         self._blanking.set()
 
     def run(self):
@@ -182,8 +193,10 @@ class LcdWorker(threading.Thread):
                 item = self._inbox.get(timeout=timeout)
             except Empty:
                 # The idle timeout is the splash's clock: no extra thread and no
-                # sleep of its own, and it stops by construction once the splash
-                # is cleared and this branch stops mattering.
+                # sleep of its own. It stops when _splash goes to None, which
+                # happens on the frame path below - or in blank(), which has to
+                # do it explicitly, since it is called exactly when frames have
+                # stopped and the frame path can no longer be reached.
                 self._tick_splash()
                 continue
             if item is None:
