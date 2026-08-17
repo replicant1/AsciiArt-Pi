@@ -1,0 +1,51 @@
+# Utterances for tools/ask_parser.py --batch
+#
+# A smoke set, not the Stage 3 eval: these have no expected deltas attached, so
+# a human still has to read the output and judge it. The eval that scores field
+# by field, with its own bucket for correctly refused, comes next - this is what
+# tells us the prompt and schema are worth scoring in the first place.
+#
+# Run in sequence against a config that carries forward, which is what makes
+# the relative ones ("a bit less", "undo that") mean anything.
+
+# --- the plainest thing that could work -------------------------------------
+make it green
+rotate the picture 90 degrees
+
+# --- the device's own vocabulary --------------------------------------------
+warmer, and blockier characters
+give me finer detail
+that's too punchy, flatten it out a bit
+bigger characters on the little screen
+
+# --- several things at once -------------------------------------------------
+amber, high contrast, and freeze it there
+go back to plain greyscale and unfreeze
+
+# --- relative, and only answerable against the current settings -------------
+a bit more contrast
+undo that
+
+# --- named looks, which are a judgement call rather than a lookup -----------
+make it look like the Matrix
+make it look like an old cash machine
+something calmer
+
+# --- displays ---------------------------------------------------------------
+put it on the little screen only
+same but on the big screen
+show it on both again
+
+# --- partly answerable: should change what it can and say what it cannot ----
+make it green and turn the volume up
+warmer, and email the picture to my sister
+
+# --- should be declined -----------------------------------------------------
+asdfgh
+what's the weather like
+make me a sandwich
+
+# --- out of range on purpose: the model may well produce these, and the
+# --- config must be the thing that says no, not the schema
+turn the contrast up to eleven
+rotate it 45 degrees

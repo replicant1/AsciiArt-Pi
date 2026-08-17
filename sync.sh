@@ -34,7 +34,7 @@ ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
 SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
            window_plan.py lcd.py lcd_display.py lcd_worker.py lcd_splash.py
            palettes.py encoder.py render_config.py commands.py
-           command_server.py version.py)
+           command_server.py parser.py version.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_selftest.py lcd_render_bench.py lcd_concurrency.py
             lcd_splash_test.py
@@ -58,7 +58,7 @@ DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
 # have to live on both sides: scheme_montage.py needs the camera, and
 # probe_encoder.py needs the encoder's GPIO pins.
 TOOL_FILES=(scheme_montage.py probe_encoder.py watch_button.py
-            asciicam_cli.py)
+            asciicam_cli.py ask_parser.py utterances.txt)
 
 changed=0
 
