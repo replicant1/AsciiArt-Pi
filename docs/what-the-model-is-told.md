@@ -23,6 +23,67 @@ authority, and this listing was checked to quote all 41 of its utterances
 verbatim rather than transcribed by eye.
 
 Captured at commit `c1b57ff`, 17 August 2026; section 5 added at `5a1c9f4`.
+Line numbers cited below are as of that commit and are the first thing to
+rot — `grep -n` for the symbol if one looks wrong.
+
+---
+
+## Nothing here is trained
+
+Worth stating plainly, because everything below is easier to misread otherwise.
+
+**"The model" means `claude-opus-5`, running on Anthropic's servers, rented by
+the call.** It is stock and unmodified — the same general-purpose Claude anyone
+else calling that API gets. It is not on the Pi. There is no model file in this
+repo. `parse()` reaches it over HTTPS at `parser.py:333`, which is the only
+billable line in the project and the reason nothing works without a network.
+
+**Nothing in this project trains anything.** No dataset, no training run, no
+fine-tuning. The proof is one line: `MODEL = "claude-opus-5"` at `parser.py:49`
+is an off-the-shelf model string. Fine-tuning would have meant a training job, a
+custom model ID, and a separate bill; none of those exist here.
+
+So what makes a general-purpose model understand this camera? Only the
+684-token glossary in the system prompt. Claude already knows English, and
+already knows amber is warmer than cyan. The one thing it cannot know is that
+*this device's* warm schemes are called `amber` and `lime` — so it is told, in a
+paragraph, on every single call.
+
+### The translator
+
+> You hire a competent translator. You do not train them — they already speak
+> the language. You hand them **a one-page glossary of your company's jargon**
+> (the system prompt) and **a form to fill in** (the tool schema). Then,
+> separately, you write **41 test sentences with model answers** and mark how
+> they did (the eval cases). The translator never sees your answer key. If they
+> did, the test would prove nothing.
+
+Everything in this file falls out of that:
+
+| In the analogy | Here | Section |
+| --- | --- | --- |
+| The translator | `claude-opus-5`, over the network | — |
+| The glossary | `SYSTEM_PROMPT` | 1 |
+| The form | the tool schema, from `SPECS` | 2 |
+| The clerk who rejects a badly filled form | `RenderConfig.with_changes()` | 4 |
+| The marked test, kept in a drawer | `tests/eval_cases.json` | 5 |
+| Rewriting a confusing glossary entry | a text edit, then re-run the eval | 6 |
+
+`eval_cases.json` is a **test suite**, in exactly the sense `render_config_test.py`
+is. That file does not train `RenderConfig`; it checks it. Same relationship.
+The only reason the eval cases *feel* like training data is that they are the
+same shape as training data — inputs paired with correct outputs. Same shape,
+opposite purpose. Using them to write the prompt would be testing on your own
+training set: a wonderful score that means nothing.
+
+Three consequences worth holding on to:
+
+- **Changing behaviour is a text edit, not a training run.** Paragraph 6 of the
+  prompt took one sentence and a re-run.
+- **The model can be swapped by changing one string.** The eval is what tells
+  you what a cheaper one costs you in accuracy.
+- **The eval scores the glossary, not the model.** Almost every failure it has
+  produced was a fixable prompt or schema problem — or a bug in the case file.
 
 ---
 
