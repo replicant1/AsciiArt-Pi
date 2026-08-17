@@ -12,7 +12,14 @@ That gives the property asked for: the terminal grid can be resized freely with
 the mouse and the LCD grid never changes, while the settings that are about
 *how* the picture looks - colour, invert, ramp, rotation, contrast, auto-levels
 - follow the main display.  `fill` deliberately does not follow: the panel is
-always fully occupied.
+always fully occupied.  `lcd_font_size` is the one setting that is the panel's
+alone, and changing it does move the grid - see _apply.
+
+What arrives with each frame is the app's whole RenderConfig, not a private
+copy of the fields the panel happens to care about.  There used to be an
+`LcdConfig` here listing eight of them, which meant adding a setting required
+remembering to add it in two places; the field it was missing was never going
+to announce itself.
 
 Frames are safe to share without copying.  CameraCapture already detaches each
 YuvFrame from the driver's recycled buffers, and both readers only ever read.
@@ -22,7 +29,6 @@ import logging
 import threading
 import time
 from queue import Empty, Full, Queue
-from typing import NamedTuple
 
 import palettes
 from ascii_art import AsciiArt
@@ -47,24 +53,6 @@ DEFAULT_SPLASH_HOLD = 3.0
 SPLASH_READY = "ready"
 
 
-class LcdConfig(NamedTuple):
-    """
-    The settings the LCD copies from the main display.
-
-    `fill` is absent on purpose - the panel always fills - and so is the grid
-    size, which the LCD decides for itself from its font.
-    """
-
-    rotation: int
-    contrast: float
-    auto_levels: bool
-    invert: bool
-    ramp: str
-    scheme: str
-    colour_levels: int
-    mirror: bool
-
-
 class LcdWorker(threading.Thread):
     """Renders camera frames to the LCD without blocking the main loop."""
 
@@ -87,6 +75,11 @@ class LcdWorker(threading.Thread):
         # newest frame, never a backlog.
         self._inbox = Queue(maxsize=1)
         self._stopping = threading.Event()
+        # Not sent through the inbox: a blank is asked for precisely when
+        # frames have stopped arriving, and the inbox drops its oldest entry,
+        # so a blank queued there could sit behind a frame and then be thrown
+        # away by the next one. A flag cannot be lost.
+        self._blanking = threading.Event()
 
         self.processor = ImageProcessor(
             fill=True,                          # always, by design
@@ -145,6 +138,9 @@ class LcdWorker(threading.Thread):
         """
         if self._stopping.is_set():
             return
+        # A frame settles any outstanding blank request: the panel is wanted
+        # again, so clearing it first would only cost a black flash.
+        self._blanking.clear()
         try:
             self._inbox.get_nowait()
             self.dropped += 1
@@ -155,9 +151,39 @@ class LcdWorker(threading.Thread):
         except Full:
             self.dropped += 1
 
+    def blank(self):
+        """
+        Ask for the panel to be cleared, without touching it from here.
+
+        Used when the picture is sent to the terminal alone: the panel would
+        otherwise keep showing whichever frame happened to be last, which reads
+        as a crashed display rather than a switched-off one.  Honoured on the
+        worker's next tick, so within the idle timeout.
+
+        Cancelling any pending start-up screen is part of blanking, not a
+        separate courtesy.  The screen is retired on the *frame* path, and
+        blanking happens precisely when frames have stopped arriving - so
+        without this the idle tick would redraw the start-up screen over the
+        cleared panel, every tick, with nothing left that could ever retire it.
+        The panel would sit animating "starting camera" until the target was
+        switched back. Clearing it here is safe from this thread for the same
+        reason splash() is: the assignment is atomic, and the blank is honoured
+        at the top of the loop, *after* any tick already in flight.
+        """
+        self._splash = None
+        self._blanking.set()
+
     def run(self):
         logger.info("LCD worker started: %dx%d grid", *self.display.grid_size)
         while not self._stopping.is_set():
+            if self._blanking.is_set():
+                self._blanking.clear()
+                try:
+                    self.display.clear()
+                    logger.info("LCD blanked")
+                except Exception as e:
+                    logger.error("Blanking the LCD failed: %s", e)
+
             # Ticking faster while the splash is up is what makes the sweep
             # readable: the comet advances one cell per tick, so at the idle
             # rate a full pass would take BAR_CELLS+TAIL ticks - over seven
@@ -167,8 +193,10 @@ class LcdWorker(threading.Thread):
                 item = self._inbox.get(timeout=timeout)
             except Empty:
                 # The idle timeout is the splash's clock: no extra thread and no
-                # sleep of its own, and it stops by construction once the splash
-                # is cleared and this branch stops mattering.
+                # sleep of its own. It stops when _splash goes to None, which
+                # happens on the frame path below - or in blank(), which has to
+                # do it explicitly, since it is called exactly when frames have
+                # stopped and the frame path can no longer be reached.
                 self._tick_splash()
                 continue
             if item is None:
@@ -290,6 +318,11 @@ class LcdWorker(threading.Thread):
         colours = None
         if scheme.kind == "live":
             colours = self.processor.colour_grid(frame, grey, cols, rows)
+            # The panel has no palette to quantise against, so colour_levels
+            # has to be applied to the RGB itself. The terminal gets the same
+            # effect for free by choosing among fewer cube steps. At the top of
+            # the range this returns the frame untouched.
+            colours = self._ascii.posterise(colours)
         elif scheme.kind == "tint":
             # One gather: ramp position -> the scheme's blend from screen to
             # ink. Full RGB here, not the terminal's palette approximation.
@@ -300,7 +333,13 @@ class LcdWorker(threading.Thread):
         self.display.render(indices, colours, scheme.screen)
 
     def _apply(self, config):
-        """Adopt the main display's settings, rebuilding only what changed."""
+        """
+        Adopt the main display's settings, rebuilding only what changed.
+
+        `fill` and `target` are read from the config by nobody here, on
+        purpose: the panel always fills, and whether it should be drawing at
+        all is the main loop's decision - it simply stops submitting.
+        """
         if config == self._config:
             return
 
@@ -312,6 +351,18 @@ class LcdWorker(threading.Thread):
         self.processor.contrast = config.contrast
         self.processor.auto_levels = config.auto_levels
         self.processor.mirror = config.mirror
+
+        # Font size first, because it rebuilds the atlas out of the ramp
+        # already loaded; doing it after would leave the ramp check below with
+        # nothing to notice and the glyphs at the old size.
+        if previous is None or previous.lcd_font_size != config.lcd_font_size:
+            self.display.set_font_size(config.lcd_font_size)
+            # The grid and the cell shape both moved with the font. The
+            # processor was given a cell aspect once at construction, and a
+            # stale one would squash the picture on the panel while leaving the
+            # terminal's correct - which looks like a panel fault rather than a
+            # missed assignment.
+            self.processor.cell_aspect = self.display.cell_aspect
 
         # The ramp string is what the atlas is built from, and `invert` reverses
         # it, so either changing means both the mapping and the glyphs are stale.

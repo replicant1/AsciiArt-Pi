@@ -209,6 +209,7 @@ class FakeDisplay:
     def __init__(self):
         self.splash_frames = 0
         self.picture_frames = 0
+        self.clears = 0
 
     def show_image(self, image):
         self.splash_frames += 1
@@ -218,6 +219,16 @@ class FakeDisplay:
 
     def set_ramp(self, ramp):
         pass
+
+    def set_font_size(self, font_size):
+        # A real panel re-rasterises its atlas and re-fits the grid here. The
+        # worker calls it on every config it has not seen before, so the stub
+        # has to have it or the splash tests fail on an attribute error that
+        # has nothing to do with the splash.
+        pass
+
+    def clear(self):
+        self.clears += 1
 
     def close(self):
         pass
@@ -234,7 +245,8 @@ def test_hold_keeps_the_screen_up():
     """
     print("\nSplash hold")
     import numpy as np
-    from lcd_worker import LcdConfig, LcdWorker
+    from lcd_worker import LcdWorker
+    from render_config import RenderConfig
 
     display = FakeDisplay()
     worker = LcdWorker(display, splash_hold=1.0)
@@ -245,9 +257,9 @@ def test_hold_keeps_the_screen_up():
         class Frame:
             luma = np.zeros((48, 64), dtype=np.uint8)
 
-        config = LcdConfig(rotation=0, contrast=1.0, auto_levels=False,
-                           invert=False, ramp="coarse", scheme="grey",
-                           colour_levels=8, mirror=False)
+        # The app's own config object, rather than a private copy of the
+        # fields the panel reads, and its own defaults for the rest.
+        config = RenderConfig(auto_levels=False)
 
         # Frames from the moment the splash goes up - the worst case, and what
         # actually happens on this Pi.
@@ -282,7 +294,8 @@ def test_hold_keeps_the_screen_up():
 def test_zero_hold_hands_over_at_once():
     print("\nSplash hold disabled")
     import numpy as np
-    from lcd_worker import LcdConfig, LcdWorker
+    from lcd_worker import LcdWorker
+    from render_config import RenderConfig
 
     display = FakeDisplay()
     worker = LcdWorker(display, splash_hold=0.0)
@@ -294,15 +307,60 @@ def test_zero_hold_hands_over_at_once():
         class Frame:
             luma = np.zeros((48, 64), dtype=np.uint8)
 
-        config = LcdConfig(rotation=0, contrast=1.0, auto_levels=False,
-                           invert=False, ramp="coarse", scheme="grey",
-                           colour_levels=8, mirror=False)
+        # The app's own config object, rather than a private copy of the
+        # fields the panel reads, and its own defaults for the rest.
+        config = RenderConfig(auto_levels=False)
         for _ in range(5):
             worker.submit(Frame(), config)
             time.sleep(0.05)
 
         check("a zero hold does not block the picture",
               display.picture_frames > 0, f"{display.picture_frames} frames")
+    finally:
+        worker.stop()
+
+
+def test_blank_cancels_the_start_up_screen():
+    """
+    Blanking the panel must actually leave it blank, splash or no splash.
+
+    Found by review on PR #22 and confirmed by reproduction before it was
+    fixed. The start-up screen is retired on the *frame* path, and blank() is
+    called precisely when frames have stopped arriving - so a blank raised
+    while the screen was still up cleared the panel and then had the idle tick
+    redraw the screen over it, every tick, with nothing left that could ever
+    retire it. The panel sat animating "starting camera" until the target was
+    switched back.
+
+    The window this is reachable in is the first several seconds of every run
+    with --lcd, which is exactly when someone is most likely to be pressing
+    keys and wondering why nothing has appeared yet.
+    """
+    print("\nBlanking while the start-up screen is up")
+    from lcd_worker import LcdWorker
+
+    display = FakeDisplay()
+    worker = LcdWorker(display, splash_hold=3.0)
+    worker.start()
+    try:
+        worker.splash("starting camera", "64x24 grid")
+        time.sleep(0.6)
+        check("the start-up screen is up to begin with",
+              display.splash_frames > 0, f"{display.splash_frames} draws")
+
+        worker.blank()
+        time.sleep(0.4)
+        at_blank = display.splash_frames
+        check("blanking clears the panel", display.clears >= 1,
+              f"{display.clears} clears")
+
+        # No frames from here on, exactly as when the target has moved away.
+        time.sleep(1.2)
+        check("and nothing redraws the start-up screen over it",
+              display.splash_frames == at_blank,
+              f"{at_blank} draws at the blank, {display.splash_frames} after")
+        check("the panel was cleared once, not repeatedly",
+              display.clears == 1, f"{display.clears} clears")
     finally:
         worker.stop()
 
@@ -362,6 +420,7 @@ def main():
     test_missing_font_still_draws()
     test_hold_keeps_the_screen_up()
     test_zero_hold_hands_over_at_once()
+    test_blank_cancels_the_start_up_screen()
 
     out = os.path.join(os.path.dirname(__file__), "..", "splash_test.png")
     SplashScreen(320, 240).render("starting camera",

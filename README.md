@@ -99,6 +99,61 @@ Click the window first so it has keyboard focus.
 | `s`   | Cycle colour scheme: grey / live / green / amber / cyan / navy / azure / lime / paper | `sch:grey` / `sch:green` |
 | `+` `-` | Contrast | `con1.0` |
 | `a`   | Toggle per-frame auto-levels | `auto:on` / `auto:off` |
+| space | Freeze the picture on the last frame, and unfreeze it | `frozen` in place of the frame rate |
+| `t`   | Move the picture between the outputs: both / terminal / panel | `tgt:both` / `tgt:lcd` |
+| `l`   | Cycle the panel's glyph size: 8 / 9 / 6 | `lcd:64x24@8` |
+
+Space rather than a letter for freeze: every other binding is the first letter
+of what it does, and `f` was already fill.
+
+Freezing does not stop the camera — unfreezing would then cost the 15–20
+seconds libcamera takes to come back — and it does not stop the settings
+working. A frozen picture can be recoloured, inverted and rotated while you
+look at it, which is easier than chasing a moving one. Nothing is redrawn while
+it sits there unchanged, so a frozen app is close to idle.
+
+`t` skips any output this run does not have, rather than appearing dead: with
+no panel attached it steps between `both` and `terminal` only. Asking for an
+output that would show the picture to nobody is refused and says so in the
+status bar.
+
+### Typing settings by name
+
+The single-key controls are quick but fixed: one key per setting, and no way to
+say *how much*. Alongside them the app opens a local command socket, so any
+setting can be set by name from a shell:
+
+```bash
+python3 tools/asciicam_cli.py            # a prompt
+python3 tools/asciicam_cli.py show       # or one command and out
+```
+
+```
+ascii> scheme green
+  scheme 'grey'->'green'
+ascii> contrast 2.4 invert on freeze off
+  contrast 1.0->2.4, invert False->True
+ascii> rotation 45
+  rotation must be one of 0, 90, 180, 270, not 45
+```
+
+`help` lists every setting with its permitted values and current value, `show`
+prints the values alone, and `reset` returns to the start-up defaults. **The
+help text is generated from `SPECS`**, so a setting added to `RenderConfig` is
+documented the moment it exists and cannot be forgotten.
+
+This works against the systemd service, which has no terminal of its own and
+cannot otherwise be typed at — that is most of the reason it exists. It is a
+Unix socket with mode 0600, so it is not reachable from the network and only
+the user running the app can connect; `--no-commands` switches it off.
+
+**The split is the point, not the parsing.** `src/commands.py` turns text into
+typed values and stops there; `RenderConfig` decides what is allowed. So
+`rotation 45` parses cleanly and is refused one layer down, in the same wording
+every other route gets. When a language model is added it will produce deltas
+the same way and be judged by the same code — which is the only thing that
+makes comparing them meaningful. A front end that quietly accepted more than
+the validated path would let a phrase work by hand and fail through the parser.
 
 With `--encoder`, a KY-040 rotary encoder cycles the colour schemes too:
 
@@ -115,11 +170,14 @@ Every toggle reads out its current state on the left of the status bar, so
 nothing is hidden:
 
 ```
- 15.0fps 267x100 rot180 con1.0 sch:grey chr:coarse auto:on fill:off inv:off | q:quit ...
+ 15.0fps 267x100 rot180 con1.0 sch:grey chr:coarse auto:on fill:off inv:off tgt:both lcd:64x24@8 | q:quit ...
 ```
 
 The key hints on the right are dropped in whole groups when the window is too
-narrow to hold them; the readouts on the left always stay.
+narrow to hold them; the readouts on the left always stay. A refused change —
+an impossible target, say — takes the hints' place for four seconds, since the
+hints are the same every frame and the message is the answer to what was just
+pressed.
 
 `--ramp` takes a name and nothing else — there is no way to supply the ramp
 characters yourself. It used to accept an arbitrary string, which meant a
@@ -137,7 +195,7 @@ rejected, listing the names that do work.
 | `--fps` | integer | `15` | Target frame rate. The sensor is capped to this, which saves real CPU |
 | `--scheme` | `grey`, `live`, `green`, `amber`, `cyan`, `navy`, `azure`, `lime`, `paper` | `grey` | Colour scheme to start in. Step through them live with `s`. See [Colour schemes](#colour-schemes) |
 | `--colour`, `--color` | flag | off | Shorthand for `--scheme live`. Ignored if `--scheme` is given |
-| `--colour-levels` | 2–6 | `6` | Palette steps per channel. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding |
+| `--colour-levels` | 2–32 | `32` | Steps per channel in the live-colour scheme. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding. Applies to both displays: the terminal quantises to that many steps of the xterm cube, the panel posterises its RGB to the same number. `32` means “as many colours as this display can manage” and leaves the panel at full RGB565. Out of range is clamped |
 | `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
 | `--rotation` | 0, 90, 180, 270 | `0` | Camera rotation. Cycle with `r`. See [Rotation and handedness](#rotation-and-handedness) |
 | `--mirror` | flag | off | Flip the picture left to right, after any rotation |
@@ -148,7 +206,7 @@ rejected, listing the names that do work.
 | `--cell-aspect` | float | `2.0` | Terminal character height/width ratio, which keeps the picture from looking squashed |
 | `--no-terminal` | flag | off | Draw nothing on the HDMI screen: no curses, no window. Needs `--lcd`. Keys still work when stdin is a terminal, as it is over SSH |
 | `--lcd` | flag | off | Also render to the ILI9341 SPI panel, alongside the terminal. See [The ILI9341 SPI panel](#the-ili9341-spi-panel) |
-| `--lcd-font-size` | integer | `8` | Glyph size, which sets the panel's grid. `8` gives 64x24; `6` gives 80x30 and `9` gives 64x20. All three tile 320x240 exactly and match the camera's 4:3 |
+| `--lcd-font-size` | 4-16 | `8` | Glyph size, which sets the panel's grid. `8` gives 64x24; `6` gives 80x30 and `9` gives 64x20. All three tile 320x240 exactly and match the camera's 4:3, and `l` steps through those three live. Other sizes are accepted and leave a black margin |
 | `--lcd-portrait` | flag | off | Run the panel as 240x320 instead of 320x240 |
 | `--lcd-spi-hz` | integer | `40000000` | SPI clock. Lower it if the wiring is long or on a breadboard |
 | `--lcd-brightness` | 0–100 | `100` | Backlight duty cycle, driven as PWM |
@@ -169,8 +227,9 @@ Two things the table does not show on its own.
 `--colour`, reachable as `f`, `r`, `+`/`-`, `a`, `c`, `i` and `s` — so those
 flags mostly just set a starting state. The arguments fixed at startup are
 `--width`, `--height`, `--fps`, `--log`, `--verbose`, the five `--lcd*`
-arguments, the four `--encoder*` arguments, and `--colour-levels`, which is read
-as a setting rather than toggled.
+arguments, and the four `--encoder*` arguments. `--colour-levels` is no longer
+among them — like everything else in `RenderConfig` it can be set live, by name,
+from `tools/asciicam_cli.py`.
 
 **`run_ascii_camera.sh` supplies one of these arguments for you.** The launcher
 always passes `--cell-aspect`, computed from real Pango font metrics for the
@@ -436,7 +495,7 @@ flowchart TB
         INBOX --> LPROC --> LART --> LREND --> LSPI
     end
 
-    GET -->|"submit(frame, LcdConfig)"| INBOX
+    GET -->|"submit(frame, RenderConfig)"| INBOX
 
     REND --> TERM(["HDMI terminal window"])
     LSPI --> PANEL(["2.4 inch ILI9341 panel"])
@@ -454,13 +513,67 @@ main loop.
 own `AsciiArt`, and a grid it derives from its own font rather than the
 terminal's. It has to. The panel is 64x24 where the window might be 267x100, it
 always fills rather than letterboxing, and it can use full RGB where curses is
-limited to the xterm-256 palette. What it copies instead is the *settings* —
-`LcdConfig` is a snapshot of rotation, contrast, ramp, scheme and the rest,
-taken every frame, so pressing `s` or `c` changes both displays together.
+limited to the xterm-256 palette. What it copies instead is the *settings*: the app's whole
+`RenderConfig` rides along with every frame, so pressing `s` or `c` changes both
+displays together. It ignores the two fields that are not its business — `fill`,
+because the panel always fills, and `target`, because whether it should be
+drawing at all is the main loop's decision and shows up as frames simply not
+arriving. `lcd_font_size` is the one field that is the panel's alone.
 
 With `--no-terminal` the `NcursesDisplay` branch is replaced by
 `HeadlessDisplay`, which renders nothing and only logs — the panel then carries
 the picture alone.
+
+### One config, one way in
+
+Every setting that can change while the camera is running lives in a single
+frozen `RenderConfig` (`src/render_config.py`), and every change to one is a
+*delta* — a dict of field names to values — applied through
+`AsciiArtLiveCamera.apply()`. The keyboard produces deltas. The knob produces
+deltas. Nothing anywhere assigns a setting directly.
+
+The settings used to be scattered: some on the `ImageProcessor`, some as plain
+attributes of the app, the colour scheme as an index into a tuple, and a
+hand-maintained second copy of eight of them in an `LcdConfig` so the panel
+could be told what the terminal was doing. Nothing named the full set, so
+nothing could validate a change, log one, or hand one to anything else — and
+each key binding had to remember its own consequences. `f` had to know to
+invalidate the grid *and* repaint; `i` had to know to rebuild the ASCII
+generator. Adding a setting meant finding all of those places.
+
+Now `_adopt()` is the one place that knows what each change costs, and it works
+off a set of changed field names:
+
+| Changed | What it costs |
+|---------|---------------|
+| `contrast`, `auto_levels`, `rotation`, `fill`, `mirror` | assignments the processor reads next frame |
+| `ramp`, `invert`, `colour_levels` | rebuild `AsciiArt` — the ramp string and its length both move |
+| `rotation`, `fill` | invalidate the fitted grid |
+| `fill` | repaint, or letterboxed cells keep the old frame's characters |
+| `scheme` | `display.set_scheme()`, which repaints every cell |
+| `target` | blank the panel, or repaint the window, depending which way |
+| `lcd_font_size` | nothing here — the panel reads it off the next frame's config |
+
+Validation splits two ways on purpose. A value outside a **range** is clamped:
+contrast 9 is a coherent wish the renderer cannot go all the way to, so it
+becomes 4.0, which is what the `+` key always did. A value outside an
+**enumeration** is refused, along with an unknown field name or a wrong type —
+there is no nearest sensible rotation to 45 degrees and no scheme next door to
+"purple", so guessing would be worse than saying no. A refusal names *every*
+fault in the delta rather than the first, and changes nothing at all.
+
+One trap worth naming, because it is silent: `bool` is a subclass of `int`, so
+`False == 0` and `False in (0, 90, 180, 270)` is `True`. Without an explicit
+bool check, a delta meant for `freeze` but addressed to `rotation` would be
+accepted as "no rotation" — a wrong field taking a wrong value and reporting
+success. `tests/render_config_test.py` pins that case down.
+
+`SPECS` in the same module carries the type, the permitted values and a
+one-line description of every field, so the schema is derived rather than
+restated. A field with no spec, or a spec with no field, fails at import rather
+than showing up later as a setting nothing can change — the same shape of trap
+`sync.sh` has, where a module missing from its file list is silently never
+copied.
 
 ### Classes
 
@@ -474,9 +587,9 @@ classDiagram
         +ImageProcessor processor
         +AsciiArt ascii_art
         +Namespace args
-        +str ramp_name
-        +int ramp_index
-        +bool invert
+        +RenderConfig config
+        +bool terminal_on
+        +bool lcd_on
         +tuple grid
         +tuple grid_key
         +float cell_aspect
@@ -485,11 +598,14 @@ classDiagram
         +deque frame_times
         +bool is_running
         +run()
+        +apply(delta) bool
+        -_adopt(config, previous)
+        -_feasible_target(target) str
         -_refresh_cell_aspect()
         -_grid_for(frame_shape) tuple
         -_status() str
         -_handle_key(key) bool
-        -_drain_keys() bool
+        -_drain_input() bool
     }
 
     class CameraCapture {
@@ -590,22 +706,31 @@ classDiagram
         +int dropped
         +int errors
         +submit(frame, config)
+        +blank()
         +run()
         +stop(timeout)
         -_draw(frame, config)
         -_apply(config)
     }
 
-    class LcdConfig {
-        <<NamedTuple>>
-        +int rotation
+    class RenderConfig {
+        <<frozen dataclass>>
+        +str scheme
+        +str ramp
+        +bool invert
+        +int colour_levels
         +float contrast
         +bool auto_levels
-        +bool invert
-        +str ramp
-        +str scheme
-        +int colour_levels
+        +int rotation
         +bool mirror
+        +bool fill
+        +int lcd_font_size
+        +str target
+        +bool freeze
+        +with_changes(delta) RenderConfig
+        +changes_from(other) tuple
+        +describe_changes(other) str
+        +as_delta() dict
     }
 
     class LcdDisplay {
@@ -616,6 +741,7 @@ classDiagram
         +tuple grid_size
         +float cell_aspect
         +set_ramp(ramp)
+        +set_font_size(font_size)
         +render(indices, colours, screen)
         +clear()
         +close()
@@ -674,16 +800,17 @@ classDiagram
     AsciiArtLiveCamera *-- AsciiArt : brightness to characters
     AsciiArtLiveCamera o-- NcursesDisplay : render, keys
     AsciiArtLiveCamera o-- LcdWorker : only with --lcd
+    AsciiArtLiveCamera *-- RenderConfig : every live setting
+    LcdWorker ..> RenderConfig : arrives with each frame
 
     CameraCapture ..> YuvFrame : produces
     NcursesDisplay ..|> HeadlessDisplay : same duck type, draws=False
     NcursesDisplay ..> Scheme : colour pairs
-    AsciiArtLiveCamera ..> LcdConfig : one snapshot per frame
 
     LcdWorker *-- LcdDisplay : owns once started
     LcdWorker *-- ImageProcessor : its own, fill=True
     LcdWorker *-- AsciiArt : its own, panel grid
-    LcdWorker ..> LcdConfig : adopts settings
+    LcdWorker ..> RenderConfig : adopts settings
     LcdWorker ..> Scheme : live, tint or grey
 
     LcdDisplay *-- GlyphAtlas : pre-rendered glyph tiles
@@ -701,7 +828,7 @@ aggregation for a different reason — it only exists when `--lcd` is passed, so
 **The LCD half of the diagram is deliberately a parallel of the top half.**
 `LcdWorker` owns its *own* `ImageProcessor` and `AsciiArt`, which is why those
 two classes appear on both sides of the picture. Nothing is shared but the
-`YuvFrame` itself and an immutable `LcdConfig` snapshot, and that is what makes
+`YuvFrame` itself and the immutable `RenderConfig`, and that is what makes
 the thread safe: once `start()` is called the worker owns its `LcdDisplay`
 outright and the main loop never touches it again. The one channel between them
 is `submit()`, which drops rather than blocks.
@@ -853,7 +980,14 @@ sequenceDiagram
             D-->>App: False
         end
 
-        App->>Q: camera.get_frame(timeout=1.0)
+        alt frozen, and a frame is already held
+            App->>App: reuse the held frame
+            opt nothing changed since the last draw
+                App->>App: poll the controls, sleep 50 ms, next pass
+            end
+        else running normally
+            App->>Q: camera.get_frame(timeout=1.0)
+        end
 
         alt no frame within 1 s
             Q-->>App: None
@@ -862,10 +996,12 @@ sequenceDiagram
         else frame ready
             Q-->>App: YuvFrame, luma h x w uint8
 
-            opt --lcd
-                App->>L: submit(frame, _lcd_config())
+            opt --lcd, and the target includes the panel
+                App->>L: submit(frame, self.config)
                 Note right of App: never blocks, never raises,<br/>replaces any frame still pending
             end
+
+            Note right of App: with the target on the panel alone,<br/>everything below is skipped entirely
 
             App->>App: _grid_for(luma.shape), fit_grid unless cached
 
@@ -887,11 +1023,12 @@ sequenceDiagram
             D->>D: addstr per row, then refresh()
         end
 
-        loop _drain_keys, until nothing is waiting
+        loop _drain_input, until nothing is waiting
             App->>D: get_key()
             D-->>App: key, or None when drained
             opt a key was pressed
-                App->>App: _handle_key(), q ends the loop
+                App->>App: _handle_key() builds a delta
+                App->>App: apply(delta), validated then _adopt()ed
             end
         end
     end
@@ -918,7 +1055,7 @@ on every capture, so `get_frame()` always yields the newest image rather than
 the head of a growing backlog. A slow render therefore drops frames instead of
 falling progressively further behind real time.
 
-Three details the diagram makes explicit:
+Four details the diagram makes explicit:
 
 - **The terminal size is checked every pass**, not just at startup, which is
   what lets the picture refit when the window is resized under it.
@@ -926,8 +1063,15 @@ Three details the diagram makes explicit:
   the main loop needs no pacing of its own — it runs exactly as often as frames
   arrive. A timeout means the camera is still warming up or has stalled, not
   that the loop is spinning too fast.
+- **Freezing is the one case that needs its own pacing.** Nothing is being
+  waited for, so without a sleep the loop would spin a core redrawing an
+  unchanging picture and pushing it down the SPI bus fifteen times a second.
+  It draws when something has actually changed — a setting, a resize, a notice
+  that has to appear or expire — and otherwise polls the controls every 50 ms.
+  The camera is deliberately left running throughout, because stopping it would
+  make unfreezing cost the 15–20 seconds libcamera takes to come back.
 - **Keys are drained, not sampled.** A single `getch()` per frame would lag
-  behind a keypress burst at 15 fps, so `_drain_keys()` consumes everything
+  behind a keypress burst at 15 fps, so `_drain_input()` consumes everything
   buffered before the next frame is fetched.
 
 ```
@@ -1056,9 +1200,26 @@ Two things make it affordable:
    than per character, so ncurses emits a single escape sequence for each. A
    real scene averages a dozen or so runs per row at this grid size.
 
-`--colour-levels` (2 to 6, default 6) sets how many steps per channel are used
-from the xterm-256 colour cube. Fewer steps means longer runs of one colour and
-a cheaper redraw, at the cost of banding — the main lever if colour feels slow.
+`--colour-levels` (2 to 32, default 32) sets how many steps per channel the
+live-colour scheme uses. Fewer means longer runs of one colour and a cheaper
+redraw, at the cost of banding — the main lever if colour feels slow.
+
+**The two displays reach that number differently, and their ceilings differ.**
+The terminal picks that many steps from the xterm-256 cube, which has only six
+per axis, so it saturates at 6 whatever is asked for. The panel draws RGB
+directly and has no palette to quantise against, so `AsciiArt.posterise` snaps
+each channel to that many *even* steps — even rather than the cube's uneven
+axis, which exists only to match a palette the panel does not have.
+
+The cap used to be 6, which was xterm's limit imposed on a display that does
+not share it. Measured on one frame, the band it hid is the interesting one:
+
+| `--colour-levels` | 2 | 4 | 8 | 16 | 32 |
+|---|---|---|---|---|---|
+| Colours on the panel | 4 | 8 | 18 | 40 | 306 |
+
+The maximum is a sentinel rather than a count: it returns the frame untouched,
+so the default costs nothing and looks exactly as it always did.
 
 Terminal support was checked rather than assumed: inside lxterminal, curses
 reports `TERM=xterm-256color`, 256 colours and 65,536 pairs, so the 240 pairs
@@ -1353,6 +1514,23 @@ The panel is transfer-bound, not CPU-bound. `/sys/module/spidev/parameters/bufsi
 is 4096, so a full 153,600-byte frame is 38 writes, and that syscall count
 dominates rather than the clock rate — `spidev.bufsiz=65536` on the kernel
 command line would help if refresh rate ever mattered more than memory.
+
+**Rebuilding the atlas is not a per-frame cost, and is cheap enough not to
+matter.** It happens when the ramp changes, when `invert` is toggled, or when
+`l` changes the panel's font size — never per frame. Measured over eleven
+rebuilds driven from the keyboard: **168 ms for the first, then 13–24 ms**. The
+first is the outlier by an order of magnitude, almost certainly because the font
+file is read from disk that once and found in the page cache afterwards; that
+explanation is inferred from the shape of the numbers rather than measured, but
+the numbers themselves are from the log. Either way it is a one-off at start-up,
+and a font change mid-run costs about one frame.
+
+The rebuild runs on the worker's own thread, which is what keeps it off the main
+loop — the terminal does not stutter when the panel's font changes. It also
+zeroes the frame buffer, because a larger font gives a *smaller* picture and
+nothing ever writes to the margin it no longer reaches; without that, the old
+picture's outer pixels would survive there for good.
+`tests/lcd_font_size_test.py` checks exactly that, on the real panel.
 
 ### You cannot verify this panel in software
 

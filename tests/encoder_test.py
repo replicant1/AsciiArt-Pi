@@ -27,6 +27,7 @@ import palettes                                   # noqa: E402
 from ascii_camera import AsciiArtLiveCamera       # noqa: E402
 from encoder import QuadratureDecoder, RotaryEncoder   # noqa: E402
 from image_processor import ImageProcessor        # noqa: E402
+from render_config import RenderConfig            # noqa: E402
 
 failures = []
 
@@ -156,6 +157,8 @@ def test_accumulator():
 class StubDisplay:
     """Just enough display for the scheme cycling to talk to."""
 
+    draws = True
+
     def __init__(self):
         self.colour_ok = True
         self.scheme = palettes.SCHEMES[0]
@@ -193,13 +196,15 @@ def make_app(steps, presses=0):
     app = object.__new__(AsciiArtLiveCamera)
     app.display = StubDisplay()
     app.processor = ImageProcessor()
-    app.invert = False
-    app.ramp_name = "coarse"
-    app.ramp_index = 0
-    app.colour_levels = 6
-    app.scheme_index = 0
+    # The scheme is a field of one config object now, not an index the app
+    # kept alongside the ramp name and the invert flag. _cycle_scheme still
+    # walks the list by index; it just does not store the result as one.
+    app.config = RenderConfig()
+    app.notice = None
+    app.refusal = None
     app.grid_key = None
     app.lcd = None
+    app._redraw = False
     app.encoder = StubEncoder(steps, presses)
     app._rebuild_ascii()
     return app
