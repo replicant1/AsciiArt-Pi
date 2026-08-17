@@ -41,7 +41,7 @@ raw view serves these as `text/plain`, so neither renders the drawings.
   vintage terminals, VFDs, graphic LCDs and OLED modules, priced in AUD and
   sourced for a buyer in Sydney.
 - **[From breadboard to enclosure](https://replicant1.github.io/AsciiArt-Pi/enclosure-build-guide.html)**
-  — the rebuild into a self-contained, battery-powered box: a soldered perfboard
+  — the rebuild into a self-contained, mains-powered box: a soldered perfboard
   HAT that replaces every friction-fit joint, a pin-by-pin cut list for the
   panel, encoder and shutdown-button harnesses, a measured power budget, and the
   enclosure cutouts.
@@ -1746,14 +1746,14 @@ boot 22.9 s → 21.5 s. Only 1.1 s, because the service already starts at
 `basic.target`, well before the desktop stack — though it does free RAM on a
 416 MB machine, which may matter for other reasons.
 
-> Timings here are from the journal's **monotonic** clock, not wall clock. With
-> no PiSugar there is no RTC, so the clock jumps when NTP corrects it partway
+> Timings here are from the journal's **monotonic** clock, not wall clock. There
+> is no RTC in this build, so the clock jumps when NTP corrects it partway
 > through boot, and wall-clock arithmetic across a boot is off by several
 > seconds. Note also that `systemd-analyze` reports times relative to *userspace
 > start* while `journalctl -o short-monotonic` counts from *kernel start* — the
 > two differ by the kernel time, which is 4.7 s here.
 
-### Turning it on with no PiSugar
+### Turning it on, with no power switch
 
 There is no power switch on a Pi, so **applying power is the on-switch** — plug
 in the USB-C panel lead and it boots. The shutdown button on GPIO 3 is the other
@@ -1782,12 +1782,13 @@ screen covers the app's own start, not the boot.
 
 [**From breadboard to enclosure**](https://replicant1.github.io/AsciiArt-Pi/enclosure-build-guide.html)
 covers taking the Pi, camera, SPI panel and encoder off the breadboard and into a
-self-contained, battery-powered box: connector choices, a pin-by-pin bench reference, power
+self-contained, mains-powered box: connector choices, a pin-by-pin bench reference, power
 budget, and the enclosure cutouts.
 
 Two findings in it are measured on this Pi rather than estimated. The render loop costs **96% of
 one core** with the HDMI terminal running and **29%** with `--no-terminal`, so the enclosed
-configuration is not merely tidier — it is 3.3x cheaper, which is most of the battery life. And
+configuration is not merely tidier — it is 3.3x cheaper, and in a sealed box with no fan that
+is a thermal argument rather than an electrical one. And
 the encoder module can be dropped for a bare EC11 with no code change at all, because
 `src/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
 to run on nothing else.
@@ -1806,13 +1807,13 @@ whatever wall is left once the hole is cut smaller than the connector body — i
 being pulled back out.
 
 The other two are cheap. **Power comes out as USB-C even though the Pi's socket is micro-B**,
-because the cutout is the irreversible part and USB-C is the one that survives fitting a PiSugar
-3 later; a voltage-budget graph shows that the whole modification costs about 90 mV at 1 A,
+because micro-B is the build's least durable connector and the panel socket is the one that
+gets handled; a voltage-budget graph shows that the whole modification costs about 90 mV at 1 A,
 against a 4.63 V undervoltage floor, and that the charger cable you don't control costs twice
-that. And with no PiSugar there is **no power button at all**, which `dtoverlay=gpio-shutdown`
+that. And with no battery module there is **no power button at all**, which `dtoverlay=gpio-shutdown`
 fixes for the price of a $2 momentary switch on GPIO 3 — press to shut down cleanly, press again
 to boot. Use GPIO 3 rather than any other pin: wake-from-halt is a property of that pin
-specifically, not of the overlay.
+specifically, not of the overlay, and it is the only way this box can be switched back on.
 
 It closes with the enclosure those three decisions imply, drawn rather than described: an
 isometric of the base with the lid lifted off, and a side section through the wedge. A **sloped
@@ -1833,9 +1834,9 @@ opposite the board port it serves, so the leads are short and cannot be crossed 
 
 The other load-bearing idea is the parting plane at **z = 25 mm**: it is the front wall height,
 it clears the Pi and HAT stack, it cuts both connectors exactly in half so they can be captured
-at all, and it keeps every hand-crimped joint in the base. Ten millimetres under the Pi are
-reserved for a PiSugar 3 that is not fitted, so adding the battery later costs a cable rather
-than a re-print.
+at all, and it keeps every hand-crimped joint in the base. Ten millimetres under the Pi were
+reserved for a battery that is no longer part of the design; the Pi stands on standoffs and the
+space now takes the service loops the lid's two harnesses need.
 
 ### Seeing it in three dimensions
 
