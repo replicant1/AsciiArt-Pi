@@ -34,6 +34,7 @@ those two and never a paragraph of prose.
 import json
 import logging
 import os
+import threading
 from pathlib import Path
 
 import render_config
@@ -105,7 +106,12 @@ last changed to what they were before.
 
 A request can ask for several things at once, and can ask for something you \
 can only partly do. Do the part that maps to a setting rather than declining \
-the whole thing, and say what you could not do in the `unmet` field.\
+the whole thing, and say what you could not do in the `unmet` field.
+
+Change only what the request mentions. Do not change a second setting in order \
+to make the first one take effect: the person may have chosen the current \
+settings deliberately, and a change they did not ask for is worse than one \
+that is not yet visible. Say so in `unmet` instead.\
 """
 
 
@@ -250,16 +256,43 @@ def api_key():
     return key or None
 
 
+# One client, built once and shared. Two reasons, and the second is the one
+# that bit: building a client costs about 0.4 s on this Pi, and building
+# several *at the same time* fails outright - pydantic's lazy model building is
+# not thread-safe on first construction, so two threads racing into their first
+# anthropic.Anthropic() can surface as "BaseModel cannot be instantiated
+# directly". A serial caller never sees it; the eval runs four at a time and
+# hit it on roughly one case in forty. The client itself is fine to share -
+# it is requests that are concurrent, not construction.
+_client_lock = threading.Lock()
+_shared_client = None
+
+
 def _client(key=None):
-    """Build the SDK client. Imported here so the app runs without the SDK."""
+    """
+    The shared SDK client, built on first use.
+
+    An explicit key bypasses the cache and builds its own, which is what tests
+    and any future multi-key caller want; the common path shares one.
+    """
+    global _shared_client
     import anthropic
 
-    key = key or api_key()
-    if not key:
-        raise ParseError(
-            f"no API key: set ANTHROPIC_API_KEY or write one to {KEY_FILE}")
-    return anthropic.Anthropic(api_key=key, timeout=TIMEOUT_SECONDS,
-                               max_retries=MAX_RETRIES)
+    if key:
+        return anthropic.Anthropic(api_key=key, timeout=TIMEOUT_SECONDS,
+                                   max_retries=MAX_RETRIES)
+
+    with _client_lock:
+        if _shared_client is None:
+            resolved = api_key()
+            if not resolved:
+                raise ParseError(
+                    "no API key: set ANTHROPIC_API_KEY or write one to "
+                    f"{KEY_FILE}")
+            _shared_client = anthropic.Anthropic(
+                api_key=resolved, timeout=TIMEOUT_SECONDS,
+                max_retries=MAX_RETRIES)
+        return _shared_client
 
 
 def _describe(config):
