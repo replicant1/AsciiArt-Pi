@@ -45,7 +45,8 @@ TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_font_size_test.py lcd_worker_test.py
             commands_test.py asklog_test.py parser_test.py
             parser_eval.py eval_cases.json web_server_test.py
-            shortcuts_test.py notice_test.py)
+            shortcuts_test.py notice_test.py
+            module_map_test.py docs_links_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
@@ -56,13 +57,16 @@ DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
            enclosure-hero.png enclosure-ports.png
            enclosure-north.png enclosure-exploded.png
            enclosure-hero-thumb.png enclosure-ports-thumb.png
-           index.html what-the-model-is-told.md)
+           index.html what-the-model-is-told.md
+           module-map.md using-it.md language.md architecture.md
+           colour-schemes.md panel.md encoder.md performance.md
+           deployment.md workflow.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera, and
 # probe_encoder.py needs the encoder's GPIO pins.
 TOOL_FILES=(scheme_montage.py probe_encoder.py watch_button.py
-            notice_demo.py
+            notice_demo.py module_map.py
             asciicam_cli.py ask_parser.py utterances.txt)
 
 changed=0
