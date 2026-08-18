@@ -235,6 +235,76 @@ mistyped name was silently taken as a literal ramp: `--ramp standard` drew the
 picture out of the eight letters of the word rather than complaining. It is now
 rejected, listing the names that do work.
 
+### The phrases that skip the model
+
+`ask make it green` used to cross a network, wait 2.6 seconds and cost a third
+of a US cent to work out `{"scheme": "green"}` — which is the scheme's own name,
+said out loud. `src/shortcuts.py` answers that class of phrase from a table
+before any model call or key check happens. (Not "before the parser is
+imported" — `_warm_parser()` imports it at start-up when a key is present,
+so the first ask of a run does not pay an 11-second import.)
+
+Measured end to end through the phone page, against the running service:
+
+| Utterance | Answered by | Wall clock | Tokens |
+|---|---|---|---|
+| `green` | table | 0.24 s | none |
+| `a bit more contrast` | table | 0.10 s | none |
+| `undo that` | table | 0.13 s | none |
+| `freeze it` | table | 0.10 s | none |
+| `something calmer` | model | 2.6 s | 2,562 |
+
+**The table is exact and the model is fuzzy, and that split is the whole
+design.** It matches a normalised string — case, spacing, trailing punctuation
+and politeness removed, nothing else — and returns nothing the moment it is not
+certain. A table that guessed would be competing with the model at the thing the
+model is for, and losing quietly: a near-miss becomes a wrong setting with no
+round trip to blame it on. Normalisation is deliberately shallow for the same
+reason; stemming would let two different requests collapse into one string, and
+"a bit more contrast" is not "way more contrast".
+
+Four kinds of entry earn a place:
+
+- **A setting's own value, said out loud** — `green`, `make it amber`,
+  `fine characters`. Generated from `SPECS`, so a scheme added to `palettes.py`
+  is speakable the same day without editing the table, for the same reason
+  `help` and the tool schema are generated from it.
+- **A boolean said as a verb** — `freeze it`, `invert it`.
+- **A step along a range** — `a bit more contrast` is ×1.3 from wherever
+  contrast is now, clamped to its own spec, so a step at the ceiling is a no-op
+  rather than a refusal. These are functions of the live config, not constants.
+- **`undo that`**, which is not a guess at all: the app knows the previous
+  config exactly, so the restoring delta is arithmetic. The model can only
+  approximate this from a sparse description in its prompt.
+
+Left to the model on purpose: anything with a mood in it (`something calmer`),
+anything compound (`green, high contrast, and the fine ramp`), the target
+phrasings, and every phrase that should be declined. **A table cannot decline
+well** — it can only fail to match, which is not the same thing.
+
+Two properties fall out of putting the lookup before the key check, and both are
+worth more than the money:
+
+- A hit needs **no API key and no network**. With the WiFi down, `green` and
+  `freeze it` still work, so `ask` stops being all-or-nothing.
+- A hit is **instant**, which on a 240×320 panel with no spinner is the
+  difference you actually feel.
+
+`tests/shortcuts_test.py` guards the two things that are not obvious by
+inspection. Every decline case in `eval_cases.json` must **miss** the table. And
+where the table and the model answer the same phrase — 7 of the 41 eval cases —
+the table's delta is scored by `parser_eval.py`'s own scorer against the same
+expectations, bands included, so the two cannot drift apart unnoticed. A third
+guard runs at import: every delta the table can produce must survive
+`RenderConfig`, so a renamed scheme fails at start-up rather than in front of
+somebody using the camera.
+
+Every ask is recorded in `logs/asks.jsonl` with a `source` of `model` or
+`table`. That distinction decides what a record is evidence *of* — a table hit
+says nothing about the prompt, because the model was never asked — so anything
+counting hit rate or promoting real utterances into eval cases has to filter on
+it.
+
 ### Saying it from a phone
 
 The enclosure seals the box. Its east wall carries mini-HDMI and USB-C power and

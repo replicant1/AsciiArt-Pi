@@ -1,6 +1,10 @@
 """
 A record of every natural-language request, so real use becomes evidence.
 
+Not every record is evidence about the *model*: `source` says whether a parse
+answered or src/shortcuts.py did. Filter on it before counting anything about
+the prompt.
+
 The eval in tests/parser_eval.py scores the prompt against 41 utterances, all
 of which were invented by the same person who wrote the prompt. That is the
 measurement's real limit and no amount of re-running fixes it: a case file can
@@ -79,11 +83,22 @@ class AskLog:
         self.failed = 0
 
     def record(self, utterance, config, previous=None, delta=None,
-               declined=None, unmet=None, error=None, seconds=None, usage=None):
+               declined=None, unmet=None, error=None, seconds=None, usage=None,
+               source="model"):
         """
         Write one ask. Returns the record written, or None if it could not be.
 
         Never raises. The caller is in the middle of answering somebody.
+
+        `source` is who answered: "model" for a parse, "table" for a phrase
+        src/shortcuts.py knew already. It is always written, including on the
+        default, because a record that omits it is ambiguous rather than
+        obviously a model answer - and this file is read months later.
+
+        It also decides what a record is evidence *of*. A "table" record says
+        nothing about the prompt: the model was never asked. Anything counting
+        hit rate, or promoting real utterances into eval cases, has to filter
+        on this or it will score the model on answers it never gave.
         """
         if error is not None:
             outcome = "error"
@@ -96,6 +111,7 @@ class AskLog:
             "when": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "utterance": utterance,
             "outcome": outcome,
+            "source": source,
             "now": _sparse(config),
         }
         # Only the keys that mean something for this outcome, so the file stays

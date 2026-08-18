@@ -831,7 +831,11 @@ def test_ask_is_resolved_off_the_loop():
     check("...and the model was never called", stub.calls == [])
 
     print("\n35. An ask becomes a delta, worked out before the loop sees it")
-    resolved = app._resolve_ask("ask make it green")
+    # Not "make it green" - src/shortcuts.py answers that one from its table
+    # without a model, which is the point of the table and would leave this
+    # test asserting things about a stub nobody called. A phrase with a mood in
+    # it is the model's own territory.
+    resolved = app._resolve_ask("ask something calmer")
     check("the resolver returns an Ask", isinstance(resolved, Ask),
           type(resolved).__name__)
     check("carrying the delta", resolved.delta == {"scheme": "green"},
@@ -842,6 +846,16 @@ def test_ask_is_resolved_off_the_loop():
     # Nothing has moved yet: resolving is not applying.
     check("resolving on its own changes nothing", app.config.scheme == "grey",
           app.config.scheme)
+
+    print("\n35b. A phrase the table knows never reaches the model")
+    before_calls = len(stub.calls)
+    quick = app._resolve_ask("ask make it green")
+    check("the table answers it", isinstance(quick, Ask), type(quick).__name__)
+    check("with the same delta the model would have produced",
+          quick.delta == {"scheme": "green"}, str(quick.delta))
+    check("...and the model was not called at all",
+          len(stub.calls) == before_calls, len(stub.calls))
+    check("the reply says it was instant", quick.note, "instant")
 
     print("\n36. The loop applies it exactly like a typed delta")
     before = app.config
@@ -857,7 +871,7 @@ def test_ask_is_resolved_off_the_loop():
 
 def test_ask_failures_are_sentences():
     print("\n37. A refusal from the model changes nothing")
-    from command_server import Reply
+    from command_server import Ask, Reply
 
     app = make_app()
     with_parser(app, StubParser(
@@ -873,7 +887,17 @@ def test_ask_failures_are_sentences():
     app = make_app()
     stub = StubParser(raises=StubParser.ParseError("connection refused"))
     with_parser(app, stub)
-    resolved = app._resolve_ask("ask make it green")
+
+    # First the half that survives it. The table is consulted before the model
+    # and needs neither key nor network, so a camera with the WiFi down still
+    # answers its own settings by name - `ask` stops being all or nothing.
+    survives = app._resolve_ask("ask make it green")
+    check("a phrase the table knows works with the model unreachable",
+          isinstance(survives, Ask), type(survives).__name__)
+    check("...and gives the right delta anyway",
+          survives.delta == {"scheme": "green"}, str(survives.delta))
+
+    resolved = app._resolve_ask("ask something calmer")
     check("the failure is caught", isinstance(resolved, Reply),
           type(resolved).__name__)
     check("and says what went wrong",
@@ -883,7 +907,16 @@ def test_ask_failures_are_sentences():
     print("\n39. With no key, ask says so and points at the fix")
     app = make_app()
     with_parser(app, StubParser(key=None))
-    resolved = app._resolve_ask("ask make it green")
+
+    # The same split as the offline case above: no key is no longer the end of
+    # the sentence, because the table never needed one.
+    keyless = app._resolve_ask("ask freeze it")
+    check("a table phrase works with no key at all",
+          isinstance(keyless, Ask), type(keyless).__name__)
+    check("...and does the right thing", keyless.delta == {"freeze": True},
+          str(keyless.delta))
+
+    resolved = app._resolve_ask("ask something calmer")
     check("it is refused politely", isinstance(resolved, Reply))
     check("...naming the key file",
           "api_key" in resolved.text, resolved.text)

@@ -107,7 +107,11 @@ log.record("make it green", cfg, delta={"scheme": "green"})
 rec = asklog.load(path)[0]
 for key in ("unmet", "declined", "error", "before"):
     check(f"no {key} key", key in rec, False)
-check("keys present", sorted(rec), ["delta", "now", "outcome", "utterance", "when"])
+# `source` is here and the others are not, on purpose: an absent key means
+# "nothing to say", but an absent source would mean "answered by something, we
+# forgot to note what".
+check("keys present", sorted(rec),
+      ["delta", "now", "outcome", "source", "utterance", "when"])
 
 # --- 5. a broken log must not break an ask ----------------------------------
 section("5. failure is swallowed")
@@ -207,6 +211,26 @@ try:
         check("guard catches a dropped field", "scheme" in str(e), True)
 finally:
     asklog._sparse = real_sparse
+
+# --- 11. who answered ------------------------------------------------------
+section("11. who answered")
+
+log, path = temp_log()
+log.record("make it green", cfg, delta={"scheme": "green"})
+log.record("green", cfg, delta={"scheme": "green"}, source="table")
+rows = asklog.load(path)
+check("a parse is recorded as the model's answer", rows[0]["source"], "model")
+check("a table hit says so", rows[1]["source"], "table")
+# Always written, including on the default: a record with the key missing is
+# ambiguous rather than obviously a model answer, and this file is read months
+# later.
+check("neither record leaves it out",
+      [("source" in r) for r in rows], [True, True])
+# The distinction has to survive the round trip, because it decides what a
+# record is evidence of - a table hit says nothing about the prompt.
+check("and it survives being read back",
+      {r["utterance"]: r["source"] for r in rows},
+      {"make it green": "model", "green": "table"})
 
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)
