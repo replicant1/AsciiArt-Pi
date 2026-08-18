@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tools"))
+sys.path.insert(0, str(ROOT / "tools" / "docs"))
 
 import module_map                                      # noqa: E402
 
@@ -77,7 +77,7 @@ check("every summary fits on one line", too_long, [])
 
 # and prove the staleness check can actually fail
 result = subprocess.run(
-    [sys.executable, str(ROOT / "tools" / "module_map.py"), "--check"],
+    [sys.executable, str(ROOT / "tools" / "docs" / "module_map.py"), "--check"],
     capture_output=True, text=True)
 check("--check passes when the page is current", result.returncode, 0)
 
@@ -85,7 +85,7 @@ original = module_map.OUTPUT.read_text(encoding="utf-8")
 try:
     module_map.OUTPUT.write_text(original + "\nstale\n", encoding="utf-8")
     result = subprocess.run(
-        [sys.executable, str(ROOT / "tools" / "module_map.py"), "--check"],
+        [sys.executable, str(ROOT / "tools" / "docs" / "module_map.py"), "--check"],
         capture_output=True, text=True)
     check("and fails when it is not", result.returncode, 1)
     check("saying how to fix it", "--write" in result.stderr, True)

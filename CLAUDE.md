@@ -166,9 +166,9 @@ Code, all committed:
     src/panel/lcd.py           ILI9341 driver over spidev; PIL images or pre-packed RGB565
     src/panel/lcd_display.py   ASCII grid -> panel, via a pre-rendered glyph atlas
     src/panel/lcd_worker.py    background thread so SPI stays off the main render loop
-    tests/panel/lcd_selftest.py      colour bars + RGB565 maths (run this first if suspicious)
-    tests/panel/lcd_render_bench.py  render path correctness and timing
-    tests/panel/lcd_concurrency.py   proves the SPI write does not stall the main loop
+    tests/lcd_selftest.py      colour bars + RGB565 maths (run this first if suspicious)
+    tests/lcd_render_bench.py  render path correctness and timing
+    tests/lcd_concurrency.py   proves the SPI write does not stall the main loop
 
 Run it with:
 
@@ -179,9 +179,9 @@ Performance facts measured on this Pi, worth not rediscovering:
 
 - /sys/module/spidev/parameters/bufsiz is 4096, so a full 240x320 RGB565 frame (153,600 bytes) is 38 writes. Transfer costs ~32 ms; that dominates, not the clock rate. Raise it with "spidev.bufsiz=65536" on the kernel command line if refresh rate ever matters more than memory.
 - Drawing costs only ~3.7 ms of CPU (glyph blit 1.2, RGB565 pack 2.4). Do NOT draw text with one PIL draw.text() per cell - at 64x24 that is 1,536 calls per frame. src/panel/lcd_display.py pre-renders each glyph once and builds a frame as a single numpy gather.
-- spidev DOES release the GIL during the transfer, so a worker thread genuinely overlaps: the main thread keeps 93% of its throughput while the panel runs at 27 fps. tests/panel/lcd_concurrency.py measures this rather than assuming it.
+- spidev DOES release the GIL during the transfer, so a worker thread genuinely overlaps: the main thread keeps 93% of its throughput while the panel runs at 27 fps. tests/lcd_concurrency.py measures this rather than assuming it.
 - Font sizes 6, 8 and 9 (DejaVu Sans Mono) each tile 320x240 exactly AND give a character grid whose on-screen aspect is exactly 4:3, matching the camera - so filling the panel crops nothing. They give 80x30, 64x24 and 64x20 respectively. 8 is the default.
-- The font size can be changed live with the l key, which rebuilds the glyph atlas on the LCD worker's own thread. Measured over eleven rebuilds: 168 ms for the first, then 13-24 ms. The first is an order of magnitude worse, most likely the font file being read from disk once and found in the page cache after - inferred from the shape of the numbers, not measured. Not a per-frame cost: it happens only on a ramp, invert or font-size change. The rebuild must zero the frame buffer, because a larger font gives a SMALLER picture and nothing ever writes to the margin it no longer reaches; tests/panel/lcd_font_size_test.py checks that on the real panel.
+- The font size can be changed live with the l key, which rebuilds the glyph atlas on the LCD worker's own thread. Measured over eleven rebuilds: 168 ms for the first, then 13-24 ms. The first is an order of magnitude worse, most likely the font file being read from disk once and found in the page cache after - inferred from the shape of the numbers, not measured. Not a per-frame cost: it happens only on a ramp, invert or font-size change. The rebuild must zero the frame buffer, because a larger font gives a SMALLER picture and nothing ever writes to the margin it no longer reaches; tests/lcd_font_size_test.py checks that on the real panel.
 
 A caution learned here: synthetic keypresses via piinput proved unreliable for toggling app settings during this work - the first keystroke after creating the device was dropped, and later ones were delivered twice, silently toggling a setting on and back off. Prefer launching the app with the command-line flag you want to test; it is deterministic. See also the piinput gotchas above.
 
@@ -193,7 +193,7 @@ A rotary encoder knob is wired to the Pi and cycles the app's colour schemes. It
     DT  -> GPIO 26      GND -> GND
     SW  -> GPIO 6
 
-Turning cycles the schemes both ways; pressing jumps straight back to grey. Off unless asked for: "bash run_ascii_camera.sh fit --lcd --encoder". Driven from userspace via lgpio (installed; gpiozero and RPi.GPIO are present too, pigpio is NOT). Code is src/control/encoder.py, tests are tests/control/encoder_test.py, and tools/probe_encoder.py finds the pins.
+Turning cycles the schemes both ways; pressing jumps straight back to grey. Off unless asked for: "bash run_ascii_camera.sh fit --lcd --encoder". Driven from userspace via lgpio (installed; gpiozero and RPi.GPIO are present too, pigpio is NOT). Code is src/control/encoder.py, tests are tests/encoder_test.py, and tools/probe_encoder.py finds the pins.
 
 GPIO 6 for SW was chosen deliberately, not just because it was free. The module fits no pull-up on SW, so it relies on the internal one, and this chip defaults GPIO 0-8 to pull-UP but 9-27 to pull-DOWN. On a pull-down pin the switch reads as held down from power-on until the app configures it; on GPIO 6 it idles high throughout. Apply the same reasoning to any future switch.
 
@@ -266,7 +266,7 @@ Run a python file on the pi: Call the run_on_pi.sh script with the argument "pyt
 Move code between the Pi and the git repo: bash /Users/rodneybailey/PiProjects/AsciiArt/AsciiArt-Pi/sync.sh [pull|push|status]
 Launch the ASCII camera on the Pi's HDMI screen: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit
 Launch it on the HDMI screen and the ILI9341 panel together: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit --lcd
-Check the ILI9341 panel is alive (colour bars, needs a human to confirm): python3 /home/rod/Projects/AsciiArt/tests/panel/lcd_selftest.py
+Check the ILI9341 panel is alive (colour bars, needs a human to confirm): python3 /home/rod/Projects/AsciiArt/tests/lcd_selftest.py
 Launch it with the rotary encoder cycling the colour schemes: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit --lcd --encoder
 Find which GPIO pins the rotary encoder is on (needs a human to turn the knob): python3 /home/rod/Projects/AsciiArt/tools/probe_encoder.py
-Check the rotary encoder decode without any hardware: python3 /home/rod/Projects/AsciiArt/tests/control/encoder_test.py
+Check the rotary encoder decode without any hardware: python3 /home/rod/Projects/AsciiArt/tests/encoder_test.py

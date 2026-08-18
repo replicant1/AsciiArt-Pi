@@ -27,7 +27,7 @@ picture. One frame was captured, the character grid computed from it once, and
 each tile then reuses that identical grid of ramp positions — only the colour
 lookup differs. Nothing else can vary, because nothing else is recomputed.*
 
-Regenerate it with `python3 tools/scheme_montage.py`, which renders through the
+Regenerate it with `python3 tools/hardware/scheme_montage.py`, which renders through the
 panel's own glyph atlas and blend, so the tiles show what the app really draws
 rather than an impression of it. It asserts its own claim before writing the
 file: each tile is reduced to which pixels a glyph covers, and those masks must

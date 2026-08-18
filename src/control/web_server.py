@@ -9,7 +9,7 @@ the one already in a pocket.
 
 So this serves one page to a phone on the LAN and forwards whatever is typed
 into it to the app's command socket, verbatim. It is a *client* of that socket,
-exactly like tools/asciicam_cli.py, which is the whole design:
+exactly like tools/app/asciicam_cli.py, which is the whole design:
 
     phone -> HTTP -> this -> Unix socket -> resolver -> render loop
 
@@ -75,7 +75,7 @@ DEFAULT_PORT = 8080
 
 # The app terminates every reply with a NUL so a multi-line answer - `help` is
 # thirty-odd lines - can be read whole rather than guessed at by counting
-# newlines. Same constant as tools/asciicam_cli.py, same reason.
+# newlines. Same constant as tools/app/asciicam_cli.py, same reason.
 END = b"\x00"
 
 # Generous, because an ask crosses two networks: this to the app, and the app to

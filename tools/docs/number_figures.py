@@ -9,7 +9,7 @@ must be regenerated whenever the document is reordered - which this script does.
 It is idempotent: any labels already present are stripped before renumbering,
 including accumulated ones, so it is safe to run repeatedly.
 
-    python3 tools/number_figures.py [path]
+    python3 tools/docs/number_figures.py [path]
 """
 
 import pathlib

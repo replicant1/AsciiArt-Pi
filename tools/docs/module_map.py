@@ -2,9 +2,9 @@
 """
 One page saying what every module in this app is for.
 
-    python3 tools/module_map.py            # print it
-    python3 tools/module_map.py --write    # regenerate docs/module-map.md
-    python3 tools/module_map.py --check    # fail if that file is out of date
+    python3 tools/docs/module_map.py            # print it
+    python3 tools/docs/module_map.py --write    # regenerate docs/module-map.md
+    python3 tools/docs/module_map.py --check    # fail if that file is out of date
 
 Written because the project reached twenty-one modules and seven thousand lines
 of prose, and the answer to "what is this file for" had become "read it". The
@@ -25,7 +25,7 @@ import ast
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "docs" / "module-map.md"
 
 # The order the subsystems are presented in: the order a frame travels, light
@@ -83,7 +83,7 @@ def packages():
     if unplaced:
         raise SystemExit(
             "These packages exist under src/ but are not in ORDER in "
-            "tools/module_map.py:\n  " + "\n  ".join(unplaced)
+            "tools/docs/module_map.py:\n  " + "\n  ".join(unplaced)
             + "\n\nDecide where each belongs in the order a frame travels.")
     return found
 
@@ -141,7 +141,7 @@ def render():
         "",
         "Every module in the running app, what it is for, and how big it is.",
         "",
-        "**Generated - do not edit.** `python3 tools/module_map.py --write`",
+        "**Generated - do not edit.** `python3 tools/docs/module_map.py --write`",
         "rebuilds it, and `tests/docs/module_map_test.py` fails if it is stale. Each",
         "summary is that module's own first docstring line, so this page cannot",
         "describe code that is no longer there.",
@@ -187,7 +187,7 @@ def main(argv=None):
             return 1
         if OUTPUT.read_text(encoding="utf-8") != page:
             print(f"{OUTPUT.relative_to(ROOT)} is out of date; "
-                  "run: python3 tools/module_map.py --write", file=sys.stderr)
+                  "run: python3 tools/docs/module_map.py --write", file=sys.stderr)
             return 1
         print("module map is current")
         return 0

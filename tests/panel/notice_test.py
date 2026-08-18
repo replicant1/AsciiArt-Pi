@@ -7,7 +7,7 @@ Tests for the panel's notice band and the stalled-camera detector.
 No panel and no camera: a fake ILI9341 records what would have gone over SPI,
 and the frame buffer is a numpy array either way, so what reaches the glass can
 be asserted on any machine. What CANNOT be checked here is whether the result is
-legible - that needs a person and the real panel, which tools/notice_demo.py is
+legible - that needs a person and the real panel, which tools/hardware/notice_demo.py is
 for.
 
 The band is the whole of stage 5. A failure that only reaches the socket reply

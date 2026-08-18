@@ -23,7 +23,7 @@ Deliberately claims no pin the LCD uses (8, 9, 10, 11, 18, 25, 27) - the panel
 may still be lit - nor 0/1 (HAT EEPROM), 2/3 (I2C, hardware pull-ups) or 14/15
 (the serial console).
 
-    python3 tools/probe_encoder.py [seconds]
+    python3 tools/hardware/probe_encoder.py [seconds]
 """
 
 import json

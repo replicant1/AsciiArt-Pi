@@ -94,7 +94,7 @@ flags mostly just set a starting state. The arguments fixed at startup are
 `--width`, `--height`, `--fps`, `--log`, `--verbose`, the five `--lcd*`
 arguments, and the four `--encoder*` arguments. `--colour-levels` is no longer
 among them — like everything else in `RenderConfig` it can be set live, by name,
-from `tools/asciicam_cli.py`.
+from `tools/app/asciicam_cli.py`.
 
 **`run_ascii_camera.sh` supplies one of these arguments for you.** The launcher
 always passes `--cell-aspect`, computed from real Pango font metrics for the

@@ -7,7 +7,7 @@ Check the rotary encoder decode, without an encoder attached.
 The knob is the one part of this that cannot be judged by looking at it: a
 decoder that miscounts under bounce still looks fine on an oscilloscope trace
 and only shows up as a knob that sometimes jumps two schemes or stutters
-backwards.  tools/probe_encoder.py measured what the real contacts do - 453
+backwards.  tools/hardware/probe_encoder.py measured what the real contacts do - 453
 edges reducing to 88, about 5:1 - so the bounce here is not invented, it is
 modelled on that, and the test demands an exact step count through it rather
 than an approximate one.

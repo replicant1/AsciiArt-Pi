@@ -3,9 +3,9 @@
 Put a notice on the real ILI9341 panel and hold it there to be looked at.
 
     sudo systemctl stop ascii-camera            # it owns the panel
-    python3 tools/notice_demo.py                # every message, 20 s each
-    python3 tools/notice_demo.py --message stall --seconds 120
-    python3 tools/notice_demo.py --list
+    python3 tools/hardware/notice_demo.py                # every message, 20 s each
+    python3 tools/hardware/notice_demo.py --message stall --seconds 120
+    python3 tools/hardware/notice_demo.py --list
     sudo systemctl start ascii-camera
 
 Nothing on the Mac can see this panel - grim photographs the HDMI output and
@@ -29,7 +29,7 @@ from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from panel.lcd_display import LcdDisplay                     # noqa: E402
 

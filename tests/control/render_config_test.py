@@ -772,7 +772,7 @@ def test_headless_builds_nothing():
 # pinning down is the wiring - that a parsed delta goes through the same
 # apply() a typed one does, that a refusal changes nothing, and that a failure
 # to reach the model is a sentence rather than a traceback. Whether the model
-# picks good settings is a different question, and tools/ask_parser.py is where
+# picks good settings is a different question, and tools/app/ask_parser.py is where
 # it gets asked.
 #
 # The property that matters most is the one that is invisible in the output:
@@ -948,7 +948,7 @@ def test_ask_failures_are_sentences():
     check("...with an example", "warmer" in resolved.text, resolved.text)
 
     print("\n41. A model delta the config refuses is refused in the usual words")
-    # The two-layer boundary, exercised deliberately. tools/ask_parser.py's
+    # The two-layer boundary, exercised deliberately. tools/app/ask_parser.py's
     # smoke run never got here - the schema's enum stopped the model producing
     # an invalid value - so nothing else in the suite covers it.
     app = make_app()

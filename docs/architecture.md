@@ -119,7 +119,7 @@ and the panel being warmer, whichever way it was said:
 sequenceDiagram
     autonumber
     actor Person
-    participant CLI as tools/asciicam_cli.py
+    participant CLI as tools/app/asciicam_cli.py
     participant WEB as src/control/web_server.py<br/>phone page, LAN only
     participant SOCK as CommandServer<br/>a thread per client
     participant RES as _resolve_ask<br/>same client thread
@@ -169,7 +169,7 @@ sequenceDiagram
 ```
 
 **Both front ends produce the same line.** `src/control/web_server.py` is a client of
-the command socket exactly as `tools/asciicam_cli.py` is; it forwards what was
+the command socket exactly as `tools/app/asciicam_cli.py` is; it forwards what was
 typed verbatim, and the app has no field anywhere recording which one sent it.
 The single difference is the one the note calls out — the page's **say it in
 your own words** toggle prefixes `ask `, which at the prompt you would type

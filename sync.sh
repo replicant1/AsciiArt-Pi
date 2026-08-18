@@ -74,9 +74,10 @@ DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera, and
 # probe_encoder.py needs the encoder's GPIO pins.
-TOOL_FILES=(scheme_montage.py probe_encoder.py watch_button.py
-            notice_demo.py module_map.py
-            asciicam_cli.py ask_parser.py utterances.txt)
+TOOL_FILES=(app/asciicam_cli.py app/ask_parser.py app/utterances.txt
+            hardware/probe_encoder.py hardware/watch_button.py
+            hardware/notice_demo.py hardware/scheme_montage.py
+            docs/module_map.py)
 
 changed=0
 

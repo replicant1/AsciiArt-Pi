@@ -7,8 +7,8 @@ say *how much*. Alongside them the app opens a local command socket, so any
 setting can be set by name from a shell:
 
 ```bash
-python3 tools/asciicam_cli.py            # a prompt
-python3 tools/asciicam_cli.py show       # or one command and out
+python3 tools/app/asciicam_cli.py            # a prompt
+python3 tools/app/asciicam_cli.py show       # or one command and out
 ```
 
 ```
@@ -74,7 +74,7 @@ one careless `git add -A` from a public commit.
 The tool schema the model is given is **generated from `SPECS`**, the same
 source as the `help` text and the validator's own rules. Add a setting and it
 becomes typeable, documented, and askable at once — see
-[One config, one way in](architecture.md#one-config-one-way-in). `tools/ask_parser.py` runs
+[One config, one way in](architecture.md#one-config-one-way-in). `tools/app/ask_parser.py` runs
 utterances against the parser without involving the camera, which is where the
 prompt gets tuned; it costs roughly 0.35p a sentence. It is a
 Unix socket with mode 0600, so it is not reachable from the network and only
@@ -236,13 +236,13 @@ checks) covers the geometry, the caching, the wrapping, the frameless path and
 the stall thresholds, and was checked by breaking the implementation four ways —
 each mutant failed exactly the tests meant to catch it. What no test on this
 machine can answer is whether the result is *readable*: nothing here can see the
-SPI panel. `tools/notice_demo.py` holds a message still on the real panel for as
+SPI panel. `tools/hardware/notice_demo.py` holds a message still on the real panel for as
 long as you like, over a bright gradient — the hardest case for legibility —
 so a person can judge it:
 
 ```bash
 sudo systemctl stop ascii-camera            # it owns the panel
-python3 tools/notice_demo.py --message decline --seconds 120
+python3 tools/hardware/notice_demo.py --message decline --seconds 120
 sudo systemctl start ascii-camera
 ```
 
@@ -281,7 +281,7 @@ and not the internet.
 
 **It is a client of the socket, not a part of the app.** Nothing new reaches the
 render loop; a web request becomes a typed line one step in and is then
-indistinguishable from one typed at `tools/asciicam_cli.py` — same validation,
+indistinguishable from one typed at `tools/app/asciicam_cli.py` — same validation,
 same wording, same single entry point. That is worth more than it sounds:
 
 - The render loop cannot be hurt by a bug in here. The worst this can do is not

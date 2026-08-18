@@ -2,9 +2,9 @@
 """
 Type settings at a running ASCII camera.
 
-    python3 tools/asciicam_cli.py                 # interactive
-    python3 tools/asciicam_cli.py scheme green    # one command, then exit
-    python3 tools/asciicam_cli.py help
+    python3 tools/app/asciicam_cli.py                 # interactive
+    python3 tools/app/asciicam_cli.py scheme green    # one command, then exit
+    python3 tools/app/asciicam_cli.py help
 
 Talks to the app over its Unix socket, so it drives whichever copy is already
 running - including the systemd service, which has no terminal of its own and

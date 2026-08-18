@@ -2,9 +2,9 @@
 """
 Put an utterance to the parser and show exactly what came back.
 
-    python3 tools/ask_parser.py "warmer, and blockier characters"
-    python3 tools/ask_parser.py --schema
-    python3 tools/ask_parser.py --batch tools/utterances.txt
+    python3 tools/app/ask_parser.py "warmer, and blockier characters"
+    python3 tools/app/ask_parser.py --schema
+    python3 tools/app/ask_parser.py --batch tools/app/utterances.txt
 
 Nothing here touches the camera. It parses, validates against RenderConfig,
 and prints the delta, the refusal, the tokens and the wall time - which is the
@@ -23,7 +23,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from language import parser as nl_parser                          # noqa: E402

@@ -8,7 +8,7 @@ from the document's own prose instead, so anything newly introduced shows up.
 
 Exits non-zero if something is unglossed, so it can gate a commit.
 
-    python3 tools/check_glossary.py [path]
+    python3 tools/docs/check_glossary.py [path]
 """
 
 import html as htmlmod

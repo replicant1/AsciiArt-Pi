@@ -2,9 +2,9 @@
 """
 Build the colour-scheme montage used in the README.
 
-    python3 tools/scheme_montage.py                    # capture and render
-    python3 tools/scheme_montage.py --frame shot.npy   # reuse a saved frame
-    python3 tools/scheme_montage.py --save-frame shot.npy
+    python3 tools/hardware/scheme_montage.py                    # capture and render
+    python3 tools/hardware/scheme_montage.py --frame shot.npy   # reuse a saved frame
+    python3 tools/hardware/scheme_montage.py --save-frame shot.npy
 
 Nine tiles, one per scheme, showing **the same picture** in every one. That is
 the whole point of the figure - the reader is comparing colour, so nothing else
@@ -33,7 +33,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                                  # noqa: E402

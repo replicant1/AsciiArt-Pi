@@ -19,7 +19,7 @@ pin therefore idles high from power-on, and a switch wired to ground can never
 read as held down during the window between boot and this code configuring it.
 
 Two decisions here are worth stating, because both were measured on this
-hardware rather than assumed (tools/probe_encoder.py):
+hardware rather than assumed (tools/hardware/probe_encoder.py):
 
 Bounce is heavy.  Turning the knob about twenty clicks produced 453 edges that
 reduced to 88 once repeats inside a millisecond were dropped - roughly a 5:1

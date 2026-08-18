@@ -263,7 +263,7 @@ pocket in the base, half in the lid, and closing the box clamps the connector be
 Reading a plane through two section drawings takes a moment; seeing it cut both sockets in
 half does not.*
 
-The renders come from `tools/enclosure_render.py`, which marches a signed distance field in
+The renders come from `tools/docs/enclosure_render.py`, which marches a signed distance field in
 numpy — no modelling package, no renderer, not even an image library, with the PNG written by
 hand. The panel is showing real ASCII: a 5x7 bitmap font over the app's own `" .:-=+*#%@"`
 ramp at the 64x24 grid `src/panel/lcd_display.py` produces at its default font size. The gallery

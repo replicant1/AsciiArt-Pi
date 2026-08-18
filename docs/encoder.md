@@ -27,7 +27,7 @@ and it sits two rows from the rotation pins on the header.
 The module carries its own pull-up resistors on CLK and DT. That is worth
 knowing because it makes the encoder findable: those two pins read high at rest
 even though this chip defaults GPIO 9–27 to pull-*down*, so they stand out in a
-`pinctrl get 0-27` dump before anything has been configured. `tools/probe_encoder.py`
+`pinctrl get 0-27` dump before anything has been configured. `tools/hardware/probe_encoder.py`
 turns that into a positive identification by watching every free pin while the
 knob is turned, and reporting which two interleave.
 

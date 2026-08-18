@@ -2,7 +2,7 @@
 
 Every module in the running app, what it is for, and how big it is.
 
-**Generated - do not edit.** `python3 tools/module_map.py --write`
+**Generated - do not edit.** `python3 tools/docs/module_map.py --write`
 rebuilds it, and `tests/docs/module_map_test.py` fails if it is stale. Each
 summary is that module's own first docstring line, so this page cannot
 describe code that is no longer there.

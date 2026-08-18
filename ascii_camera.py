@@ -1264,7 +1264,7 @@ def parse_args(argv=None):
         "Typed commands",
         "A local socket for setting things by name rather than by key - "
         "\"scheme green\", \"contrast 2.4 invert on\". Drive it with "
-        "tools/asciicam_cli.py from any shell, including against the systemd "
+        "tools/app/asciicam_cli.py from any shell, including against the systemd "
         "service, which has no terminal to type at. It is a Unix socket with "
         "mode 0600, so it is not reachable from the network and only this user "
         "can connect.")
