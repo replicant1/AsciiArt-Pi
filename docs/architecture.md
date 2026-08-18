@@ -499,7 +499,7 @@ sequenceDiagram
     participant Pi as Picamera2<br/>libcamera
 
     opt first run only
-        U->>U: bash setup.sh, checks numpy, PIL, picamera2, curses, camera
+        U->>U: bash deploy/setup.sh, checks numpy, PIL, picamera2, curses, camera
     end
 
     U->>L: bash run_ascii_camera.sh fit [args]
@@ -569,7 +569,7 @@ Three ordering constraints in there are not free choices:
 The two scripts exist because neither problem can be solved from inside the
 app: a process launched over SSH does not inherit the Wayland session, and
 lxterminal takes its font size from a config file rather than the command line.
-`setup.sh` is a one-time dependency and camera check, not part of startup.
+`deploy/setup.sh` is a one-time dependency and camera check, not part of startup.
 
 ### Main render loop
 
@@ -705,10 +705,10 @@ Four details the diagram makes explicit:
 pi/
 ├── ascii_camera.py            # entry point, main loop, CLI, live controls
 ├── run_ascii_camera.sh        # launches it in a sized window on the HDMI screen
-├── setup.sh                   # dependency / camera check
+├── deploy/setup.sh                   # dependency / camera check
 ├── lcd_blank.py               # blank the panel when the app is not running
 ├── piinput.py                 # test tooling: synthetic mouse and keyboard
-├── setup_uinput.sh            # one-time /dev/uinput permissions for piinput
+├── deploy/setup_uinput.sh            # one-time /dev/uinput permissions for piinput
 ├── src/
 │   ├── camera.py              # picamera2 capture thread, YuvFrame, luma+chroma
 │   ├── image_processor.py     # rotate, crop, resize, levels, grid fitting

@@ -120,7 +120,7 @@ Setup already done, and only needed again if the Pi is reimaged:
     sudo apt-get install -y python3-evdev xdotool
     bash /home/rod/Projects/AsciiArt/setup_uinput.sh
 
-setup_uinput.sh loads the uinput module, makes it load at boot via /etc/modules-load.d/uinput.conf, and installs /etc/udev/rules.d/99-uinput.rules giving the "input" group access. User rod is already in that group, so tests do NOT need root.
+deploy/setup_uinput.sh loads the uinput module, makes it load at boot via /etc/modules-load.d/uinput.conf, and installs /etc/udev/rules.d/99-uinput.rules giving the "input" group access. User rod is already in that group, so tests do NOT need root.
 
 The helper is /home/rod/Projects/AsciiArt/piinput.py:
 
