@@ -147,17 +147,24 @@ def _build():
     #
     # Generated from SPECS, so this stays true as values are added. `live` gets
     # "live colour" free, which is how it was actually asked for in the log.
-    for name in ("scheme", "ramp"):
+    #
+    # The two settings get their OWN phrasings rather than one shared template.
+    # Sharing produced a cross product where "fine colour" set the ramp and
+    # "coarse colour" did too - phrases that are about the other setting
+    # entirely, answered confidently. "{value} characters" is the one form both
+    # can honestly claim: "green characters" means characters drawn in green,
+    # and "fine characters" means finer ones. Nothing else crosses.
+    PHRASINGS = {
+        "scheme": ("{v}", "{v} scheme", "the {v} scheme", "make it {v}",
+                   "go {v}", "switch to {v}", "{v} characters",
+                   "{v} colour", "{v} color"),
+        "ramp": ("{v}", "{v} ramp", "the {v} ramp", "make it {v}",
+                 "{v} characters", "{v} glyphs", "{v} detail"),
+    }
+    for name, forms in PHRASINGS.items():
         for value in BY_NAME[name].choices:
-            add((value,
-                 f"{value} {name}",
-                 f"the {value} {name}",
-                 f"make it {value}",
-                 f"go {value}",
-                 f"switch to {value}",
-                 f"{value} characters",
-                 f"{value} colour",
-                 f"{value} color"), _fixed({name: value}))
+            add(tuple(form.format(v=value) for form in forms),
+                _fixed({name: value}))
 
     # --- a boolean, said as a verb ------------------------------------------
     for phrases, delta in (

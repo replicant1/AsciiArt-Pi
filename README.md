@@ -240,7 +240,9 @@ rejected, listing the names that do work.
 `ask make it green` used to cross a network, wait 2.6 seconds and cost a third
 of a US cent to work out `{"scheme": "green"}` — which is the scheme's own name,
 said out loud. `src/shortcuts.py` answers that class of phrase from a table
-before the parser is even imported.
+before any model call or key check happens. (Not "before the parser is
+imported" — `_warm_parser()` imports it at start-up when a key is present,
+so the first ask of a run does not pay an 11-second import.)
 
 Measured end to end through the phone page, against the running service:
 

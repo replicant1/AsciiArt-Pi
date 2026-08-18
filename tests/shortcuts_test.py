@@ -97,6 +97,28 @@ check("the table is generated, not typed out",
       len([p for p in shortcuts.TABLE if p in BY_NAME["scheme"].choices]),
       len(BY_NAME["scheme"].choices))
 
+# The two settings get their own phrasings. One shared template produced a
+# cross product where "fine colour" set the *ramp* - a phrase about colour,
+# answered confidently with something else. Certain or nothing.
+check("a colour phrasing does not reach the ramp",
+      [look(f"{r} colour") for r in BY_NAME["ramp"].choices],
+      [None] * len(BY_NAME["ramp"].choices))
+check("nor the American spelling",
+      [look(f"{r} color") for r in BY_NAME["ramp"].choices],
+      [None] * len(BY_NAME["ramp"].choices))
+check("and a scheme is not a ramp phrasing",
+      [look(f"{s} ramp") for s in BY_NAME["scheme"].choices],
+      [None] * len(BY_NAME["scheme"].choices))
+# "X characters" is the one form both may claim, and it means the right thing
+# either way: green characters are drawn in green, fine characters are finer.
+check("both may claim 'characters', and each means its own setting",
+      (look("green characters"), look("fine characters")),
+      ({"scheme": "green"}, {"ramp": "fine"}))
+check("every phrase resolves to exactly one setting",
+      [p for p, r in shortcuts.TABLE.items()
+       if (d := r(BASE, BASE.with_changes({"scheme": "amber"}))) and len(d) > 1
+       and p not in ("undo that", "undo", "undo it", "put that back")], [])
+
 # --- 3. booleans, said as verbs ---------------------------------------------
 section("3. booleans, said as verbs")
 
@@ -129,7 +151,8 @@ check("font size stops at its ceiling",
 # --- 5. what it must not answer ---------------------------------------------
 section("5. what it must not answer")
 
-cases = json.load(open(ROOT / "tests" / "eval_cases.json"))["cases"]
+with open(ROOT / "tests" / "eval_cases.json") as handle:
+    cases = json.load(handle)["cases"]
 declines = [c for c in cases if c.get("expect") == "decline"]
 check("there are decline cases to check against", len(declines) > 0, True)
 claimed = [c["utterance"] for c in declines if look(c["utterance"]) is not None]
@@ -193,7 +216,6 @@ for phrase, resolve in shortcuts.TABLE.items():
 check("and every delta it can produce survives RenderConfig", refused, [])
 
 # and prove that guard can fail
-real = shortcuts.BY_NAME
 try:
     broken = dict(shortcuts.TABLE)
     broken["nonsense"] = shortcuts._fixed({"scheme": "sepia"})
