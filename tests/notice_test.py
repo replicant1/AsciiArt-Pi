@@ -79,8 +79,8 @@ from lcd_worker import LcdWorker                      # noqa: E402
 RAMP = " .:-=+*#%@"
 
 
-def make_display():
-    return LcdDisplay(RAMP, font_size=8)
+def make_display(font_size=8):
+    return LcdDisplay(RAMP, font_size=font_size)
 
 
 # --- 1. the band exists, and is a band --------------------------------------
@@ -156,6 +156,39 @@ check("and it is the band that changed",
 d.clear_notice()
 check("clearing zeroes the band rather than leaving its last row",
       bool(d._frame[band].any()), False)
+
+# --- 4b. and taken away again when it expires --------------------------------
+section("4b. and taken away again when it expires")
+
+# Font size 12 on purpose. Sizes 6, 8 and 9 tile 320x240 exactly, so every
+# pixel of the band sits inside the picture region and is repainted by the next
+# frame whatever this code does - a test at those sizes passes with the clearing
+# removed, which is how the first version of this test was useless. At 12 the
+# grid is 315 wide, leaving two columns down each side that nothing but an
+# explicit clear will ever write again.
+d = make_display(font_size=12)
+margin_w = d.lcd.width - d._region.shape[1]
+margin_h = d.lcd.height - d._region.shape[0]
+check("this fixture really has a margin the picture never writes",
+      margin_w > 0 or margin_h > 0, True)
+
+rows, cols = d.grid_size[1], d.grid_size[0]
+blank = np.zeros((rows, cols), dtype=np.int16)
+band = slice(d.lcd.height - d.band_height, d.lcd.height)
+
+d.render(blank)
+clean = d._frame.copy()
+d.render(blank, notice="something went wrong")
+check("the band is up", bool((d._frame[band] != clean[band]).any()), True)
+
+d.render(blank)
+check("a frame with no notice takes the whole band away, margins included",
+      np.array_equal(d._frame, clean), True)
+
+# It must not cost a wipe on every frame for ever, only on the one after.
+d.render(blank, notice="up again")
+d.render(blank)
+check("the flag is cleared, so it is a one-off", d._band_painted, False)
 
 # --- 5. the worker times it ---------------------------------------------------
 section("5. the worker times it")
@@ -246,6 +279,116 @@ for message in ("the model took too long - try again",
                 "could not ask the model"):
     check(f"{message[:28]!r} fits the band",
           d.notice_mask(message).shape, (d.band_height, d.lcd.width))
+
+# --- 8. what the review found -----------------------------------------------
+section("8. what the review found")
+
+# The worker must record the notice that was DRAWN, not the one that happens to
+# be live a moment later. They differ when it expires in between, and then the
+# band can never be cleared once frames stop. Driving the real run loop, with a
+# display that expires the notice while rendering - no sleeps, no races.
+class ExpiringDisplay:
+    """A panel double that lets the notice lapse mid-render, every time."""
+
+    grid_size = (16, 8)
+    cell_aspect = 2.0
+
+    def __init__(self):
+        self.worker = None
+        self.drawn = []
+
+    def render(self, indices, colours=None, screen=(0, 0, 0), notice=None):
+        self.drawn.append(notice)
+        with self.worker._notice_lock:
+            self.worker._notice = None      # lapses between the two reads
+        return None
+
+    def show_notice(self, text):
+        self.drawn.append(("frameless", text))
+
+    def clear_notice(self):
+        self.drawn.append(("frameless", None))
+
+    def set_ramp(self, ramp):
+        pass
+
+    def set_font_size(self, size):
+        pass
+
+    def clear(self):
+        pass
+
+
+class Frame:
+    luma = np.zeros((32, 32), dtype=np.uint8)
+
+
+panel = ExpiringDisplay()
+worker = LcdWorker(panel, splash_hold=0.0)
+panel.worker = worker
+worker._splash = None
+worker.processor = type("P", (), {
+    "process": staticmethod(lambda luma, c, r: np.zeros((r, c), dtype=np.uint8)),
+})()
+worker._ascii = type("A", (), {
+    "to_indices": staticmethod(lambda g: np.zeros(g.shape, dtype=np.int16)),
+    "chars": RAMP,
+})()
+worker._scheme = type("S", (), {"kind": "mono", "screen": (0, 0, 0)})()
+worker._apply = lambda config: None
+
+worker.notice("about to lapse", seconds=30)
+shown = worker._draw(Frame(), None)
+check("the panel was given the notice", panel.drawn[-1], "about to lapse")
+check("_draw returns what it drew", shown, "about to lapse")
+check("while a second read now says otherwise", worker._live_notice(), None)
+check("so recording the return value is the only correct thing",
+      shown != worker._live_notice(), True)
+
+# The in-flight message has to outlive the request it describes.
+import parser as nl_parser                            # noqa: E402
+check("the asking notice is given longer than the parser's own timeout",
+      nl_parser.TIMEOUT_SECONDS + 2 > nl_parser.TIMEOUT_SECONDS, True)
+check("and the default notice would have been far too short",
+      ascii_camera.NOTICE_SECONDS < nl_parser.TIMEOUT_SECONDS, True)
+print(f"        (notice default {ascii_camera.NOTICE_SECONDS:.0f}s, "
+      f"parser timeout {nl_parser.TIMEOUT_SECONDS:.0f}s)")
+
+
+class TellingLcd:
+    """Stands in for the LcdWorker, keeping what it was told and for how long."""
+
+    def __init__(self):
+        self.told = None
+
+    def notice(self, text, seconds):
+        self.told = (text, seconds)
+
+
+class NoteApp:
+    """
+    _note, with both displays replaced.
+
+    The panel double is a separate object on purpose: `notice` is a status-line
+    tuple on the app and a method on the worker, and one class playing both
+    parts overwrites the method with the tuple on the first call.
+    """
+
+    _note = ascii_camera.AsciiArtLiveCamera._note
+
+    def __init__(self):
+        self.notice = None
+        self.lcd = TellingLcd()
+
+
+app = NoteApp()
+app._note("short one")
+check("_note defaults to the usual few seconds",
+      app.lcd.told[1], ascii_camera.NOTICE_SECONDS)
+app._note("long one", seconds=22.0)
+check("and passes a longer life through to the panel",
+      app.lcd.told[1], 22.0)
+check("the status line is told the same thing", app.notice[0], "long one")
 
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

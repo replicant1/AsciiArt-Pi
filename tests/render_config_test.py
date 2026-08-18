@@ -785,6 +785,10 @@ class StubParser:
 
     KEY_FILE = "/nowhere/api_key"
 
+    # The app reads this to size the "asking" notice, so the stub carries it
+    # too: it is part of the parser's surface, not an implementation detail.
+    TIMEOUT_SECONDS = 20.0
+
     class ParseError(RuntimeError):
         pass
 

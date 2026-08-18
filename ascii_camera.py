@@ -328,7 +328,7 @@ class AsciiArtLiveCamera:
         self.previous_config = previous
         logger.info("Config: %s", config.describe_changes(previous))
 
-    def _note(self, text):
+    def _note(self, text, seconds=NOTICE_SECONDS):
         """
         Say something on every display this run actually has.
 
@@ -338,9 +338,9 @@ class AsciiArtLiveCamera:
         for whoever happens to be holding a phone, has not been delivered to
         the person standing in front of the camera watching nothing happen.
         """
-        self.notice = (text, time.monotonic() + NOTICE_SECONDS)
+        self.notice = (text, time.monotonic() + seconds)
         if self.lcd is not None:
-            self.lcd.notice(text, NOTICE_SECONDS)
+            self.lcd.notice(text, seconds)
 
     def _note_if_stalled(self):
         """
@@ -564,10 +564,13 @@ class AsciiArtLiveCamera:
                          "command works without it.")
 
         # A parse takes two to four seconds, and on a panel with no spinner
-        # that is indistinguishable from a camera that ignored you. Say so, for
-        # a little longer than the parser's own timeout so the message cannot
-        # expire while the request is still out.
-        self._note(f"asking: {utterance[:40]}")
+        # that is indistinguishable from a camera that ignored you. Say so - and
+        # for longer than the parser's own timeout, since the point is that the
+        # message cannot expire while the request is still out. The default four
+        # seconds was wrong for exactly this: a request may run for twenty, and
+        # the panel would go quiet two-thirds of the way through it.
+        self._note(f"asking: {utterance[:40]}",
+                   seconds=nl_parser.TIMEOUT_SECONDS + 2)
 
         # A parse that raced a keypress resolves against settings one change
         # stale, which for "a bit warmer" is not worth a lock.

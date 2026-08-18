@@ -281,8 +281,7 @@ class LcdWorker(threading.Thread):
                                 "(%d ticks)",
                                 time.monotonic() - self._splash_since,
                                 self._phase)
-                self._draw(frame, config)
-                self._notice_shown = self._live_notice()
+                self._notice_shown = self._draw(frame, config)
                 self.frames += 1
             except Exception as e:
                 # A failure here must never take the terminal display down with
@@ -371,7 +370,12 @@ class LcdWorker(threading.Thread):
                          e, exc_info=True)
 
     def _draw(self, frame, config):
-        """Downscale, map to characters and push one frame to the panel."""
+        """
+        Downscale, map to characters and push one frame to the panel.
+
+        Returns the notice drawn with it, or None, so the caller records what
+        actually reached the glass.
+        """
         self._apply(config)
         cols, rows = self.display.grid_size
         scheme = self._scheme
@@ -394,8 +398,13 @@ class LcdWorker(threading.Thread):
                                        config.invert)
             colours = table[indices]
 
-        self.display.render(indices, colours, scheme.screen,
-                            notice=self._live_notice())
+        # Returned rather than re-read by the caller: asking twice can give
+        # two different answers if the notice expires between them, and then
+        # _notice_shown describes a band that is not what is on the glass -
+        # which stops _tick_notice ever clearing it once frames stop.
+        notice = self._live_notice()
+        self.display.render(indices, colours, scheme.screen, notice=notice)
+        return notice
 
     def _apply(self, config):
         """

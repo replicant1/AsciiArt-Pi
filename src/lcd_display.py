@@ -134,6 +134,10 @@ class LcdDisplay:
         self._band_h = min(self.lcd.height,
                            NOTICE_LINES * self._line_h + 2 * NOTICE_PAD)
         self._notice_cache = None
+        # Whether anything is currently in the band. Without it, a
+        # frame with no notice cannot tell 'nothing to clean up' from
+        # 'a message just expired'.
+        self._band_painted = False
 
         self.atlas = None
         self._rebuild(ramp)
@@ -186,6 +190,7 @@ class LcdDisplay:
         # pixels would survive in the margin the new one no longer reaches -
         # nothing ever writes there again, so they would stay for good.
         self._frame[:] = 0
+        self._band_painted = False
         # A view, so writes through it land in the persistent frame buffer.
         self._region = self._frame[y0:y0 + used_h, x0:x0 + used_w]
 
@@ -249,6 +254,7 @@ class LcdDisplay:
         r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
         band[..., 0] = (r & 0xF8) | (g >> 5)
         band[..., 1] = ((g << 3) & 0xE0) | (b >> 3)
+        self._band_painted = True
 
     def show_notice(self, text):
         """
@@ -272,6 +278,7 @@ class LcdDisplay:
         or the band's last row survives for good, the same trap _rebuild has.
         """
         self._frame[self.lcd.height - self._band_h:, :, :] = 0
+        self._band_painted = False
         self.lcd.show_packed(self._frame.tobytes())
 
     @property
@@ -307,6 +314,16 @@ class LcdDisplay:
         quantised to the xterm-256 palette the terminal is limited to - the
         panel has no such limit, and skipping the quantisation is cheaper too.
         """
+        if not notice and self._band_painted:
+            # The band has to go before the picture is packed, not after: only
+            # the intersection of band and picture region is repainted below,
+            # and the rest of the band - the bottom margin, and the left and
+            # right margins when the grid does not tile the panel exactly - is
+            # never written again. Leaving it is the same trap _rebuild guards
+            # against for the picture, reintroduced one band lower.
+            self._frame[self.lcd.height - self._band_h:, :, :] = 0
+            self._band_painted = False
+
         coverage = self._blit(indices)
 
         if colours is None:
