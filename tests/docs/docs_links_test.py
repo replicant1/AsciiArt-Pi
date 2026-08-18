@@ -92,16 +92,23 @@ docs_with_anchor_links = [d for d in docs
 check("some document does link to another's heading",
       bool(docs_with_anchor_links), True)
 
-# The four guides and index.html are published at
-# replicant1.github.io/AsciiArt-Pi/, so their file names are public URLs and
-# must stay at the top of docs/. Their own relative links have to resolve from
-# there too - a guide that 404s its own drawings is worse than one nobody moved.
-published = sorted(p for p in (ROOT / "docs").glob("*.html")
-                   if not p.name.startswith("."))
-check("the published pages are still at the top of docs/",
-      [p.name for p in published],
+# GitHub Pages serves main:/docs, so docs/index.html IS the site root -
+# https://replicant1.github.io/AsciiArt-Pi/ is that file and nothing else.
+# Moving it would 404 the front door, which is why it is the one HTML file
+# that cannot live in guides/ with the others.
+check("index.html is still the site root",
+      (ROOT / "docs" / "index.html").exists(), True)
+check("and it is the only HTML at the top of docs/",
+      sorted(p.name for p in (ROOT / "docs").glob("*.html")
+             if not p.name.startswith(".")), ["index.html"])
+check("the four guides are together in docs/guides/",
+      sorted(p.name for p in (ROOT / "docs" / "guides").glob("*.html")
+             if not p.name.startswith(".")),
       ["display-selection-guide.html", "enclosure-build-guide.html",
-       "enclosure-renders.html", "index.html", "panel-connectors-guide.html"])
+       "enclosure-renders.html", "panel-connectors-guide.html"])
+
+published = sorted(p for p in (ROOT / "docs").rglob("*.html")
+                   if not p.name.startswith("."))
 
 broken_assets = []
 for page in published:

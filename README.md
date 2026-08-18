@@ -36,16 +36,16 @@ Three hardware guides go with this code, published at
 Read them there rather than in this repo: GitHub shows HTML as source, and its
 raw view serves these as `text/plain`, so neither renders the drawings.
 
-- **[Choosing a display](https://replicant1.github.io/AsciiArt-Pi/display-selection-guide.html)**
+- **[Choosing a display](https://replicant1.github.io/AsciiArt-Pi/guides/display-selection-guide.html)**
   — a ranked guide to running this on something other than an HDMI monitor:
   vintage terminals, VFDs, graphic LCDs and OLED modules, priced in AUD and
   sourced for a buyer in Sydney.
-- **[From breadboard to enclosure](https://replicant1.github.io/AsciiArt-Pi/enclosure-build-guide.html)**
+- **[From breadboard to enclosure](https://replicant1.github.io/AsciiArt-Pi/guides/enclosure-build-guide.html)**
   — the rebuild into a self-contained, mains-powered box: a soldered perfboard
   HAT that replaces every friction-fit joint, a pin-by-pin cut list for the
   panel, encoder and shutdown-button harnesses, a measured power budget, and the
   enclosure cutouts.
-- **[Panel connectors and controls](https://replicant1.github.io/AsciiArt-Pi/panel-connectors-guide.html)**
+- **[Panel connectors and controls](https://replicant1.github.io/AsciiArt-Pi/guides/panel-connectors-guide.html)**
   — section drawings and specs for the three things that have to cross the
   enclosure wall: video out, power in and the shutdown button.
 
@@ -53,11 +53,11 @@ Each is a single self-contained page with no scripts or external assets, so
 saving one to disk works as well as reading it online.
 
 Alongside them is a gallery, **[The enclosure,
-rendered](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)** —
+rendered](https://replicant1.github.io/AsciiArt-Pi/guides/enclosure-renders.html)** —
 four raytraced views of the sloped console those guides arrive at, built from
 their stated dimensions rather than sketched to look right.
 
-[![The enclosure, rendered: a grey 3D-printed sloped console seen from the low southern side, with a lit amber ASCII panel on the sloped face, a knurled metal encoder knob above it and a red illuminated button below it](docs/images/enclosure-hero-thumb.png)](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)
+[![The enclosure, rendered: a grey 3D-printed sloped console seen from the low southern side, with a lit amber ASCII panel on the sloped face, a knurled metal encoder knob above it and a red illuminated button below it](docs/images/enclosure-hero-thumb.png)](https://replicant1.github.io/AsciiArt-Pi/guides/enclosure-renders.html)
 
 *Not yet built — this is a render of a design on paper, not a photograph. The
 geometry comes from the connectors guide: 92 by 105 mm, 62 mm tall at the north
@@ -65,7 +65,7 @@ and 25 at the south, a 19° fascia, and a parting plane at z = 25 mm that halves
 both connectors so a printed pocket can capture them. Encoder at the high north
 end, panel in the middle, shutdown button nearest the hand.
 [Three more views, and what is spec versus what is
-invented](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html).*
+invented](https://replicant1.github.io/AsciiArt-Pi/guides/enclosure-renders.html).*
 
 
 ## Where everything is
@@ -114,9 +114,10 @@ docs/subsystems/          one per part of the machine: panel, encoder,
                           language, colour schemes, what the model is told
 docs/project/             performance, running it at boot, how this is built
 docs/images/              every screenshot and render
-docs/*.html               the published hardware guides - these are public
-                          URLs at replicant1.github.io/AsciiArt-Pi/, so their
-                          names stay put
+docs/guides/              the published hardware guides
+docs/index.html           the site root - GitHub Pages serves main:/docs, so
+                          this file *is* replicant1.github.io/AsciiArt-Pi/
+                          and cannot move
 ```
 
 Three hardware guides are published separately as HTML — see the links above.

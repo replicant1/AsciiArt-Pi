@@ -65,8 +65,10 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            images/enclosure-hero.png images/enclosure-ports.png
            images/enclosure-north.png images/enclosure-exploded.png
            images/enclosure-hero-thumb.png images/enclosure-ports-thumb.png
-           display-selection-guide.html enclosure-build-guide.html
-           panel-connectors-guide.html enclosure-renders.html index.html
+           guides/display-selection-guide.html
+           guides/enclosure-build-guide.html
+           guides/panel-connectors-guide.html
+           guides/enclosure-renders.html index.html
            using-it.md architecture.md module-map.md class-map.md
            subsystems/panel.md subsystems/encoder.md subsystems/language.md
            subsystems/colour-schemes.md subsystems/what-the-model-is-told.md
