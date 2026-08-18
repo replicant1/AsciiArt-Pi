@@ -235,6 +235,75 @@ mistyped name was silently taken as a literal ramp: `--ramp standard` drew the
 picture out of the eight letters of the word rather than complaining. It is now
 rejected, listing the names that do work.
 
+### Saying it from a phone
+
+The enclosure seals the box. Its east wall carries mini-HDMI and USB-C power and
+nothing else, so once it is shut the input inventory is the encoder, the
+shutdown button, the camera and WiFi — and everything on that list except WiFi
+carries a few bits per second. Natural language needs a keyboard, and the best
+keyboard available is the one already in a pocket.
+
+`src/web_server.py` serves one page to a phone on the LAN and forwards whatever
+is typed into it to the command socket, verbatim:
+
+    phone -> HTTP -> web_server.py -> Unix socket -> resolver -> render loop
+
+Start it by hand, or install `ascii-camera-web.service` to have it come up at
+boot:
+
+```bash
+python3 src/web_server.py                    # 0.0.0.0:8080, LAN only
+sudo cp ascii-camera-web.service /etc/systemd/system/ && \
+  sudo systemctl enable --now ascii-camera-web
+```
+
+Then open `http://<the Pi's address>:8080/` on the phone. The page is one text
+box with a **say it in your own words** toggle (on by default, and all it does
+is prefix `ask `), chips for `show`, `help` and `reset`, and a transcript of
+what came back. It is a single self-contained document — no fonts, scripts or
+styles from anywhere else, because the phone may well be able to reach the Pi
+and not the internet.
+
+**It is a client of the socket, not a part of the app.** Nothing new reaches the
+render loop; a web request becomes a typed line one step in and is then
+indistinguishable from one typed at `tools/asciicam_cli.py` — same validation,
+same wording, same single entry point. That is worth more than it sounds:
+
+- The render loop cannot be hurt by a bug in here. The worst this can do is not
+  answer.
+- It is startable, stoppable and testable with the camera running. The service
+  owns the camera and `/dev/spidev0.0`; this owns a TCP port, and the two never
+  contend — `tests/web_server_test.py` runs against the live app without
+  disturbing it.
+- The money switches off separately. `systemctl stop ascii-camera-web` ends
+  asking from the network; the picture carries on.
+
+Three things guard it, because this is the only part of the build reachable from
+the network at all:
+
+- **IPv4 only.** This Pi has a globally routable IPv6 address, and a listener on
+  it would be reachable from outside the house the moment the router allowed it.
+  Binding `AF_INET` means there is no such address to reach — a stronger
+  guarantee than a firewall rule nobody will re-check.
+- **Private source addresses only.** Anything that is not RFC1918, loopback or
+  link-local is refused before the body is read. A second fence, and the one
+  that still stands if the box is ever port-forwarded by accident.
+- **A rate limit on the requests that cost money.** `ask` spends an API call;
+  every other line is free, so only asks are counted — 20 a minute, across all
+  clients, because the hazard being guarded is a bill and a bill does not care
+  which phone ran it up. Being capped never stops you typing a setting by name.
+
+`GET /health` says whether the app is listening without sending it anything: a
+health check that cost an API call, or woke the render loop, would be a worse
+problem than the one it diagnoses. The page uses it to light the dot beside the
+title.
+
+Measured end to end from a laptop on the same WiFi, against the running
+service: `ask warmer, and finer characters` took 5.1 s round trip, 3.9 s of
+which was the model. `show` came back in well under a second. The utterance
+landed in `logs/asks.jsonl` in exactly the shape a typed one does, which is the
+check that the two paths really are one path.
+
 ### Command-line arguments
 
 | Argument | Values | Default | Effect |
@@ -624,6 +693,98 @@ restated. A field with no spec, or a spec with no field, fails at import rather
 than showing up later as a setting nothing can change — the same shape of trap
 `sync.sh` has, where a module missing from its file list is silently never
 copied.
+
+### From a phrase to the panel
+
+Two front ends, one path. This is what happens between saying "make it warmer"
+and the panel being warmer, whichever way it was said:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Person
+    participant CLI as tools/asciicam_cli.py
+    participant WEB as src/web_server.py<br/>phone page, LAN only
+    participant SOCK as CommandServer<br/>a thread per client
+    participant RES as _resolve_ask<br/>same client thread
+    participant API as parser.py<br/>and the Claude API
+    participant MAIN as render loop<br/>main thread
+    participant TERM as HDMI terminal
+    participant LCD as LcdWorker<br/>its own thread
+    participant PANEL as ILI9341 panel
+
+    alt at a keyboard, over SSH
+        Person->>CLI: ask make it warmer
+        CLI->>SOCK: "ask make it warmer\n"
+    else on a phone, over WiFi
+        Person->>WEB: POST /ask, "make it warmer"
+        Note right of WEB: the toggle prefixes "ask ",<br/>and that is the only thing<br/>this process changes
+        WEB->>SOCK: "ask make it warmer\n"
+    end
+
+    SOCK->>RES: _prepare(line), before the loop hears anything
+    Note over MAIN,PANEL: the loop never waits for any of this —<br/>the picture stays at 15 fps throughout
+    RES->>API: parse(utterance, config, previous_config)
+    API-->>RES: set_render {"scheme": "amber", "ramp": "coarse"}
+    Note left of API: or decline, which is<br/>an answer, not a failure
+    RES->>RES: asklog.record(...) → logs/asks.jsonl
+    RES-->>SOCK: Ask(utterance, delta, note)
+
+    SOCK->>MAIN: inbox.put — a delta with nothing left to wait for
+    MAIN->>MAIN: take() once per frame, beside the keys and the knob
+    MAIN->>MAIN: apply(delta) → RenderConfig.with_changes
+
+    alt the delta validates
+        MAIN->>TERM: _adopt: rebuild AsciiArt, repaint, set_scheme
+        MAIN->>LCD: submit(frame, RenderConfig) with the next frame
+        LCD->>PANEL: glyph atlas → RGB565 → 153,600 bytes over SPI
+        MAIN-->>SOCK: "scheme 'grey'→'amber', ramp 'fine'→'coarse'"
+    else refused
+        MAIN-->>SOCK: every fault in the delta, and nothing changed
+    end
+
+    alt back to the CLI
+        SOCK-->>CLI: the reply, NUL-terminated
+        CLI-->>Person: printed at the prompt
+    else back to the phone
+        SOCK-->>WEB: the same reply, wrapped in JSON
+        WEB-->>Person: appended to the transcript
+    end
+```
+
+**Both front ends produce the same line.** `src/web_server.py` is a client of
+the command socket exactly as `tools/asciicam_cli.py` is; it forwards what was
+typed verbatim, and the app has no field anywhere recording which one sent it.
+The single difference is the one the note calls out — the page's **say it in
+your own words** toggle prefixes `ask `, which at the prompt you would type
+yourself. Turn it off and
+the two are byte-identical.
+
+**The slow part runs on the client's thread, never the loop.** A parse crosses
+a network and takes two to four seconds; on the render loop that would stop both
+displays for the duration. So the resolver does its work before the loop hears
+anything, and what reaches the inbox is a delta with nothing left to wait for.
+That is why `CommandServer`'s own `REPLY_TIMEOUT` is five seconds while the
+CLI's socket timeout is ninety: the loop is only ever asked to apply a dict, and
+five seconds of not doing that means it has wedged.
+
+**A parsed delta and a typed one are the same delta.** `_run_command` unwraps
+the `Ask` and hands it to `apply()` — the same call `scheme amber` makes, the
+same `RenderConfig.with_changes` validation, the same wording on refusal. The
+model cannot reach anything a typed line could not, which is what makes
+`tests/parser_eval.py` meaningful: it scores deltas against the validator that
+will actually judge them.
+
+**The panel is told last, and indirectly.** `_adopt` pushes the cheap changes
+straight onto the processor and repaints the terminal, but nothing calls the
+panel. The whole `RenderConfig` rides along with the next frame, so the panel
+finds out when it next has something to draw — which is why a change made while
+the picture is frozen sets `_redraw` rather than assuming a frame is coming.
+
+**State lives on the app, not on the connection.** `previous_config` is what
+`ask undo that` resolves against, and it belongs to the camera rather than to
+whoever is connected. So an undo from a phone undoes a change typed at the CLI,
+or made with the knob. One history, however many ways in.
 
 ### Classes
 
