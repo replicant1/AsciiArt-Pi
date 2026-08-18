@@ -45,7 +45,7 @@ TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_font_size_test.py lcd_worker_test.py
             commands_test.py asklog_test.py parser_test.py
             parser_eval.py eval_cases.json web_server_test.py
-            shortcuts_test.py)
+            shortcuts_test.py notice_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
@@ -62,6 +62,7 @@ DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
 # have to live on both sides: scheme_montage.py needs the camera, and
 # probe_encoder.py needs the encoder's GPIO pins.
 TOOL_FILES=(scheme_montage.py probe_encoder.py watch_button.py
+            notice_demo.py
             asciicam_cli.py ask_parser.py utterances.txt)
 
 changed=0

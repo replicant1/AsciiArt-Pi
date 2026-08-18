@@ -284,6 +284,10 @@ class StubLcd:
         self.blanks = 0
         self.submitted = 0
         self.splashes = []
+        self.notices = []
+
+    def notice(self, text, seconds=None):
+        self.notices.append(text)
 
     def blank(self):
         self.blanks += 1

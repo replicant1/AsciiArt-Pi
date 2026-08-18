@@ -21,6 +21,7 @@ left black and the picture centred in them.
 """
 
 import logging
+import textwrap
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -28,6 +29,15 @@ from PIL import Image, ImageDraw, ImageFont
 from lcd import ILI9341
 
 logger = logging.getLogger(__name__)
+
+# The notice band. Two lines is enough for every message the app can produce -
+# the longest is "could not reach the model: ..." with an OSError on the end -
+# and a third would start eating the picture.
+NOTICE_FONT_SIZE = 12
+NOTICE_LINES = 2
+NOTICE_PAD = 3
+NOTICE_INK = (255, 236, 200)     # warm white, the project's own cast
+NOTICE_BG = (28, 12, 8)          # near-black, so the band reads as an overlay
 
 DEFAULT_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 DEFAULT_FONT_SIZE = 8
@@ -115,6 +125,16 @@ class LcdDisplay:
         self._frame = np.zeros((self.lcd.height, self.lcd.width, 2),
                                dtype=np.uint8)
 
+        # Its own font and size, independent of the ramp's: the picture's
+        # glyphs are chosen to tile the panel exactly, and at font size 6 that
+        # is four pixels wide - fine for a picture, unreadable as a sentence.
+        self._notice_font = ImageFont.truetype(font_path, NOTICE_FONT_SIZE)
+        ascent, descent = self._notice_font.getmetrics()
+        self._line_h = ascent + descent
+        self._band_h = min(self.lcd.height,
+                           NOTICE_LINES * self._line_h + 2 * NOTICE_PAD)
+        self._notice_cache = None
+
         self.atlas = None
         self._rebuild(ramp)
 
@@ -173,6 +193,92 @@ class LcdDisplay:
                     "on a %dx%d panel", self.cols, self.rows, used_w, used_h,
                     x0, y0, self.lcd.width, self.lcd.height)
 
+    # --- notices ------------------------------------------------------------
+    #
+    # A band along the bottom of the panel, drawn straight into the RGB565
+    # buffer *after* the picture is packed. Deliberately not part of the
+    # character grid: the atlas holds only the ramp, so the grid cannot spell
+    # anything, and a message tinted by whatever cell colours sit under it
+    # would be unreadable exactly when it matters. Fixed ink on a fixed band is
+    # legible over every scheme, including `live`.
+    #
+    # It writes to self._frame rather than self._region so it lands on the
+    # panel edge whatever the grid fit leaves as margin.
+
+    def notice_mask(self, text):
+        """
+        Rasterise one message to a coverage mask, cached.
+
+        Returns a (band_h, width) uint8 array. Cached because a notice stands
+        for seconds and the panel redraws 27 times a second; rasterising per
+        frame would put a PIL text call back on the hot path, which is the one
+        thing src/lcd_display.py exists to keep off it.
+        """
+        if self._notice_cache is not None and self._notice_cache[0] == text:
+            return self._notice_cache[1]
+
+        width = self.lcd.width
+        lines = self._wrap(text, width)
+        band = Image.new("L", (width, self._band_h), 0)
+        draw = ImageDraw.Draw(band)
+        for i, line in enumerate(lines[:NOTICE_LINES]):
+            draw.text((NOTICE_PAD, NOTICE_PAD + i * self._line_h), line,
+                      font=self._notice_font, fill=255)
+        mask = np.asarray(band, dtype=np.uint8)
+        self._notice_cache = (text, mask)
+        return mask
+
+    def _wrap(self, text, width):
+        """Break a message into at most NOTICE_LINES that fit the panel."""
+        per_line = max(8, int(width - 2 * NOTICE_PAD)
+                       // max(1, round(self._notice_font.getlength("M"))))
+        lines = textwrap.wrap(text, per_line) or [""]
+        if len(lines) > NOTICE_LINES:
+            lines = lines[:NOTICE_LINES]
+            lines[-1] = lines[-1][:max(1, per_line - 1)] + "\u2026"
+        return lines
+
+    def _paint_notice(self, text):
+        """Blend one message into the bottom band of the frame buffer."""
+        mask = self.notice_mask(text)
+        band = self._frame[self.lcd.height - self._band_h:, :, :]
+        cover = mask[:, :, None].astype(np.uint16)
+        ink = np.array(NOTICE_INK, dtype=np.uint16)
+        back = np.array(NOTICE_BG, dtype=np.uint16)
+        rgb = (back + ((ink - back) * cover) // 255).astype(np.uint8)
+        r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+        band[..., 0] = (r & 0xF8) | (g >> 5)
+        band[..., 1] = ((g << 3) & 0xE0) | (b >> 3)
+
+    def show_notice(self, text):
+        """
+        Put a message on the panel without a frame to go with it.
+
+        This is the case that matters most: when the camera stops delivering,
+        the render loop has nothing to draw and the panel would otherwise sit
+        showing the last good picture for ever, which looks exactly like a
+        working camera. The frame buffer is persistent, so the band can be
+        painted over whatever is already there and pushed on its own.
+        """
+        self._paint_notice(text)
+        self.lcd.show_packed(self._frame.tobytes())
+
+    def clear_notice(self):
+        """
+        Take the band away and push what is underneath.
+
+        The picture region repaints itself on the next frame, but the margin
+        strip outside it is never written again - so it has to be zeroed here
+        or the band's last row survives for good, the same trap _rebuild has.
+        """
+        self._frame[self.lcd.height - self._band_h:, :, :] = 0
+        self.lcd.show_packed(self._frame.tobytes())
+
+    @property
+    def band_height(self):
+        """Pixels the notice band occupies, for tests and for the log."""
+        return self._band_h
+
     @property
     def grid_size(self):
         """(cols, rows) - fixed, and independent of the terminal's grid."""
@@ -183,7 +289,7 @@ class LcdDisplay:
         """Character cell height/width, for correcting the picture's shape."""
         return self.atlas.cell_h / self.atlas.cell_w
 
-    def render(self, indices, colours=None, screen=(0, 0, 0)):
+    def render(self, indices, colours=None, screen=(0, 0, 0), notice=None):
         """
         Draw one frame.
 
@@ -194,6 +300,8 @@ class LcdDisplay:
                 When None the picture is drawn white-on-black.
             screen: RGB behind the glyphs - a colour scheme's unlit screen.
                 Every pixel a glyph does not cover becomes this.
+            notice: Optional message for the bottom band. Painted after the
+                picture, so it is legible whatever the picture is doing.
 
         Note the colours are used at full RGB565 depth rather than being
         quantised to the xterm-256 palette the terminal is limited to - the
@@ -205,6 +313,9 @@ class LcdDisplay:
             self._pack_grey(coverage)
         else:
             self._pack_colour(coverage, colours, screen)
+
+        if notice:
+            self._paint_notice(notice)
 
         self.lcd.show_packed(self._frame.tobytes())
 

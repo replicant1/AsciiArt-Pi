@@ -74,6 +74,20 @@ TERMINAL_OFF = "picture on the LCD panel - press t to bring it back"
 # next one.
 NOTICE_SECONDS = 4.0
 
+# How long the camera may deliver nothing before the panel says so. The capture
+# thread caps its own rate, so a second of silence is normal and ten is not.
+# This exists because of a real morning: an OOM storm killed the desktop
+# session, the camera stopped delivering at 09:20, and the app kept redrawing
+# its last frame for ninety-five minutes. Every check said healthy - the render
+# loop answered the command socket in 1.4 s - and the panel showed a picture. A
+# frozen picture and a working camera are indistinguishable by eye, which is
+# exactly the kind of failure a sealed box must not be allowed to hide.
+STALL_SECONDS = 10.0
+
+# Re-said while it is still true, since a notice expires after four seconds and
+# a fault that lasts an hour should not be announced once and then hidden.
+STALL_REPEAT = 30.0
+
 # Poll interval while the picture is frozen and nothing has changed. The camera
 # normally paces the loop; with no frame being waited for, this is what stops it
 # spinning a core for nothing.
@@ -103,6 +117,10 @@ class AsciiArtLiveCamera:
         # parser reads it, and only so that "undo that" has something to
         # undo to - a request that means nothing without a before.
         self.previous_config = None
+        # When the last camera frame arrived, and when the panel was last
+        # told the camera had stopped. See _note_if_stalled.
+        self._last_frame_at = None
+        self._stall_noted = None
 
         self.camera = CameraCapture(
             resolution=(args.width, args.height),
@@ -311,8 +329,60 @@ class AsciiArtLiveCamera:
         logger.info("Config: %s", config.describe_changes(previous))
 
     def _note(self, text):
-        """Put a short message in the status line for a few seconds."""
+        """
+        Say something on every display this run actually has.
+
+        The terminal gets it in the status line, as it always did. The panel
+        gets it too, because in the enclosure the panel is the *only* output -
+        a message that reaches a status line nobody can see, or a socket reply
+        for whoever happens to be holding a phone, has not been delivered to
+        the person standing in front of the camera watching nothing happen.
+        """
         self.notice = (text, time.monotonic() + NOTICE_SECONDS)
+        if self.lcd is not None:
+            self.lcd.notice(text, NOTICE_SECONDS)
+
+    def _note_if_stalled(self):
+        """
+        Say so when the camera has stopped, rather than showing a stale frame.
+
+        Only after a first frame has arrived: before that the start-up screen
+        owns the panel and already says what is happening, and libcamera takes
+        15-20 seconds to hand over frame one on this hardware - which is not a
+        stall, it is a Zero 2.
+        """
+        if self._last_frame_at is None:
+            return
+        now = time.monotonic()
+        idle = now - self._last_frame_at
+        if idle < STALL_SECONDS:
+            return
+        if self._stall_noted is not None and now - self._stall_noted < STALL_REPEAT:
+            return
+        self._stall_noted = now
+        logger.error("No camera frame for %.0f s", idle)
+        self._note(f"no picture from the camera for {int(idle)}s")
+
+    @staticmethod
+    def _short_failure(error):
+        """
+        Turn a ParseError into something that fits a 320-pixel band.
+
+        The socket reply keeps the full text - whoever typed it can read a
+        sentence. The panel gets the kind of failure, because "the network is
+        down" and "the key was refused" call for different actions and the
+        difference between them is worth the two words it costs.
+        """
+        text = str(error).lower()
+        if "timeout" in text or "timed out" in text:
+            return "the model took too long - try again"
+        if "connection" in text or "network" in text or "resolve" in text:
+            return "no network - words need one, settings do not"
+        if "authentication" in text or "api key" in text or "401" in text:
+            return "the API key was refused"
+        if "rate" in text and "limit" in text:
+            return "asking too fast - wait a moment"
+        return "could not ask the model"
 
     def _start_lcd(self):
         """
@@ -488,9 +558,16 @@ class AsciiArtLiveCamera:
         except Exception as e:
             return Reply(f"the language model parser is unavailable: {e}")
         if nl_parser.api_key() is None:
+            self._note("no API key, so words are off")
             return Reply("no API key, so ask is off. Put one in "
                          f"{nl_parser.KEY_FILE} to switch it on; every other "
                          "command works without it.")
+
+        # A parse takes two to four seconds, and on a panel with no spinner
+        # that is indistinguishable from a camera that ignored you. Say so, for
+        # a little longer than the parser's own timeout so the message cannot
+        # expire while the request is still out.
+        self._note(f"asking: {utterance[:40]}")
 
         # A parse that raced a keypress resolves against settings one change
         # stale, which for "a bit warmer" is not worth a lock.
@@ -501,11 +578,19 @@ class AsciiArtLiveCamera:
             # both have to survive this, so it is a sentence, not a traceback.
             logger.warning("Ask failed for %r: %s", utterance, e)
             self._log_ask(utterance, config, previous, error=str(e))
+            # Said on the panel as well as returned to whoever asked. This is
+            # the whole of "honest failure": the camera did not do what it was
+            # told, and the only display in the box has to admit it rather than
+            # carry on showing a picture as though nothing was asked.
+            self._note(self._short_failure(e))
             return Reply(f"could not reach the model: {e}")
 
         if parsed.declined is not None:
             logger.info("Ask declined %r: %s", utterance, parsed.declined)
             self._log_ask(utterance, config, previous, parsed=parsed)
+            # A decline is an answer, not a failure - but it is still an answer
+            # nobody sees if it only goes back down the socket.
+            self._note("cannot do that: " + parsed.declined)
             return Reply(f"  {parsed.declined}")
 
         note = f"{parsed.seconds:.1f}s"
@@ -972,10 +1057,13 @@ class AsciiArtLiveCamera:
                         # we are polling too fast.
                         self.dropped += 1
                         self.display.message("Waiting for camera...")
+                        self._note_if_stalled()
                         if not self._drain_input():
                             break
                         continue
                     self._held = frame
+                    self._last_frame_at = time.monotonic()
+                    self._stall_noted = None
 
                 self._redraw = False
 

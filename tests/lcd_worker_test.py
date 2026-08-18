@@ -53,6 +53,8 @@ class RecordingDisplay:
         self.font_sizes = []        # every set_font_size argument, in order
         self.ramps = []             # every set_ramp argument, in order
         self.frames = 0
+        self.notices = []
+        self.frameless_notices = []
         self.clears = 0
         self.last_colours = None
 
@@ -73,10 +75,19 @@ class RecordingDisplay:
     def set_ramp(self, ramp):
         self.ramps.append(ramp)
 
-    def render(self, indices, colours=None, screen=(0, 0, 0)):
+    def render(self, indices, colours=None, screen=(0, 0, 0), notice=None):
         self.frames += 1
         self.last = (indices, colours, screen)
         self.last_colours = None if colours is None else colours.copy()
+        # Recorded rather than merely tolerated: a double that swallows a new
+        # argument silently stops testing whatever the argument does.
+        self.notices.append(notice)
+
+    def show_notice(self, text):
+        self.frameless_notices.append(text)
+
+    def clear_notice(self):
+        self.frameless_notices.append(None)
 
     def show_image(self, image):
         pass

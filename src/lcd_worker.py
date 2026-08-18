@@ -52,6 +52,11 @@ DEFAULT_SPLASH_HOLD = 3.0
 # still up because of the hold.
 SPLASH_READY = "ready"
 
+# How long a notice stays up. Four seconds is the terminal status line's own
+# NOTICE_SECONDS, and the two displays saying the same thing for the same
+# length of time is the point - the panel is not a second-class output.
+NOTICE_SECONDS = 4.0
+
 
 class LcdWorker(threading.Thread):
     """Renders camera frames to the LCD without blocking the main loop."""
@@ -106,6 +111,12 @@ class LcdWorker(threading.Thread):
         self._last_tick = None
         self._phase = 0
 
+        # Set from the main thread, read on this one, and cleared by whichever
+        # gets there first - hence the lock rather than a bare tuple.
+        self._notice = None
+        self._notice_lock = threading.Lock()
+        self._notice_shown = None
+
         self.frames = 0
         self.dropped = 0
         self.errors = 0
@@ -128,6 +139,36 @@ class LcdWorker(threading.Thread):
         if detail is None:
             detail = self._splash[1] if self._splash else ""
         self._splash = (message, detail)
+
+    def notice(self, text, seconds=NOTICE_SECONDS):
+        """
+        Say something on the panel for a few seconds, over the picture.
+
+        Safe from any thread: nothing is drawn here, only recorded. Passing an
+        empty text takes the band away early.
+
+        The panel is the only output a sealed box has, so this is where a
+        failure has to end up. A message that only reaches the socket reply is
+        a message for whoever happened to be holding a phone, and the person
+        standing in front of the camera watching nothing happen is exactly who
+        needed it.
+        """
+        with self._notice_lock:
+            if not text:
+                self._notice = None
+            else:
+                self._notice = (text, time.monotonic() + max(0.0, seconds))
+
+    def _live_notice(self):
+        """The message that should be on screen now, or None."""
+        with self._notice_lock:
+            if self._notice is None:
+                return None
+            text, until = self._notice
+            if time.monotonic() >= until:
+                self._notice = None
+                return None
+            return text
 
     def submit(self, frame, config):
         """
@@ -198,6 +239,13 @@ class LcdWorker(threading.Thread):
                 # do it explicitly, since it is called exactly when frames have
                 # stopped and the frame path can no longer be reached.
                 self._tick_splash()
+                # Notices have to reach the glass without a frame to ride on.
+                # That is not an edge case: "the camera stopped" is precisely
+                # the message nobody can deliver on the frame path, because
+                # there are no frames. The buffer is persistent, so the band
+                # goes over whatever picture is already up there.
+                if self._splash is None:
+                    self._tick_notice()
                 continue
             if item is None:
                 break
@@ -234,6 +282,7 @@ class LcdWorker(threading.Thread):
                                 time.monotonic() - self._splash_since,
                                 self._phase)
                 self._draw(frame, config)
+                self._notice_shown = self._live_notice()
                 self.frames += 1
             except Exception as e:
                 # A failure here must never take the terminal display down with
@@ -245,6 +294,21 @@ class LcdWorker(threading.Thread):
 
         logger.info("LCD worker stopped: %d frames, %d dropped, %d errors",
                     self.frames, self.dropped, self.errors)
+
+    def _tick_notice(self):
+        """Paint or remove the band when no frames are arriving to carry it."""
+        text = self._live_notice()
+        if text == self._notice_shown:
+            return                      # already on the glass, or already gone
+        try:
+            if text:
+                self.display.show_notice(text)
+            else:
+                self.display.clear_notice()
+            self._notice_shown = text
+        except Exception as e:
+            self.errors += 1
+            logger.error("LCD notice failed: %s", e, exc_info=True)
 
     def _hold_remaining(self):
         """Seconds the start-up screen is still owed, 0 once it has had them."""
@@ -330,7 +394,8 @@ class LcdWorker(threading.Thread):
                                        config.invert)
             colours = table[indices]
 
-        self.display.render(indices, colours, scheme.screen)
+        self.display.render(indices, colours, scheme.screen,
+                            notice=self._live_notice())
 
     def _apply(self, config):
         """

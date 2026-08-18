@@ -305,6 +305,68 @@ says nothing about the prompt, because the model was never asked — so anything
 counting hit rate or promoting real utterances into eval cases has to filter on
 it.
 
+### When something goes wrong, the panel says so
+
+In the enclosure the panel is the only output there is. A failure that reaches
+only the status line, or only the socket reply, has been reported to whoever
+happened to be holding a phone — not to the person standing in front of the
+camera watching nothing happen. So `_note()` now says it on every display this
+run actually has, and the failures all go through it:
+
+| What happened | What the panel says |
+|---|---|
+| The parse is in flight (2–4 s) | `asking: make it warmer and blockier` |
+| Network down | `no network - words need one, settings do not` |
+| Timeout | `the model took too long - try again` |
+| Key refused | `the API key was refused` |
+| Rate limited | `asking too fast - wait a moment` |
+| The model declined | `cannot do that:` and its own wording |
+| No key at all | `no API key, so words are off` |
+| **The camera stopped** | `no picture from the camera for 95s` |
+
+The in-flight message is not politeness. A parse takes two to four seconds, and
+on a panel with no spinner that is indistinguishable from a camera that ignored
+you — which is the same failure as any other, just quieter.
+
+**The notice is a band drawn into the RGB565 buffer after the picture is
+packed**, not part of the character grid. The glyph atlas holds only the ramp,
+so the grid literally cannot spell anything; and text tinted by whatever cell
+colours happened to sit under it would be unreadable exactly when it mattered.
+Fixed ink on a fixed band is legible over every scheme including `live`, and
+`tests/notice_test.py` asserts the band comes out byte-identical over a bright
+picture and a blank one.
+
+**The stalled camera is the case that shaped the design.** On 18 August an OOM
+storm killed the desktop session, capture stopped at 09:20, and the app kept
+redrawing its last frame for ninety-five minutes. Every check said healthy — the
+render loop answered the command socket in 1.4 s — and the panel showed a
+picture. A frozen picture and a working camera are indistinguishable by eye.
+Now, ten seconds after frames stop, the panel says so, and repeats every thirty
+seconds while it is still true.
+
+That message is the one a frame-driven display cannot deliver: there are no
+frames for it to ride on. The frame buffer is persistent, so it is painted over
+whatever picture is already up there and pushed on its own.
+
+**Verification is split, because it has to be.** `tests/notice_test.py` (36
+checks) covers the geometry, the caching, the wrapping, the frameless path and
+the stall thresholds, and was checked by breaking the implementation four ways —
+each mutant failed exactly the tests meant to catch it. What no test on this
+machine can answer is whether the result is *readable*: nothing here can see the
+SPI panel. `tools/notice_demo.py` holds a message still on the real panel for as
+long as you like, over a bright gradient — the hardest case for legibility —
+so a person can judge it:
+
+```bash
+sudo systemctl stop ascii-camera            # it owns the panel
+python3 tools/notice_demo.py --message decline --seconds 120
+sudo systemctl start ascii-camera
+```
+
+Confirmed by eye on the real panel: two lines, wrapped on a word boundary, the
+overflow ending in an ellipsis. Long declines are truncated there; the full text
+still goes back to whoever asked and into `logs/asks.jsonl`.
+
 ### Saying it from a phone
 
 The enclosure seals the box. Its east wall carries mini-HDMI and USB-C power and
