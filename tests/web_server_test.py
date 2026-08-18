@@ -178,8 +178,11 @@ with Served(app.path) as web:
     check("it is a whole HTML document", page.startswith("<!DOCTYPE html>"), True)
     check("both boxes are there, one per radio",
           ['id="f-ask"' in page, 'id="f-raw"' in page], [True, True])
+    # Matched loosely on purpose. These broke once when a data-dest attribute
+    # was added between id and value - the markup was right and the test was
+    # asserting the order somebody had happened to type the attributes in.
     check("your own words is the row selected to begin with",
-          'id="m-ask" value="ask" checked' in page, True)
+          bool(re.search(r'id="m-ask"[^>]*\bchecked', page)), True)
     check("each box hints with an example rather than an instruction",
           ['placeholder="warmer, and blockier characters"' in page,
            'placeholder="scheme amber"' in page], [True, True])
@@ -193,6 +196,18 @@ with Served(app.path) as web:
           ['aria-labelledby="t-send"' in page,
            'aria-labelledby="t-back"' in page], [True, True])
 
+    # The button names where the text goes, so the page has to know. Only the
+    # row that spends an API call may say "model" - a row mislabelled here
+    # would promise a free instant answer and quietly bill for one, or the
+    # reverse, which is worse than an unlabelled button.
+    dests = re.findall(r'id="m-(\w+)"[^>]*\bdata-dest="(\w+)"', page)
+    check("every row declares where its text goes",
+          [d[0] for d in dests], ["show", "help", "reset", "ask", "raw"])
+    check("and only your own words goes to the model",
+          [d[0] for d in dests if d[1] == "model"], ["ask"])
+    check("the button starts by naming a destination",
+          ">Send to the camera</button>" in page, True)
+
     check("it needs nothing off the internet",
           ("http://" not in page.replace("http://127.0.0.1", "")
            and "https://" not in page), True)
@@ -202,7 +217,7 @@ with Served(app.path) as web:
     # to be real. A radio for a command the app does not have would fail only
     # when somebody picked it, and would answer "there is no setting called
     # ..." to a person who had typed nothing at all.
-    modes = re.findall(r'name="mode" id="m-\w+" value="(\w+)"', page)
+    modes = re.findall(r'name="mode"[^>]*\bvalue="(\w+)"', page)
     check("five radios, in the order the form lists them",
           modes, ["show", "help", "reset", "ask", "raw"])
     check("the three command radios are commands the app accepts",

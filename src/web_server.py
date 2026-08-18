@@ -252,7 +252,7 @@ PAGE = """<!DOCTYPE html>
 
   #go {
     display: block; margin: 12px 0 0 33px;
-    padding: 13px 30px; border-radius: 10px; border: 0;
+    padding: 13px 26px; min-width: 11.5em; border-radius: 10px; border: 0;
     background: #b8873a; color: #12100c;
     font: 600 16px system-ui, sans-serif;
   }
@@ -278,25 +278,25 @@ PAGE = """<!DOCTYPE html>
 
 <form id="form" autocomplete="off">
   <div class="opt" id="opt-show">
-    <input type="radio" name="mode" id="m-show" value="show">
+    <input type="radio" name="mode" id="m-show" data-dest="camera" value="show">
     <span class="what">show</span>
     <span class="why">the settings, as they are now</span>
   </div>
 
   <div class="opt" id="opt-help">
-    <input type="radio" name="mode" id="m-help" value="help">
+    <input type="radio" name="mode" id="m-help" data-dest="camera" value="help">
     <span class="what">help</span>
     <span class="why">everything that can be changed</span>
   </div>
 
   <div class="opt" id="opt-reset">
-    <input type="radio" name="mode" id="m-reset" value="reset">
+    <input type="radio" name="mode" id="m-reset" data-dest="camera" value="reset">
     <span class="what">reset</span>
     <span class="why">back to the defaults</span>
   </div>
 
   <div class="opt on" id="opt-ask">
-    <input type="radio" name="mode" id="m-ask" value="ask" checked>
+    <input type="radio" name="mode" id="m-ask" data-dest="model" value="ask" checked>
     <span class="field">
       <span class="cap">Use your own words</span>
       <input type="text" id="f-ask" placeholder="warmer, and blockier characters"
@@ -305,7 +305,7 @@ PAGE = """<!DOCTYPE html>
   </div>
 
   <div class="opt" id="opt-raw">
-    <input type="radio" name="mode" id="m-raw" value="raw">
+    <input type="radio" name="mode" id="m-raw" data-dest="camera" value="raw">
     <span class="field">
       <span class="cap">Give a direct command</span>
       <input type="text" id="f-raw" placeholder="scheme amber"
@@ -313,7 +313,7 @@ PAGE = """<!DOCTYPE html>
     </span>
   </div>
 
-  <button id="go" type="submit">Send</button>
+  <button id="go" type="submit">Send to the camera</button>
 </form>
 </section>
 
@@ -350,6 +350,22 @@ help lists every setting and the values it takes.</div>
                  raw: document.getElementById('f-raw') };
   var busy = false;
 
+  function radio() {
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].checked) { return radios[i]; }
+    }
+    return radios[radios.length - 2];
+  }
+
+  // The one thing worth knowing before pressing: four of the five rows are
+  // answered by the camera itself, in a frame and for nothing. "Use your own
+  // words" crosses a network to a language model first, which is seconds and
+  // real money. Naming the destination puts that on the button rather than in
+  // documentation nobody reads standing in front of a camera.
+  function label() {
+    go.textContent = 'Send to the ' + radio().getAttribute('data-dest');
+  }
+
   function chosen() {
     for (var i = 0; i < radios.length; i++) {
       if (radios[i].checked) { return radios[i].value; }
@@ -366,6 +382,7 @@ help lists every setting and the values it takes.</div>
       if (radios[i].checked) { row.className = 'opt on'; }
       else { row.className = 'opt'; }
     }
+    label();
   }
 
   function setBusy(state) {
@@ -400,7 +417,6 @@ help lists every setting and the values it takes.</div>
 
   function send(line, said) {
     if (busy) { return; }
-    var was = go.textContent;
     go.textContent = '\u2026';
     setBusy(true);
     fetch('ask', {
@@ -415,7 +431,7 @@ help lists every setting and the values it takes.</div>
     }).catch(function (e) {
       show(said, 'could not reach the camera: ' + e, true);
     }).then(function () {
-      go.textContent = was;
+      label();
       setBusy(false);
     });
   }
