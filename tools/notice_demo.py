@@ -11,7 +11,7 @@ Put a notice on the real ILI9341 panel and hold it there to be looked at.
 Nothing on the Mac can see this panel - grim photographs the HDMI output and
 the ILI9341 is not part of it, and the module does not wire SDO usefully, so
 register read-back returns zeros. The automated half of stage 5 lives in
-tests/notice_test.py and genuinely can fail; what it cannot tell you is whether
+tests/panel/notice_test.py and genuinely can fail; what it cannot tell you is whether
 the result is *readable*, which is the only question that matters for a band of
 text on a 320x240 panel. That needs a person, and this puts something still
 enough for a person to judge.

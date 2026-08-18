@@ -2,7 +2,7 @@
 """
 Check that changing the panel's font size live re-fits its grid.
 
-    python3 tests/lcd_font_size_test.py
+    python3 tests/panel/lcd_font_size_test.py
 
 Needs the real ILI9341: LcdDisplay drives it directly, so stop the
 ascii-camera service first or the panel is already claimed.
@@ -23,7 +23,7 @@ import time
 
 import numpy as np
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from art.ascii_art import AsciiArt          # noqa: E402

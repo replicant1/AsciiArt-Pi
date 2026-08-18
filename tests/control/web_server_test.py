@@ -2,7 +2,7 @@
 """
 Tests for src/control/web_server.py.
 
-    python3 tests/web_server_test.py
+    python3 tests/control/web_server_test.py
 
 No camera, no API key, no money. A fake app listens on a real Unix socket and
 records every byte it is sent, and the tests drive a real HTTP server over a
@@ -33,7 +33,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from control import commands                                   # noqa: E402

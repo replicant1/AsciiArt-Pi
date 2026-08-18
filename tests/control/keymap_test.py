@@ -2,7 +2,7 @@
 """
 Check the live control keys, without a camera, a panel or a terminal.
 
-    python3 tests/keymap_test.py
+    python3 tests/control/keymap_test.py
 
 Driving the real app with synthetic keypresses turned out to be no way to test
 a key binding: piinput drops the first event and repeats later ones, so a run
@@ -17,7 +17,7 @@ display - and given only the handful of attributes _handle_key actually reads.
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -66,7 +66,7 @@ def make_app():
     app.display = StubDisplay()
     app.processor = ImageProcessor()
     # One object now, instead of six attributes that had to agree with each
-    # other and with the processor. See tests/render_config_test.py.
+    # other and with the processor. See tests/control/render_config_test.py.
     app.config = RenderConfig()
     app.notice = None
     app.refusal = None

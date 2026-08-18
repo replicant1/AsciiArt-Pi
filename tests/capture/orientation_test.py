@@ -2,7 +2,7 @@
 """
 Check which way round the picture comes out.
 
-    python3 tests/orientation_test.py
+    python3 tests/capture/orientation_test.py
 
 This bug survived a long time because a mirrored picture looks perfectly
 plausible: nothing is upside down, nothing is squashed, and on a roughly
@@ -22,7 +22,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from capture.image_processor import ImageProcessor      # noqa: E402

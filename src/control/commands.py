@@ -143,7 +143,7 @@ def _value(spec, text):
         #
         # The first version of this did refuse, which put "must be one of" in
         # two modules and meant `rotation 45` never reached the validator at
-        # all. tests/commands_test.py caught it.
+        # all. tests/control/commands_test.py caught it.
         if all(isinstance(choice, str) for choice in spec.choices):
             return text
         try:

@@ -2,7 +2,7 @@
 """
 Check the rotary encoder decode, without an encoder attached.
 
-    python3 tests/encoder_test.py
+    python3 tests/control/encoder_test.py
 
 The knob is the one part of this that cannot be judged by looking at it: a
 decoder that miscounts under bounce still looks fine on an oscilloscope trace
@@ -19,7 +19,7 @@ there is nothing timing-dependent to make a run flaky.
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 

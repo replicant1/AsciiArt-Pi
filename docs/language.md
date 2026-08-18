@@ -173,7 +173,7 @@ worth more than the money:
 - A hit is **instant**, which on a 240×320 panel with no spinner is the
   difference you actually feel.
 
-`tests/shortcuts_test.py` guards the two things that are not obvious by
+`tests/language/shortcuts_test.py` guards the two things that are not obvious by
 inspection. Every decline case in `eval_cases.json` must **miss** the table. And
 where the table and the model answer the same phrase — 7 of the 41 eval cases —
 the table's delta is scored by `parser_eval.py`'s own scorer against the same
@@ -216,7 +216,7 @@ packed**, not part of the character grid. The glyph atlas holds only the ramp,
 so the grid literally cannot spell anything; and text tinted by whatever cell
 colours happened to sit under it would be unreadable exactly when it mattered.
 Fixed ink on a fixed band is legible over every scheme including `live`, and
-`tests/notice_test.py` asserts the band comes out byte-identical over a bright
+`tests/panel/notice_test.py` asserts the band comes out byte-identical over a bright
 picture and a blank one.
 
 **The stalled camera is the case that shaped the design.** On 18 August an OOM
@@ -231,7 +231,7 @@ That message is the one a frame-driven display cannot deliver: there are no
 frames for it to ride on. The frame buffer is persistent, so it is painted over
 whatever picture is already up there and pushed on its own.
 
-**Verification is split, because it has to be.** `tests/notice_test.py` (36
+**Verification is split, because it has to be.** `tests/panel/notice_test.py` (36
 checks) covers the geometry, the caching, the wrapping, the frameless path and
 the stall thresholds, and was checked by breaking the implementation four ways —
 each mutant failed exactly the tests meant to catch it. What no test on this
@@ -288,7 +288,7 @@ same wording, same single entry point. That is worth more than it sounds:
   answer.
 - It is startable, stoppable and testable with the camera running. The service
   owns the camera and `/dev/spidev0.0`; this owns a TCP port, and the two never
-  contend — `tests/web_server_test.py` runs against the live app without
+  contend — `tests/control/web_server_test.py` runs against the live app without
   disturbing it.
 - The money switches off separately. `systemctl stop ascii-camera-web` ends
   asking from the network; the picture carries on.

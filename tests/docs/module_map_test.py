@@ -2,7 +2,7 @@
 """
 Check docs/module-map.md still describes the code that is actually there.
 
-    python3 tests/module_map_test.py
+    python3 tests/docs/module_map_test.py
 
 The map's whole claim is that it cannot drift, because every summary is read
 from the module's own docstring. That claim is only true if the committed page
@@ -18,7 +18,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import module_map                                      # noqa: E402

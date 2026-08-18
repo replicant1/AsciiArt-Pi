@@ -2,7 +2,7 @@
 """
 Tests for src/language/shortcuts.py.
 
-    python3 tests/shortcuts_test.py
+    python3 tests/language/shortcuts_test.py
 
 No network, no key, no money: the point of the table is that none of those are
 involved, and the test is the same.
@@ -14,10 +14,10 @@ inspection:
   * It must never claim a phrase that should be **declined**. Failing to match
     is not the same as declining, and a table that answered "asdfgh" would be
     confidently wrong with no round trip to blame it on. Section 5 puts every
-    decline case from tests/eval_cases.json through the table and requires a
+    decline case from tests/language/eval_cases.json through the table and requires a
     miss.
   * Where the table and the model answer the same phrase, they must **agree**.
-    Section 6 scores the table's own deltas with tests/parser_eval.py's scorer,
+    Section 6 scores the table's own deltas with tests/language/parser_eval.py's scorer,
     against the same expectations the model is held to - bands and all. If the
     table drifts from the prompt, this fails here rather than as somebody
     noticing the camera behaves differently depending on which phrasing they
@@ -28,9 +28,9 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "tests"))
+sys.path.insert(0, str(ROOT / "tests" / "language"))
 
 from language import shortcuts                                    # noqa: E402
 from control.render_config import BY_NAME, RenderConfig     # noqa: E402
@@ -151,7 +151,7 @@ check("font size stops at its ceiling",
 # --- 5. what it must not answer ---------------------------------------------
 section("5. what it must not answer")
 
-with open(ROOT / "tests" / "eval_cases.json") as handle:
+with open(ROOT / "tests" / "language" / "eval_cases.json") as handle:
     cases = json.load(handle)["cases"]
 declines = [c for c in cases if c.get("expect") == "decline"]
 check("there are decline cases to check against", len(declines) > 0, True)

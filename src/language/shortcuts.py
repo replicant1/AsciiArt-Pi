@@ -50,7 +50,7 @@ from control.render_config import BY_NAME, RenderConfig
 logger = logging.getLogger(__name__)
 
 # One step along a range. 1.3 was not tuned - it is the smallest move that is
-# unmistakable on the panel, and tests/parser_eval.py's own band for "a bit more
+# unmistakable on the panel, and tests/language/parser_eval.py's own band for "a bit more
 # contrast" (1.05 to 2.0 from a default of 1.0) contains it comfortably.
 CONTRAST_STEP = 1.3
 FONT_STEP = 1

@@ -29,7 +29,7 @@ a bright, nearly empty cell - the characters would go negative and the colour
 would not. Passing `invert` here reverses the blend table to match, so both
 halves of the picture invert together.
 
-(Verified by tests/palette_test.py, which caught exactly this: the first
+(Verified by tests/art/palette_test.py, which caught exactly this: the first
 version of this module tinted by the raw index and got it wrong.)
 
 Both displays share these definitions but consume them differently. The LCD

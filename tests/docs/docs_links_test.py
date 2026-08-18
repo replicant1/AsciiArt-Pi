@@ -2,7 +2,7 @@
 """
 Check every relative link between the documents still goes somewhere.
 
-    python3 tests/docs_links_test.py
+    python3 tests/docs/docs_links_test.py
 
 The README used to be one 2,369-line file, so a cross-reference could not
 break: everything was in the same document. Splitting it into a front page and
@@ -17,7 +17,7 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 PASSED = FAILED = 0
 
 

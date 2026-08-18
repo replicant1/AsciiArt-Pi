@@ -115,7 +115,7 @@ If the app appears to do nothing, read `ascii_camera.log`.
 
 ## Troubleshooting
 
-**No camera detected** — `python3 tests/capture_reference.py` will say so;
+**No camera detected** — `python3 tests/capture/capture_reference.py` will say so;
 check the CSI ribbon cable.
 
 **Camera busy** — only one process can open it. Stop any other instance:

@@ -2,7 +2,7 @@
 """
 Check the typed-command front end.
 
-    python3 tests/commands_test.py
+    python3 tests/control/commands_test.py
 
 The interesting property is a *boundary*, not a parser. commands.py turns text
 into typed values and stops; RenderConfig decides what is allowed. So "rotation
@@ -21,7 +21,7 @@ the discrepancy Stage 3 is supposed to be able to measure.
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from control import commands                                    # noqa: E402

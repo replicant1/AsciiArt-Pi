@@ -2,14 +2,14 @@
 """
 Tests for src/language/asklog.py.
 
-    python3 tests/asklog_test.py
+    python3 tests/language/asklog_test.py
 
 No network and no key: the parser is never called here. What is under test is
 the record keeping, and the thing worth being sure of is that a record can
 still be read - and still means the same - months after it was written.
 
 Section 9 is the one that matters most. It takes a logged ask, converts it with
-as_case, and feeds the result to tests/parser_eval.py's own config_for and
+as_case, and feeds the result to tests/language/parser_eval.py's own config_for and
 score_delta. If the log's shape ever drifts from the case file's, that fails
 here rather than being discovered by somebody hand-editing four hundred lines
 of JSON.
@@ -21,9 +21,9 @@ import tempfile
 import threading
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT / "tests"))
+sys.path.insert(0, str(ROOT / "tests" / "language"))
 
 from language import asklog                                      # noqa: E402
 from control.render_config import SPECS, RenderConfig      # noqa: E402

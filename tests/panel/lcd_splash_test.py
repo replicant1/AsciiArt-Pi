@@ -7,8 +7,8 @@ automated verification goes: it proves the geometry, the colours and the
 animation are what they claim to be, and then leaves a PNG for a human to look
 at.  A clean run here is NOT evidence that anything appeared on the glass.
 
-Run:  python3 tests/lcd_splash_test.py            # no hardware needed
-      python3 tests/lcd_splash_test.py --panel    # drive the real panel
+Run:  python3 tests/panel/lcd_splash_test.py            # no hardware needed
+      python3 tests/panel/lcd_splash_test.py --panel    # drive the real panel
 
 --panel exists because the real thing is over in about a second and a half: the
 camera on this Pi hands over its first frame far sooner than the enclosure notes'
@@ -22,7 +22,7 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 import numpy as np                                          # noqa: E402
 from panel.lcd_splash import (BAR_CELLS, SWEEP_RAMP, SWEEP_STEP, TAIL,  # noqa: E402

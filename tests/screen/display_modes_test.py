@@ -2,7 +2,7 @@
 """
 Check the four ways the app can be started, with no camera and no panel.
 
-    python3 tests/display_modes_test.py
+    python3 tests/screen/display_modes_test.py
 
 The app can run with the terminal, with the SPI panel, with both, or - the one
 combination that is refused - with neither. The refusal matters as much as the
@@ -20,7 +20,7 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 

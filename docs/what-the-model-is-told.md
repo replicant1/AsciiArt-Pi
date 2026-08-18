@@ -18,7 +18,7 @@ file can drift from both. Regenerate it rather than trusting it:
 Neither needs a key or the network — `parser.py` imports the SDK lazily, inside
 `_client()`, so both commands run on the Mac with nothing installed.
 
-Section 5 is a hand-written reading of `tests/eval_cases.json`; that file is the
+Section 5 is a hand-written reading of `tests/language/eval_cases.json`; that file is the
 authority, and this listing was checked to quote all 41 of its utterances
 verbatim rather than transcribed by eye.
 
@@ -69,7 +69,7 @@ Everything in this file falls out of that:
 | The glossary | `SYSTEM_PROMPT` | 1 |
 | The form | the tool schema, from `SPECS` | 2 |
 | The clerk who rejects a badly filled form | `RenderConfig.with_changes()` | 4 |
-| The marked test, kept in a drawer | `tests/eval_cases.json` | 5 |
+| The marked test, kept in a drawer | `tests/language/eval_cases.json` | 5 |
 | Rewriting a confusing glossary entry | a text edit, then re-run the eval | 6 |
 
 ### But the eval cases look exactly like training data
@@ -96,7 +96,7 @@ themselves are interchangeable.
 > and mark it. Identical document. What separates the two is whether the
 > candidate saw it beforehand.
 
-`tests/eval_cases.json` is the examination. The model never sees the 41
+`tests/language/eval_cases.json` is the examination. The model never sees the 41
 sentences; they appear nowhere in the prompt or the schema. That is what "held
 out" means, and it is the only thing that makes the score worth reading.
 
@@ -209,7 +209,7 @@ that *this camera's* warm schemes are amber and lime is not.
 Paragraph 6 is the newest, added 17 August 2026 after the eval caught the model
 clamping `colour_levels` to its ceiling (right) and *also* switching `scheme` to
 `live` so the change would be visible (overreach — the person may be in grey
-deliberately). `tests/eval_cases.json` → `invalid-colour-levels` is the guard on
+deliberately). `tests/language/eval_cases.json` → `invalid-colour-levels` is the guard on
 it, and the case note says so.
 
 ---
@@ -403,14 +403,14 @@ Consequences worth keeping in mind:
 - **Changing behaviour is a text edit, not a training run.** Paragraph 6 above
   took one sentence, a file copy to the Pi, and a re-run. There is no dataset
   and no fine-tuning anywhere in this project.
-- **`tests/eval_cases.json` is held out.** Its 41 cases only ever *grade* the
+- **`tests/language/eval_cases.json` is held out.** Its 41 cases only ever *grade* the
   prompt, never write it. A prompt derived from its own test cases would score
   well and tell you nothing.
 
 ## 5. What it is never told — the eval cases
 
 Everything above is input to the model. This section is the opposite: the 41
-cases in `tests/eval_cases.json` are **held out**. They only ever *grade* the
+cases in `tests/language/eval_cases.json` are **held out**. They only ever *grade* the
 prompt, and are never used to write it. A prompt derived from its own test cases
 would score beautifully and tell you nothing.
 
@@ -526,7 +526,7 @@ section 1.
 
 ### What the harness does with them
 
-`tests/parser_eval.py` scores **field by field**, not pass/fail per utterance —
+`tests/language/parser_eval.py` scores **field by field**, not pass/fail per utterance —
 two of three right on a three-part request is worth knowing, and a boolean would
 throw it away. Three shapes of expectation, because three kinds of question:
 
@@ -543,10 +543,10 @@ a time, and a wrong answer at case 3 cannot corrupt case 30.
 It is deliberately **not** in the suite the other tests run in. It costs about
 13p and needs the network, so it is a test you choose to run:
 
-    python3 tests/parser_eval.py                 # the whole set
-    python3 tests/parser_eval.py --only decline  # cases whose id contains this
-    python3 tests/parser_eval.py --jobs 1        # serially, for clean logs
-    python3 tests/parser_eval.py --save runs/    # keep the raw results
+    python3 tests/language/parser_eval.py                 # the whole set
+    python3 tests/language/parser_eval.py --only decline  # cases whose id contains this
+    python3 tests/language/parser_eval.py --jobs 1        # serially, for clean logs
+    python3 tests/language/parser_eval.py --save runs/    # keep the raw results
 
 It exits 0 at or above a 90% pass rate, 1 below — not 100%, because a threshold
 a stochastic component can only meet on a good day is a threshold that gets
@@ -634,7 +634,7 @@ response is harder cases, not satisfaction.
 
 1. Edit the prompt in `src/language/parser.py`, or a `note` in `src/control/render_config.py`.
 2. `bash sync.sh push` — or copy the file into the mount.
-3. `python3 tests/parser_eval.py --jobs 4 --save runs/` on the Pi. Costs ~13p.
+3. `python3 tests/language/parser_eval.py --jobs 4 --save runs/` on the Pi. Costs ~13p.
 4. **Run it more than once.** Run-to-run variance on this set is about ±2–3%;
    roughly one case in 41 flips between identical runs. A single green run
    cannot distinguish a real improvement from noise — the scope fix above was

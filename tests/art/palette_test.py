@@ -2,7 +2,7 @@
 """
 Check the colour schemes, with no hardware and no camera.
 
-    python3 tests/palette_test.py
+    python3 tests/art/palette_test.py
 
 The interesting test is the separation one. "The options need to be quite
 obviously different to the naked eye" is a real requirement, so it gets a real
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                       # noqa: E402

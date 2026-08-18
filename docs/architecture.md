@@ -101,7 +101,7 @@ One trap worth naming, because it is silent: `bool` is a subclass of `int`, so
 `False == 0` and `False in (0, 90, 180, 270)` is `True`. Without an explicit
 bool check, a delta meant for `freeze` but addressed to `rotation` would be
 accepted as "no rotation" — a wrong field taking a wrong value and reporting
-success. `tests/render_config_test.py` pins that case down.
+success. `tests/control/render_config_test.py` pins that case down.
 
 `SPECS` in the same module carries the type, the permitted values and a
 one-line description of every field, so the schema is derived rather than
@@ -188,7 +188,7 @@ five seconds of not doing that means it has wedged.
 the `Ask` and hands it to `apply()` — the same call `scheme amber` makes, the
 same `RenderConfig.with_changes` validation, the same wording on refusal. The
 model cannot reach anything a typed line could not, which is what makes
-`tests/parser_eval.py` meaningful: it scores deltas against the validator that
+`tests/language/parser_eval.py` meaningful: it scores deltas against the validator that
 will actually judge them.
 
 **The panel is told last, and indirectly.** `_adopt` pushes the cheap changes
@@ -736,4 +736,4 @@ The three `lcd_*` modules are a deliberate stack rather than one file:
 `lcd_worker.py` deals only in threading and settings, `lcd_display.py` only in
 turning a character grid into pixels, and `lcd.py` only in what the ILI9341
 wants to hear. Only the bottom one knows about SPI, which is what lets
-`tests/lcd_render_bench.py` exercise the render path without a panel attached.
+`tests/panel/lcd_render_bench.py` exercise the render path without a panel attached.

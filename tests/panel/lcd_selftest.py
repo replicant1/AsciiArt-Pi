@@ -2,7 +2,7 @@
 """
 Self-test for the ILI9341 panel, run on the Pi:
 
-    python3 tests/lcd_selftest.py
+    python3 tests/panel/lcd_selftest.py
 
 Deliberately structured so most of it can FAIL rather than just print things.
 The colour-packing maths is checked against hand-computed RGB565 values, and
@@ -18,7 +18,7 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from PIL import Image, ImageDraw
 

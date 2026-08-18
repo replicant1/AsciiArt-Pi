@@ -6,7 +6,7 @@ Useful for checking that --rotation is right and that the ASCII rendering
 actually resembles the scene.  The camera can only be opened by one process at
 a time, so stop ascii_camera.py first.
 
-    python3 tests/capture_reference.py reference.png
+    python3 tests/capture/capture_reference.py reference.png
 """
 
 import os

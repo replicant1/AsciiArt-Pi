@@ -2,11 +2,11 @@
 """
 Check RenderConfig, and the app's single path for changing a setting.
 
-    python3 tests/render_config_test.py
+    python3 tests/control/render_config_test.py
 
 No camera, no panel, no terminal: RenderConfig is pure, and the app is built
 without running __init__ so the key handler can be called directly. That is the
-same trick tests/keymap_test.py uses, and for the same reason - one call is
+same trick tests/control/keymap_test.py uses, and for the same reason - one call is
 exactly one keypress, with none of piinput's dropped and doubled events.
 
 What is worth testing here is not that a dataclass stores what it is given. It
@@ -26,7 +26,7 @@ import sys
 from collections import deque
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 

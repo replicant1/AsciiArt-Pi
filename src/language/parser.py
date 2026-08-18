@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 # Claude Sonnet 5, chosen on measurement rather than instinct. Opus was the
 # starting point on the principle that you measure against the best before
-# trading capability away; tests/parser_eval.py is what did the trading.
+# trading capability away; tests/language/parser_eval.py is what did the trading.
 #
 # Three runs each of the 41 cases, after the prompt gained the defaults and the
 # schema disallowed empty deltas:

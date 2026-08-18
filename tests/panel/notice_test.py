@@ -2,7 +2,7 @@
 """
 Tests for the panel's notice band and the stalled-camera detector.
 
-    python3 tests/notice_test.py
+    python3 tests/panel/notice_test.py
 
 No panel and no camera: a fake ILI9341 records what would have gone over SPI,
 and the frame buffer is a numpy array either way, so what reaches the glass can
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))          # ascii_camera.py lives at the top
 

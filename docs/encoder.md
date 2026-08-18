@@ -41,7 +41,7 @@ edge, reads that as movement that never happened.
 So `src/control/encoder.py` tracks position within the quadrature cycle using a
 transition table, and emits a step only on a complete cycle. Bounce drives the
 table back and forth across transitions that emit nothing, so it costs CPU and
-nothing else. `tests/encoder_test.py` holds it to that by feeding in modelled
+nothing else. `tests/control/encoder_test.py` holds it to that by feeding in modelled
 bounce at the measured ratio and demanding an exact step count — it needs no
 encoder attached, and it is the only part of this that can be checked without
 turning a knob by hand.

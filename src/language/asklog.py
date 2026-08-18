@@ -5,7 +5,7 @@ Not every record is evidence about the *model*: `source` says whether a parse
 answered or src/language/shortcuts.py did. Filter on it before counting anything about
 the prompt.
 
-The eval in tests/parser_eval.py scores the prompt against 41 utterances, all
+The eval in tests/language/parser_eval.py scores the prompt against 41 utterances, all
 of which were invented by the same person who wrote the prompt. That is the
 measurement's real limit and no amount of re-running fixes it: a case file can
 only test the failure modes its author thought of, and 41 cases put the true
@@ -187,7 +187,7 @@ def as_case(record, case_id=None):
     said, which is the thing under test. A human has to look at it and decide
     whether that was the right answer before it is worth anything. Promoting
     these unread would be writing the answer key from the model's own output -
-    the exact circularity tests/eval_cases.json exists to avoid.
+    the exact circularity tests/language/eval_cases.json exists to avoid.
     """
     case = {"id": case_id or "from-log",
             "utterance": record.get("utterance", "")}

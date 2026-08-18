@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Score the natural-language parser against tests/eval_cases.json.
+Score the natural-language parser against tests/language/eval_cases.json.
 
-    python3 tests/parser_eval.py                 # the whole set
-    python3 tests/parser_eval.py --only decline  # cases whose id contains this
-    python3 tests/parser_eval.py --jobs 1        # serially, for clean logs
-    python3 tests/parser_eval.py --save runs/    # keep the raw results
+    python3 tests/language/parser_eval.py                 # the whole set
+    python3 tests/language/parser_eval.py --only decline  # cases whose id contains this
+    python3 tests/language/parser_eval.py --jobs 1        # serially, for clean logs
+    python3 tests/language/parser_eval.py --save runs/    # keep the raw results
 
 Costs money and needs the network, so it is deliberately not in the suite the
 other tests run in. It is a test you choose to run.
@@ -38,7 +38,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from language import parser as nl_parser                              # noqa: E402

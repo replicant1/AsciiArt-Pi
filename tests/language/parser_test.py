@@ -2,9 +2,9 @@
 """
 Offline tests for src/language/parser.py - no network, no key, no money.
 
-    python3 tests/parser_test.py
+    python3 tests/language/parser_test.py
 
-What the eval cannot test lives here. tests/parser_eval.py scores the model's
+What the eval cannot test lives here. tests/language/parser_eval.py scores the model's
 answers, which needs the API; this covers the parts of the module that are
 ordinary code and can be checked properly: the schema generated from SPECS, and
 the gate that keeps the first request in a process from racing the others.
@@ -21,7 +21,7 @@ import sys
 import threading
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from language import parser as nl                                  # noqa: E402

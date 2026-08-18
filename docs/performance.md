@@ -1,6 +1,6 @@
 ## Performance
 
-Measured on this Pi Zero 2 (`python3 tests/bench_pipeline.py`):
+Measured on this Pi Zero 2 (`python3 tests/capture/bench_pipeline.py`):
 
 | Capture size | Target | Actual |
 |--------------|--------|--------|

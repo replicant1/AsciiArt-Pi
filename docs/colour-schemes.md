@@ -46,7 +46,7 @@ degrees of hue from `amber` — near enough that nobody cycling past would be
 sure which one they were looking at.
 
 Being unmistakable matters more here than being numerous, and it is checked
-rather than asserted. `tests/palette_test.py` compares every pair of schemes by
+rather than asserted. `tests/art/palette_test.py` compares every pair of schemes by
 redmean perceptual distance and **fails the run** if any two are closer than
 150. The closest surviving pair is `azure`/`paper` at 223. That is what stops
 someone later adding a second amber that differs in the third hex digit.

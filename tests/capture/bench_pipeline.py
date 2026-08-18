@@ -6,7 +6,7 @@ Runs capture -> process -> ASCII without curses, so it can be driven over SSH,
 and reports the sustained frame rate at several target rates.  Use it to pick a
 sensible --fps default after changing the pipeline.
 
-    python3 tests/bench_pipeline.py
+    python3 tests/capture/bench_pipeline.py
 """
 
 import logging
@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 
 os.environ.setdefault("LIBCAMERA_LOG_LEVELS", "*:ERROR")
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 logging.disable(logging.CRITICAL)
 
