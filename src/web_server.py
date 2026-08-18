@@ -207,39 +207,55 @@ PAGE = """<!DOCTYPE html>
     font: 16px/1.45 system-ui, -apple-system, sans-serif;
     -webkit-text-size-adjust: 100%;
   }
-  h1 { margin: 0 0 12px; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+  h1 { margin: 0 0 14px; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
   h1 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
             background: #6b6255; margin-right: 8px; vertical-align: middle; }
   h1.up .dot { background: #7fbf5f; }
-  form { display: flex; gap: 8px; }
-  input[type=text] {
-    flex: 1 1 auto; min-width: 0;
-    padding: 14px; border-radius: 10px;
-    border: 1px solid #3a352c; background: #1c1913; color: inherit;
+
+  .opt {
+    display: flex; align-items: center; gap: 11px;
+    /* rows 4 and 5 carry a caption above the box, so their radio aligns to
+       the bottom - beside the input it belongs to, not the caption. */
+    padding: 11px 13px; margin-bottom: 8px;
+    border: 1px solid #3a352c; border-radius: 10px;
+    background: #191610;
+  }
+  .opt.on { border-color: #b8873a; background: #201b13; }
+  #opt-ask, #opt-raw { align-items: flex-end; }
+  .opt input[type=radio] {
+    flex: 0 0 auto; width: 20px; height: 20px; margin: 0; accent-color: #b8873a;
+  }
+  .opt .what { font-weight: 600; min-width: 3.4em; }
+  .opt .why { color: #9a8f78; font-size: 14px; }
+  .opt .field { flex: 1 1 auto; min-width: 0; display: block; }
+  .opt .cap {
+    display: block; margin-bottom: 5px;
+    font-size: 13px; color: #9a8f78;
+  }
+  .opt.on .cap { color: #cbbfa3; }
+  .opt input[type=text] {
+    display: block; width: 100%; min-width: 0;
+    padding: 9px 10px; border-radius: 8px;
+    border: 1px solid #3a352c; background: #0e0c09; color: inherit;
     font: inherit;
   }
-  input[type=text]:focus { outline: 2px solid #b8873a; outline-offset: -1px; }
-  button {
-    padding: 14px 18px; border-radius: 10px; border: 0;
-    background: #b8873a; color: #12100c; font: 600 16px system-ui, sans-serif;
+  .opt input[type=text]:focus { outline: 2px solid #b8873a; outline-offset: -1px; }
+  .opt input[type=text]::placeholder { color: #6f664f; font-style: italic; }
+
+  #go {
+    display: block; margin: 12px 0 0 33px;
+    padding: 13px 30px; border-radius: 10px; border: 0;
+    background: #b8873a; color: #12100c;
+    font: 600 16px system-ui, sans-serif;
   }
-  button:disabled { opacity: .5; }
-  .row { display: flex; align-items: center; gap: 14px;
-         margin: 12px 0; flex-wrap: wrap; }
-  label { display: flex; align-items: center; gap: 7px; font-size: 14px;
-          color: #b9ad93; }
-  input[type=checkbox] { width: 18px; height: 18px; accent-color: #b8873a; }
-  .chip {
-    background: #241f18; color: #cbbfa3;
-    border: 1px solid #3a352c; border-radius: 999px;
-    padding: 7px 13px; font: 14px system-ui, sans-serif;
-  }
+  #go:disabled { opacity: .5; }
+
   #out {
-    margin-top: 14px; padding: 12px;
+    margin-top: 16px; padding: 12px;
     background: #0c0a07; border: 1px solid #2a251d; border-radius: 10px;
     font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
     white-space: pre-wrap; word-break: break-word;
-    min-height: 3em; max-height: 60vh; overflow-y: auto;
+    min-height: 3em; max-height: 55vh; overflow-y: auto;
   }
   .said { color: #8f836d; }
   .err  { color: #d98a6a; }
@@ -250,52 +266,105 @@ PAGE = """<!DOCTYPE html>
 <h1 id="head"><span class="dot"></span>ASCII Camera</h1>
 
 <form id="form" autocomplete="off">
-  <input id="line" type="text" enterkeyhint="send" autocapitalize="none"
-         placeholder="warmer, and blockier characters">
+  <div class="opt" id="opt-show">
+    <input type="radio" name="mode" id="m-show" value="show">
+    <span class="what">show</span>
+    <span class="why">the settings, as they are now</span>
+  </div>
+
+  <div class="opt" id="opt-help">
+    <input type="radio" name="mode" id="m-help" value="help">
+    <span class="what">help</span>
+    <span class="why">everything that can be changed</span>
+  </div>
+
+  <div class="opt" id="opt-reset">
+    <input type="radio" name="mode" id="m-reset" value="reset">
+    <span class="what">reset</span>
+    <span class="why">back to the defaults</span>
+  </div>
+
+  <div class="opt on" id="opt-ask">
+    <input type="radio" name="mode" id="m-ask" value="ask" checked>
+    <span class="field">
+      <span class="cap">Use your own words</span>
+      <input type="text" id="f-ask" placeholder="warmer, and blockier characters"
+             enterkeyhint="send" autocapitalize="none">
+    </span>
+  </div>
+
+  <div class="opt" id="opt-raw">
+    <input type="radio" name="mode" id="m-raw" value="raw">
+    <span class="field">
+      <span class="cap">Give a direct command</span>
+      <input type="text" id="f-raw" placeholder="scheme amber"
+             enterkeyhint="send" autocapitalize="none">
+    </span>
+  </div>
+
   <button id="go" type="submit">Send</button>
 </form>
 
-<div class="row">
-  <label><input id="nl" type="checkbox" checked> say it in your own words</label>
-  <button class="chip" type="button" data-raw="show"
-          title="every setting, as it is right now">show</button>
-  <button class="chip" type="button" data-raw="help"
-          title="everything that can be changed">help</button>
-  <button class="chip" type="button" data-raw="reset"
-          title="put it all back to the defaults">reset</button>
-</div>
+<div id="out">Pick one, then press Send.
 
-<div id="out">Say what you want to see, and press Send.
+show, help and reset need nothing typed.
+
+Use your own words goes to a language model, which works
+out which settings you meant:
 
   "warmer, and blockier characters"
   "green, and turn the contrast up"
   "undo that"
 
-With the toggle on, your words go to a language model, which
-works out which settings you meant. Turn it off to type a
-setting by name, the way the terminal client does:
+Give a direct command is sent exactly as typed, so it has
+to name a real setting - no model, no wait, no cost:
 
   scheme amber      contrast 1.4      rotation 180
 
-show    every setting, as it is right now
-help    everything that can be changed, and what it takes
-reset   put it all back to the defaults</div>
+help lists every setting and the values it takes.</div>
 
 <script>
 (function () {
   var out = document.getElementById('out');
-  var box = document.getElementById('line');
-  var nl = document.getElementById('nl');
   var go = document.getElementById('go');
   var head = document.getElementById('head');
-  var chips = document.querySelectorAll('.chip');
+  var form = document.getElementById('form');
+  var radios = [].slice.call(document.querySelectorAll('input[name=mode]'));
+  var fields = { ask: document.getElementById('f-ask'),
+                 raw: document.getElementById('f-raw') };
   var busy = false;
+
+  function chosen() {
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].checked) { return radios[i].value; }
+    }
+    return 'ask';
+  }
+
+  // The selected row is the only one that will do anything when Send is
+  // pressed, so it says so - on a phone the radio dot alone is a small target
+  // and a smaller signal.
+  function mark() {
+    for (var i = 0; i < radios.length; i++) {
+      var row = radios[i].parentNode;
+      if (radios[i].checked) { row.className = 'opt on'; }
+      else { row.className = 'opt'; }
+    }
+  }
+
+  function setBusy(state) {
+    busy = state;
+    go.disabled = state;
+    for (var i = 0; i < radios.length; i++) { radios[i].disabled = state; }
+    fields.ask.disabled = state;
+    fields.raw.disabled = state;
+  }
 
   function show(said, reply, bad) {
     var entry = document.createElement('div');
     var q = document.createElement('div');
     q.className = 'said';
-    q.textContent = '› ' + said;
+    q.textContent = '\u203a ' + said;
     var a = document.createElement('div');
     if (bad) { a.className = 'err'; }
     a.textContent = reply;
@@ -313,21 +382,10 @@ reset   put it all back to the defaults</div>
     while (out.children.length > 40) { out.removeChild(out.lastChild); }
   }
 
-  function setBusy(state) {
-    busy = state;
-    go.disabled = state;
-    for (var i = 0; i < chips.length; i++) { chips[i].disabled = state; }
-  }
-
-  // `source` is the control that started this - the Send button, or whichever
-  // chip was tapped. It is the one that shows the wait, because a phone with
-  // one thumb on a chip and a "…" appearing somewhere else reads as a glitch
-  // rather than as progress.
-  function send(line, said, source) {
+  function send(line, said) {
     if (busy) { return; }
-    var el = source || go;
-    var was = el.textContent;
-    el.textContent = '…';
+    var was = go.textContent;
+    go.textContent = '\u2026';
     setBusy(true);
     fetch('ask', {
       method: 'POST',
@@ -341,25 +399,52 @@ reset   put it all back to the defaults</div>
     }).catch(function (e) {
       show(said, 'could not reach the camera: ' + e, true);
     }).then(function () {
-      el.textContent = was;
+      go.textContent = was;
       setBusy(false);
     });
   }
 
-  document.getElementById('form').addEventListener('submit', function (e) {
+  form.addEventListener('submit', function (e) {
     e.preventDefault();
+    var mode = chosen();
+    if (mode !== 'ask' && mode !== 'raw') {
+      send(mode, mode);                       // show, help, reset
+      return;
+    }
+    var box = fields[mode];
     var said = box.value.trim();
-    if (!said) { return; }
-    send(nl.checked ? 'ask ' + said : said, said, go);
+    if (!said) {
+      // Not sent. An empty ask would spend an API call on nothing, and an
+      // empty command would come back as a puzzle about odd word counts.
+      show(mode === 'ask' ? 'Use your own words' : 'Give a direct command',
+           'type something in that box first, then press Send', true);
+      box.focus();
+      return;
+    }
+    send(mode === 'ask' ? 'ask ' + said : said, said);
     box.value = '';
   });
 
-  for (var c = 0; c < chips.length; c++) {
-    chips[c].addEventListener('click', function () {
-      var raw = this.getAttribute('data-raw');
-      send(raw, raw, this);
+  for (var i = 0; i < radios.length; i++) {
+    radios[i].addEventListener('change', function () {
+      mark();
+      if (fields[this.value]) { fields[this.value].focus(); }
     });
   }
+
+  // Typing in a box is a clearer statement of intent than the dot beside it,
+  // so it selects that row rather than letting you fill in a box that Send
+  // will ignore.
+  ['ask', 'raw'].forEach(function (name) {
+    var claim = function () {
+      var radio = document.getElementById('m-' + name);
+      if (!radio.checked) { radio.checked = true; mark(); }
+    };
+    fields[name].addEventListener('focus', claim);
+    fields[name].addEventListener('input', claim);
+  });
+
+  mark();
 
   fetch('health').then(function (r) { return r.json(); }).then(function (d) {
     if (d.camera) { head.className = 'up'; }

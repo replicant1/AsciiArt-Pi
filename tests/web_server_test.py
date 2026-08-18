@@ -176,23 +176,29 @@ with Served(app.path) as web:
     status, page = request(web.port, "/")
     check("GET / is 200", status, 200)
     check("it is a whole HTML document", page.startswith("<!DOCTYPE html>"), True)
-    check("there is somewhere to type", 'id="line"' in page, True)
-    check("the natural-language toggle is on by default",
-          'id="nl" type="checkbox" checked' in page, True)
+    check("both boxes are there, one per radio",
+          ['id="f-ask"' in page, 'id="f-raw"' in page], [True, True])
+    check("your own words is the row selected to begin with",
+          'id="m-ask" value="ask" checked' in page, True)
+    check("each box hints with an example rather than an instruction",
+          ['placeholder="warmer, and blockier characters"' in page,
+           'placeholder="scheme amber"' in page], [True, True])
     check("it needs nothing off the internet",
           ("http://" not in page.replace("http://127.0.0.1", "")
            and "https://" not in page), True)
     check("loading the page sends the app nothing", app.received, [])
 
-    # The chips are a shortcut for typing, so what they type has to be real.
-    # A chip for a command the app does not have would fail only when somebody
-    # tapped it, and would say "there is no setting called ..." to a person who
-    # had not typed anything at all.
-    chips = re.findall(r'data-raw="([^"]+)"', page)
-    check("the page offers the three non-setting commands",
-          sorted(chips), ["help", "reset", "show"])
-    check("and every one of them is a command the app accepts",
-          [c for c in chips if c not in commands.WORDS], [])
+    # The first three radios are a shortcut for typing, so what they type has
+    # to be real. A radio for a command the app does not have would fail only
+    # when somebody picked it, and would answer "there is no setting called
+    # ..." to a person who had typed nothing at all.
+    modes = re.findall(r'name="mode" id="m-\w+" value="(\w+)"', page)
+    check("five radios, in the order the form lists them",
+          modes, ["show", "help", "reset", "ask", "raw"])
+    check("the three command radios are commands the app accepts",
+          [m for m in modes[:3] if m not in commands.WORDS], [])
+    check("and the other two are the typing rows, not commands",
+          [m for m in modes[3:] if m in commands.WORDS], [])
 
     status, body = request(web.port, "/nonsense")
     check("an unknown path is 404", status, 404)
