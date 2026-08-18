@@ -183,6 +183,16 @@ with Served(app.path) as web:
     check("each box hints with an example rather than an instruction",
           ['placeholder="warmer, and blockier characters"' in page,
            'placeholder="scheme amber"' in page], [True, True])
+    check("each half of the page says what it is",
+          ['>What to send</h2>' in page,
+           '>What the camera said</h2>' in page], [True, True])
+    # A title that names no section is decoration. These have to be attached,
+    # or a screen reader announces two unlabelled regions and the headings
+    # float free of what they describe.
+    check("and each title labels its own section",
+          ['aria-labelledby="t-send"' in page,
+           'aria-labelledby="t-back"' in page], [True, True])
+
     check("it needs nothing off the internet",
           ("http://" not in page.replace("http://127.0.0.1", "")
            and "https://" not in page), True)

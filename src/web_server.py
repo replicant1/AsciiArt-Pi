@@ -212,6 +212,14 @@ PAGE = """<!DOCTYPE html>
             background: #6b6255; margin-right: 8px; vertical-align: middle; }
   h1.up .dot { background: #7fbf5f; }
 
+  /* Quieter than the h1, because these name the parts of one page rather
+     than competing with its title. */
+  .sec {
+    margin: 0 0 9px; font-size: 12px; font-weight: 600;
+    letter-spacing: .09em; text-transform: uppercase; color: #9a8f78;
+  }
+  section + section { margin-top: 20px; }
+
   .opt {
     display: flex; align-items: center; gap: 11px;
     /* rows 4 and 5 carry a caption above the box, so their radio aligns to
@@ -251,7 +259,7 @@ PAGE = """<!DOCTYPE html>
   #go:disabled { opacity: .5; }
 
   #out {
-    margin-top: 16px; padding: 12px;
+    margin: 0; padding: 12px;
     background: #0c0a07; border: 1px solid #2a251d; border-radius: 10px;
     font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
     white-space: pre-wrap; word-break: break-word;
@@ -264,6 +272,9 @@ PAGE = """<!DOCTYPE html>
 </head>
 <body>
 <h1 id="head"><span class="dot"></span>ASCII Camera</h1>
+
+<section aria-labelledby="t-send">
+<h2 class="sec" id="t-send">What to send</h2>
 
 <form id="form" autocomplete="off">
   <div class="opt" id="opt-show">
@@ -304,6 +315,10 @@ PAGE = """<!DOCTYPE html>
 
   <button id="go" type="submit">Send</button>
 </form>
+</section>
+
+<section aria-labelledby="t-back">
+<h2 class="sec" id="t-back">What the camera said</h2>
 
 <div id="out">Pick one, then press Send.
 
@@ -322,6 +337,7 @@ to name a real setting - no model, no wait, no cost:
   scheme amber      contrast 1.4      rotation 180
 
 help lists every setting and the values it takes.</div>
+</section>
 
 <script>
 (function () {
