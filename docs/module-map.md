@@ -13,7 +13,7 @@ The process itself: argument parsing, the render loop, and the wiring that conne
 
 | Module | Lines | What it is for |
 |---|---:|---|
-| `ascii_camera.py` | 1344 | ASCII Art Live Camera Preview for Raspberry Pi Zero 2. |
+| `ascii_camera.py` | 1347 | ASCII Art Live Camera Preview for Raspberry Pi Zero 2. |
 | `src/version.py` | 19 | The one place the app's version is written down. |
 
 ## Capture
@@ -51,8 +51,8 @@ The 2.4 inch ILI9341 over SPI - a second, independent display.
 | Module | Lines | What it is for |
 |---|---:|---|
 | `src/lcd.py` | 273 | ILI9341 2.4" SPI LCD driver (240x320, RGB565). |
-| `src/lcd_display.py` | 404 | ASCII picture output on the ILI9341 SPI panel. |
-| `src/lcd_worker.py` | 453 | Background thread driving the LCD alongside the terminal display. |
+| `src/lcd_display.py` | 421 | ASCII picture output on the ILI9341 SPI panel. |
+| `src/lcd_worker.py` | 462 | Background thread driving the LCD alongside the terminal display. |
 | `src/lcd_splash.py` | 177 | Start-up screen for the ILI9341 panel. |
 
 ## Control
@@ -79,4 +79,4 @@ Words in, a validated settings change out.
 
 ---
 
-21 modules, 6,907 lines.
+21 modules, 6,936 lines.
