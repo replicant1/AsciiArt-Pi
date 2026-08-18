@@ -1,0 +1,51 @@
+# The phone page - a LAN-only web front end onto the camera's command socket.
+#
+#   sudo cp ascii-camera-web.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ascii-camera-web
+#
+#   journalctl -u ascii-camera-web -f        # every line a phone sends
+#   sudo systemctl stop ascii-camera-web     # asking stops, the camera does not
+#
+# A second unit rather than a flag on ascii-camera.service, for the reason
+# src/web_server.py explains at length: this accepts requests that spend money,
+# and being able to switch that off without stopping the picture is worth one
+# more file. It is also the only part of the build reachable from the network,
+# so it is the part most worth being able to stop.
+
+[Unit]
+Description=ASCII Art Camera - phone control page (LAN only)
+Documentation=https://replicant1.github.io/AsciiArt-Pi/
+
+# Deliberately NOT After=ascii-camera.service, and no Requires. The camera
+# restarts on its own, and a page that refuses to load while it is coming back
+# would be missing exactly when somebody wants to know what is wrong - it
+# reports "camera: false" instead, which is the more useful failure.
+After=network.target
+
+# Same reasoning as the camera unit: an appliance should keep trying rather than
+# give up and need an SSH session to revive it.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=rod
+Group=rod
+
+WorkingDirectory=/home/rod/Projects/AsciiArt
+ExecStart=/usr/bin/python3 -u /home/rod/Projects/AsciiArt/src/web_server.py
+
+# It owns a TCP port and one Unix socket connection at a time. No hardware, no
+# groups, no capabilities - which is why the thing exposed to the network is
+# also the least privileged thing in the build.
+NoNewPrivileges=true
+PrivateTmp=true
+
+Restart=always
+RestartSec=3
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

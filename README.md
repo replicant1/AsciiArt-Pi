@@ -235,6 +235,75 @@ mistyped name was silently taken as a literal ramp: `--ramp standard` drew the
 picture out of the eight letters of the word rather than complaining. It is now
 rejected, listing the names that do work.
 
+### Saying it from a phone
+
+The enclosure seals the box. Its east wall carries mini-HDMI and USB-C power and
+nothing else, so once it is shut the input inventory is the encoder, the
+shutdown button, the camera and WiFi — and everything on that list except WiFi
+carries a few bits per second. Natural language needs a keyboard, and the best
+keyboard available is the one already in a pocket.
+
+`src/web_server.py` serves one page to a phone on the LAN and forwards whatever
+is typed into it to the command socket, verbatim:
+
+    phone -> HTTP -> web_server.py -> Unix socket -> resolver -> render loop
+
+Start it by hand, or install `ascii-camera-web.service` to have it come up at
+boot:
+
+```bash
+python3 src/web_server.py                    # 0.0.0.0:8080, LAN only
+sudo cp ascii-camera-web.service /etc/systemd/system/ && \
+  sudo systemctl enable --now ascii-camera-web
+```
+
+Then open `http://<the Pi's address>:8080/` on the phone. The page is one text
+box with a **say it in your own words** toggle (on by default, and all it does
+is prefix `ask `), chips for `show`, `help` and `reset`, and a transcript of
+what came back. It is a single self-contained document — no fonts, scripts or
+styles from anywhere else, because the phone may well be able to reach the Pi
+and not the internet.
+
+**It is a client of the socket, not a part of the app.** Nothing new reaches the
+render loop; a web request becomes a typed line one step in and is then
+indistinguishable from one typed at `tools/asciicam_cli.py` — same validation,
+same wording, same single entry point. That is worth more than it sounds:
+
+- The render loop cannot be hurt by a bug in here. The worst this can do is not
+  answer.
+- It is startable, stoppable and testable with the camera running. The service
+  owns the camera and `/dev/spidev0.0`; this owns a TCP port, and the two never
+  contend — `tests/web_server_test.py` runs against the live app without
+  disturbing it.
+- The money switches off separately. `systemctl stop ascii-camera-web` ends
+  asking from the network; the picture carries on.
+
+Three things guard it, because this is the only part of the build reachable from
+the network at all:
+
+- **IPv4 only.** This Pi has a globally routable IPv6 address, and a listener on
+  it would be reachable from outside the house the moment the router allowed it.
+  Binding `AF_INET` means there is no such address to reach — a stronger
+  guarantee than a firewall rule nobody will re-check.
+- **Private source addresses only.** Anything that is not RFC1918, loopback or
+  link-local is refused before the body is read. A second fence, and the one
+  that still stands if the box is ever port-forwarded by accident.
+- **A rate limit on the requests that cost money.** `ask` spends an API call;
+  every other line is free, so only asks are counted — 20 a minute, across all
+  clients, because the hazard being guarded is a bill and a bill does not care
+  which phone ran it up. Being capped never stops you typing a setting by name.
+
+`GET /health` says whether the app is listening without sending it anything: a
+health check that cost an API call, or woke the render loop, would be a worse
+problem than the one it diagnoses. The page uses it to light the dot beside the
+title.
+
+Measured end to end from a laptop on the same WiFi, against the running
+service: `ask warmer, and finer characters` took 5.1 s round trip, 3.9 s of
+which was the model. `show` came back in well under a second. The utterance
+landed in `logs/asks.jsonl` in exactly the shape a typed one does, which is the
+check that the two paths really are one path.
+
 ### Command-line arguments
 
 | Argument | Values | Default | Effect |
