@@ -465,7 +465,7 @@ pre-renders every character in the ramp once, so a frame is a single numpy
 gather rather than 1,536 `draw.text()` calls — and `ILI9341` is the bare panel
 driver, speaking RGB565 over `spidev` with no kernel framebuffer involved.
 
-`Mouse` and `Keyboard` (`piinput.py`) are **test tooling, not part of the
+`Mouse` and `Keyboard` (`tools/hardware/piinput.py`) are **test tooling, not part of the
 app** — they create a virtual input device under `/dev/uinput` so the running
 application can be driven with synthetic events. The dashed line is deliberate:
 nothing imports them. Events travel out to the kernel, through the compositor,
@@ -702,35 +702,22 @@ Four details the diagram makes explicit:
   buffered before the next frame is fetched.
 
 ```
-pi/
-├── ascii_camera.py            # entry point, main loop, CLI, live controls
-├── run_ascii_camera.sh        # launches it in a sized window on the HDMI screen
-├── deploy/setup.sh                   # dependency / camera check
-├── lcd_blank.py               # blank the panel when the app is not running
-├── piinput.py                 # test tooling: synthetic mouse and keyboard
-├── deploy/setup_uinput.sh            # one-time /dev/uinput permissions for piinput
-├── src/
-│   ├── camera.py              # picamera2 capture thread, YuvFrame, luma+chroma
-│   ├── image_processor.py     # rotate, crop, resize, levels, grid fitting
-│   ├── ascii_art.py           # brightness -> character lookup table
-│   ├── palettes.py            # the nine schemes, xterm-256 and full-RGB tables
-│   ├── display.py             # curses rendering
-│   ├── headless.py            # stand-in for display.py under --no-terminal
-│   ├── window_plan.py         # window/font sizing from real Pango cell metrics
-│   ├── lcd.py                 # ILI9341 driver over spidev, RGB565
-│   ├── lcd_display.py         # ASCII grid -> panel, via a pre-rendered atlas
-│   └── lcd_worker.py          # background thread, keeps SPI off the main loop
-└── tests/
-    ├── bench_pipeline.py      # sustained frame rate at various targets
-    ├── capture_reference.py   # ordinary photo, to compare against the ASCII
-    ├── display_modes_test.py  # terminal vs headless vs panel combinations
-    ├── keymap_test.py         # the live controls
-    ├── orientation_test.py    # rotation and handedness
-    ├── palette_test.py        # scheme tables and quantisation
-    ├── lcd_selftest.py        # colour bars, hand-computed RGB565
-    ├── lcd_render_bench.py    # panel render correctness and timing
-    └── lcd_concurrency.py     # proves the SPI write does not stall the loop
+AsciiArt-Pi/
+├── ascii_camera.py        entry point, main loop, CLI, live controls
+├── run_ascii_camera.sh    launches it in a sized window on the HDMI screen
+├── src/                   six packages, one per subsystem
+├── tests/                 mirrors src/, plus tests/docs/ for the documents
+├── tools/                 app/ hardware/ docs/
+├── deploy/                systemd units and the one-time setup scripts
+└── docs/                  this, its neighbours, and the published guides
 ```
+
+The files inside those directories are not listed here on purpose. That list
+existed, drifted, and was still describing `src/camera.py` and a flat `tests/`
+long after both had moved — a hand-copied inventory of something the code
+already states. The **[module map](module-map.md)** and the **[class
+map](class-map.md)** are generated from the source and guarded by tests that
+fail when they go stale; they are where to look.
 
 The three `lcd_*` modules are a deliberate stack rather than one file:
 `lcd_worker.py` deals only in threading and settings, `lcd_display.py` only in

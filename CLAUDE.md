@@ -122,9 +122,9 @@ Setup already done, and only needed again if the Pi is reimaged:
 
 deploy/setup_uinput.sh loads the uinput module, makes it load at boot via /etc/modules-load.d/uinput.conf, and installs /etc/udev/rules.d/99-uinput.rules giving the "input" group access. User rod is already in that group, so tests do NOT need root.
 
-The helper is /home/rod/Projects/AsciiArt/piinput.py:
+The helper is /home/rod/Projects/AsciiArt/tools/hardware/piinput.py:
 
-    import sys; sys.path.insert(0, "/home/rod/Projects/AsciiArt")
+    import sys; sys.path.insert(0, "/home/rod/Projects/AsciiArt/tools/hardware")
     import piinput
     m = piinput.Mouse();    m.click_at(926, 186)      # absolute screen coords
     k = piinput.Keyboard(); k.type("Hello Pi 42!"); k.key("ENTER")
