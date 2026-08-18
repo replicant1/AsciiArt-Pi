@@ -1,11 +1,11 @@
 ## Running it at boot
 
-For a build with no keyboard and no monitor, `ascii-camera.service` starts the
+For a build with no keyboard and no monitor, `deploy/ascii-camera.service` starts the
 app in enclosed mode — `--lcd --encoder --no-terminal` — as soon as the Pi comes
 up:
 
 ```bash
-sudo cp ascii-camera.service /etc/systemd/system/
+sudo cp deploy/ascii-camera.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now ascii-camera
 
@@ -93,7 +93,7 @@ The service could not start until `sysinit.target`, and `sysinit.target` was
 waiting on cloud-init:
 
 ```
-ascii-camera.service ─ basic.target ─ sysinit.target
+deploy/ascii-camera.service ─ basic.target ─ sysinit.target
   └─ cloud-init-network.service  +1.325 s
      └─ cloud-init-local.service +0.747 s
         └─ cloud-init-main.service +5.974 s

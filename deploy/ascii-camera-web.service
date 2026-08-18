@@ -1,13 +1,13 @@
 # The phone page - a LAN-only web front end onto the camera's command socket.
 #
-#   sudo cp ascii-camera-web.service /etc/systemd/system/
+#   sudo cp deploy/ascii-camera-web.service /etc/systemd/system/
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now ascii-camera-web
 #
 #   journalctl -u ascii-camera-web -f        # every line a phone sends
 #   sudo systemctl stop ascii-camera-web     # asking stops, the camera does not
 #
-# A second unit rather than a flag on ascii-camera.service, for the reason
+# A second unit rather than a flag on deploy/ascii-camera.service, for the reason
 # src/control/web_server.py explains at length: this accepts requests that spend money,
 # and being able to switch that off without stopping the picture is worth one
 # more file. It is also the only part of the build reachable from the network,
@@ -17,7 +17,7 @@
 Description=ASCII Art Camera - phone control page (LAN only)
 Documentation=https://replicant1.github.io/AsciiArt-Pi/
 
-# Deliberately NOT After=ascii-camera.service, and no Requires. The camera
+# Deliberately NOT After=deploy/ascii-camera.service, and no Requires. The camera
 # restarts on its own, and a page that refuses to load while it is coming back
 # would be missing exactly when somebody wants to know what is wrong - it
 # reports "camera: false" instead, which is the more useful failure.

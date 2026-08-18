@@ -163,7 +163,7 @@ actually there, not the code that was there when somebody last wrote it down.
 
 Everything needed is already present in Raspberry Pi OS Bookworm:
 `python3-picamera2`, `python3-numpy`, `python3-pil`, and `curses` from the
-standard library. `bash setup.sh` verifies this and installs anything missing.
+standard library. `bash deploy/setup.sh` verifies this and installs anything missing.
 
 Prefer the apt packages over pip — building numpy or Pillow from source on a
 Zero 2 exhausts its ~416 MB of RAM.

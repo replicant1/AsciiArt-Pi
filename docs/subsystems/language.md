@@ -263,12 +263,12 @@ is typed into it to the command socket, verbatim:
 
     phone -> HTTP -> web_server.py -> Unix socket -> resolver -> render loop
 
-Start it by hand, or install `ascii-camera-web.service` to have it come up at
+Start it by hand, or install `deploy/ascii-camera-web.service` to have it come up at
 boot:
 
 ```bash
 python3 src/control/web_server.py                    # 0.0.0.0:8080, LAN only
-sudo cp ascii-camera-web.service /etc/systemd/system/ && \
+sudo cp deploy/ascii-camera-web.service /etc/systemd/system/ && \
   sudo systemctl enable --now ascii-camera-web
 ```
 

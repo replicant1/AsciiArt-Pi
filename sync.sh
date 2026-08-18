@@ -28,9 +28,9 @@ LOCAL="${ASCIIART_LOCAL:-$PARENT/local}"
 
 MODE="${1:-pull}"
 
-ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
-            README.md piinput.py setup_uinput.sh lcd_blank.py
-            ascii-camera.service ascii-camera-web.service)
+ROOT_FILES=(ascii_camera.py run_ascii_camera.sh deploy/setup.sh requirements.txt
+            README.md deploy/setup_uinput.sh
+            deploy/ascii-camera.service deploy/ascii-camera-web.service)
 SRC_FILES=(version.py
            capture/__init__.py capture/camera.py capture/image_processor.py
            art/__init__.py art/ascii_art.py art/palettes.py art/window_plan.py
@@ -78,6 +78,7 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
 TOOL_FILES=(app/asciicam_cli.py app/ask_parser.py app/utterances.txt
             hardware/probe_encoder.py hardware/watch_button.py
             hardware/notice_demo.py hardware/scheme_montage.py
+            hardware/piinput.py hardware/lcd_blank.py
             docs/module_map.py docs/class_map.py)
 
 changed=0

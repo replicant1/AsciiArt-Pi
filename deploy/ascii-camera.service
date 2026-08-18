@@ -3,7 +3,7 @@
 # For a build with no keyboard and no monitor: the SPI panel is the only output,
 # and the only sign the machine is alive.
 #
-#   sudo cp ascii-camera.service /etc/systemd/system/
+#   sudo cp deploy/ascii-camera.service /etc/systemd/system/
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now ascii-camera
 #
