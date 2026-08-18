@@ -31,43 +31,53 @@ MODE="${1:-pull}"
 ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
             README.md piinput.py setup_uinput.sh lcd_blank.py
             ascii-camera.service ascii-camera-web.service)
-SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
-           window_plan.py lcd.py lcd_display.py lcd_worker.py lcd_splash.py
-           palettes.py encoder.py render_config.py commands.py
-           command_server.py parser.py asklog.py web_server.py
-           shortcuts.py
-           version.py)
-TEST_FILES=(bench_pipeline.py capture_reference.py
-            lcd_selftest.py lcd_render_bench.py lcd_concurrency.py
-            lcd_splash_test.py
-            palette_test.py keymap_test.py display_modes_test.py
-            orientation_test.py encoder_test.py render_config_test.py
-            lcd_font_size_test.py lcd_worker_test.py
-            commands_test.py asklog_test.py parser_test.py
-            parser_eval.py eval_cases.json web_server_test.py
-            shortcuts_test.py notice_test.py
-            module_map_test.py docs_links_test.py)
+SRC_FILES=(version.py
+           capture/__init__.py capture/camera.py capture/image_processor.py
+           art/__init__.py art/ascii_art.py art/palettes.py art/window_plan.py
+           screen/__init__.py screen/display.py screen/headless.py
+           panel/__init__.py panel/lcd.py panel/lcd_display.py
+           panel/lcd_worker.py panel/lcd_splash.py
+           control/__init__.py control/render_config.py control/commands.py
+           control/command_server.py control/web_server.py control/encoder.py
+           language/__init__.py language/parser.py language/shortcuts.py
+           language/asklog.py)
+TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
+            capture/capture_reference.py capture/orientation_test.py
+            art/__init__.py art/palette_test.py
+            screen/__init__.py screen/display_modes_test.py
+            panel/__init__.py panel/lcd_selftest.py panel/lcd_render_bench.py
+            panel/lcd_concurrency.py panel/lcd_splash_test.py
+            panel/lcd_font_size_test.py panel/lcd_worker_test.py
+            panel/notice_test.py
+            control/__init__.py control/render_config_test.py
+            control/commands_test.py control/keymap_test.py
+            control/encoder_test.py control/web_server_test.py
+            language/__init__.py language/parser_test.py
+            language/parser_eval.py language/eval_cases.json
+            language/shortcuts_test.py language/asklog_test.py
+            docs/__init__.py docs/module_map_test.py docs/docs_links_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
-DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
-           scheme-montage.png display-selection-guide.html
-           enclosure-build-guide.html panel-connectors-guide.html
-           enclosure-renders.html
-           enclosure-hero.png enclosure-ports.png
-           enclosure-north.png enclosure-exploded.png
-           enclosure-hero-thumb.png enclosure-ports-thumb.png
-           index.html what-the-model-is-told.md
-           module-map.md using-it.md language.md architecture.md
-           colour-schemes.md panel.md encoder.md performance.md
-           deployment.md workflow.md)
+DOC_FILES=(images/screenshot.png images/screenshot-colour.png
+           images/both-displays.jpg images/scheme-montage.png
+           images/enclosure-hero.png images/enclosure-ports.png
+           images/enclosure-north.png images/enclosure-exploded.png
+           images/enclosure-hero-thumb.png images/enclosure-ports-thumb.png
+           display-selection-guide.html enclosure-build-guide.html
+           panel-connectors-guide.html enclosure-renders.html index.html
+           using-it.md architecture.md module-map.md
+           subsystems/panel.md subsystems/encoder.md subsystems/language.md
+           subsystems/colour-schemes.md subsystems/what-the-model-is-told.md
+           project/performance.md project/workflow.md project/deployment.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera, and
 # probe_encoder.py needs the encoder's GPIO pins.
-TOOL_FILES=(scheme_montage.py probe_encoder.py watch_button.py
-            notice_demo.py module_map.py
-            asciicam_cli.py ask_parser.py utterances.txt)
+TOOL_FILES=(app/asciicam_cli.py app/ask_parser.py app/utterances.txt
+            hardware/probe_encoder.py hardware/watch_button.py
+            hardware/notice_demo.py hardware/scheme_montage.py
+            docs/module_map.py)
 
 changed=0
 
@@ -140,6 +150,9 @@ transfer() {
     if [ "$MODE" = status ]; then
         echo "  DIFF  $label"
     else
+        # src/ is a tree of packages now, so the destination directory may not
+        # exist yet - on a first push to a freshly imaged Pi, none of them do.
+        mkdir -p "$(dirname "$to")"
         cp "$from" "$to"
         echo "  copy  $label"
     fi
