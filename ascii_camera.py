@@ -39,6 +39,7 @@ import curses  # noqa: E402
 import commands  # noqa: E402
 import palettes  # noqa: E402
 import render_config  # noqa: E402
+import shortcuts  # noqa: E402
 from ascii_art import RAMPS, AsciiArt  # noqa: E402
 from camera import CameraCapture  # noqa: E402
 from display import NcursesDisplay  # noqa: E402
@@ -466,6 +467,22 @@ class AsciiArtLiveCamera:
         if not utterance:
             return Reply('say what you want changed, e.g. ask make it warmer')
 
+        # Read the config from this thread. It is a frozen dataclass replaced
+        # wholesale on the loop's thread, so this either sees the change or does
+        # not - never a half-applied one.
+        config, previous = self.config, self.previous_config
+
+        # The table first, and deliberately before the key check: "green" and
+        # "freeze it" are answerable with no key and no network, so an ask is no
+        # longer all or nothing when the WiFi is down. A hit costs nothing and
+        # takes no measurable time.
+        delta = shortcuts.look_up(utterance, config, previous)
+        if delta is not None:
+            logger.info("Ask %r -> %s (table)", utterance, delta)
+            self._log_ask(utterance, config, previous, delta=delta,
+                          source="table", seconds=0.0)
+            return Ask(utterance=utterance, delta=delta, note="instant")
+
         try:
             import parser as nl_parser
         except Exception as e:
@@ -475,12 +492,8 @@ class AsciiArtLiveCamera:
                          f"{nl_parser.KEY_FILE} to switch it on; every other "
                          "command works without it.")
 
-        # Read the config from this thread. It is a frozen dataclass replaced
-        # wholesale on the loop's thread, so this either sees the change or
-        # does not - never a half-applied one. A parse that raced a keypress
-        # resolves against settings one change stale, which for "a bit warmer"
-        # is not worth a lock.
-        config, previous = self.config, self.previous_config
+        # A parse that raced a keypress resolves against settings one change
+        # stale, which for "a bit warmer" is not worth a lock.
         try:
             parsed = nl_parser.parse(utterance, config, previous=previous)
         except nl_parser.ParseError as e:
@@ -502,7 +515,8 @@ class AsciiArtLiveCamera:
         self._log_ask(utterance, config, previous, parsed=parsed)
         return Ask(utterance=utterance, delta=parsed.delta, note=note)
 
-    def _log_ask(self, utterance, config, previous, parsed=None, error=None):
+    def _log_ask(self, utterance, config, previous, parsed=None, error=None,
+                 delta=None, seconds=None, source="model"):
         """
         Write one ask down, if there is anywhere to write it.
 
@@ -514,11 +528,11 @@ class AsciiArtLiveCamera:
         if self.asklog is None:
             return
         self.asklog.record(
-            utterance, config, previous=previous, error=error,
-            delta=None if parsed is None else parsed.delta or None,
+            utterance, config, previous=previous, error=error, source=source,
+            delta=delta if parsed is None else parsed.delta or None,
             declined=None if parsed is None else parsed.declined,
             unmet=None if parsed is None else parsed.unmet,
-            seconds=None if parsed is None else parsed.seconds,
+            seconds=seconds if parsed is None else parsed.seconds,
             usage=None if parsed is None else parsed.usage)
 
     def _poll_commands(self):

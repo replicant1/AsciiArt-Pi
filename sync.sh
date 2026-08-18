@@ -35,6 +35,7 @@ SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
            window_plan.py lcd.py lcd_display.py lcd_worker.py lcd_splash.py
            palettes.py encoder.py render_config.py commands.py
            command_server.py parser.py asklog.py web_server.py
+           shortcuts.py
            version.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_selftest.py lcd_render_bench.py lcd_concurrency.py
@@ -43,7 +44,8 @@ TEST_FILES=(bench_pipeline.py capture_reference.py
             orientation_test.py encoder_test.py render_config_test.py
             lcd_font_size_test.py lcd_worker_test.py
             commands_test.py asklog_test.py parser_test.py
-            parser_eval.py eval_cases.json web_server_test.py)
+            parser_eval.py eval_cases.json web_server_test.py
+            shortcuts_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
