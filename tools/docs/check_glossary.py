@@ -43,7 +43,7 @@ def visible_text(html):
 
 def main():
     path = pathlib.Path(sys.argv[1] if len(sys.argv) > 1
-                        else "docs/display-selection-guide.html")
+                        else "docs/guides/display-selection-guide.html")
     html = path.read_text()
     glossary = re.search(r'<section id="glossary">.*?</section>', html, re.S)
     if not glossary:

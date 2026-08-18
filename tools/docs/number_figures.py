@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Number the figures and tables in docs/display-selection-guide.html.
+Number the figures and tables in docs/guides/display-selection-guide.html.
 
 Numbers are written literally into the markup rather than generated with CSS
 counters, so they survive copy-paste and plain-text extraction. That means they
@@ -47,7 +47,7 @@ def renumber(html, tag, word):
 
 def main():
     path = pathlib.Path(sys.argv[1] if len(sys.argv) > 1
-                        else "docs/display-selection-guide.html")
+                        else "docs/guides/display-selection-guide.html")
     html = path.read_text()
     html, figures = renumber(html, "figcaption", "Figure")
     html, tables = renumber(html, "caption", "Table")

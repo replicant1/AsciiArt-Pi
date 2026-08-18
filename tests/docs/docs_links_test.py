@@ -120,5 +120,31 @@ for page in published:
             broken_assets.append(f"{page.name} -> {target}")
 check("and every asset they point at is where they say", broken_assets, [])
 
+# Absolute URLs are skipped by the link check above, on purpose: resolving them
+# would need a network. But the *published* ones are this repository's own, and
+# their shape is checkable as a string. Moving the guides into guides/ changed
+# them, and six markdown links were left pointing at the old form - which the
+# link check could not see, because it does not follow http.
+STALE = [f"AsciiArt-Pi/{name}" for name in
+         ("display-selection-guide.html", "enclosure-build-guide.html",
+          "panel-connectors-guide.html", "enclosure-renders.html")]
+old_urls = []
+for d in docs:
+    for pattern in STALE:
+        if pattern in text[d]:
+            old_urls.append(f"{d.name} -> .../{pattern}")
+check("no document links to a guide's pre-move URL", old_urls, [])
+
+# The same mistake one directory over: tooling that opens a guide by path.
+tooling = []
+for tool in sorted((ROOT / "tools").rglob("*.py")) + \
+        sorted((ROOT / "tools").rglob("*.js")):
+    body = tool.read_text(encoding="utf-8")
+    for name in ("display-selection-guide.html", "enclosure-build-guide.html",
+                 "panel-connectors-guide.html", "enclosure-renders.html"):
+        if f"docs/{name}" in body:
+            tooling.append(f"{tool.name} -> docs/{name}")
+check("and no tool opens one by its pre-move path", tooling, [])
+
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)
