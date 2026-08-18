@@ -56,8 +56,18 @@ for path in sorted(list((ROOT / "src").rglob("*.py")) + [ROOT / "ascii_camera.py
         if isinstance(node, ast.ClassDef):
             found.add(node.name)
 
-missing = sorted(name for name in found if f"`{name}`" not in page)
-check("every class in the app is on the page", missing, [])
+# Matched as a table row, not as a name appearing somewhere on the page. A
+# bare `Name` search passes when the name turns up inside another class's
+# summary - "wraps `Forwarder`" would vouch for a Forwarder row that is not
+# there - which is a completeness check that cannot detect the one thing it
+# exists to detect.
+rows = {line.split("|")[1].strip().strip("`")
+        for line in page.splitlines()
+        if line.startswith("| `")}
+missing = sorted(name for name in found if name not in rows)
+check("every class in the app has its own row", missing, [])
+check("and no row is for something that no longer exists",
+      sorted(rows - found), [])
 check("and there are enough of them to be worth a page", len(found) > 10, True)
 
 check("the committed page exists", class_map.OUTPUT.exists(), True)
