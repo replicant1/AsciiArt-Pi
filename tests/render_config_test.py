@@ -284,6 +284,10 @@ class StubLcd:
         self.blanks = 0
         self.submitted = 0
         self.splashes = []
+        self.notices = []
+
+    def notice(self, text, seconds=None):
+        self.notices.append(text)
 
     def blank(self):
         self.blanks += 1
@@ -780,6 +784,10 @@ class StubParser:
     """Stands in for src/parser.py, with no API key and no network."""
 
     KEY_FILE = "/nowhere/api_key"
+
+    # The app reads this to size the "asking" notice, so the stub carries it
+    # too: it is part of the parser's surface, not an implementation detail.
+    TIMEOUT_SECONDS = 20.0
 
     class ParseError(RuntimeError):
         pass

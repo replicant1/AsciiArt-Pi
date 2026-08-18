@@ -209,13 +209,21 @@ class FakeDisplay:
     def __init__(self):
         self.splash_frames = 0
         self.picture_frames = 0
+        self.last_notice = None
         self.clears = 0
 
     def show_image(self, image):
         self.splash_frames += 1
 
-    def render(self, indices, colours=None, screen=(0, 0, 0)):
+    def render(self, indices, colours=None, screen=(0, 0, 0), notice=None):
         self.picture_frames += 1
+        self.last_notice = notice
+
+    def show_notice(self, text):
+        self.last_notice = text
+
+    def clear_notice(self):
+        self.last_notice = None
 
     def set_ramp(self, ramp):
         pass
