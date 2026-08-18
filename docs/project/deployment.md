@@ -178,7 +178,7 @@ GPIO 3 and nowhere else: wake-from-halt is a hardware property of that pin, not
 a feature of the `gpio-shutdown` overlay. On any other pin the button becomes
 shutdown-only, and a halted Pi in a sealed box can only be revived by unplugging
 it. See
-[Panel connectors and controls](https://replicant1.github.io/AsciiArt-Pi/panel-connectors-guide.html).
+[Panel connectors and controls](https://replicant1.github.io/AsciiArt-Pi/guides/panel-connectors-guide.html).
 
 Note that boot itself takes about **25 seconds** here (4.5 s kernel + 20.4 s
 userspace), and the SPI panel is dark for the early part of it. The start-up
@@ -186,7 +186,7 @@ screen covers the app's own start, not the boot.
 
 ## Putting it in an enclosure
 
-[**From breadboard to enclosure**](https://replicant1.github.io/AsciiArt-Pi/enclosure-build-guide.html)
+[**From breadboard to enclosure**](https://replicant1.github.io/AsciiArt-Pi/guides/enclosure-build-guide.html)
 covers taking the Pi, camera, SPI panel and encoder off the breadboard and into a
 self-contained, mains-powered box: connector choices, a pin-by-pin bench reference, power
 budget, and the enclosure cutouts.
@@ -199,7 +199,7 @@ the encoder module can be dropped for a bare EC11 with no code change at all, be
 `src/control/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
 to run on nothing else.
 
-[**Panel connectors and controls**](https://replicant1.github.io/AsciiArt-Pi/panel-connectors-guide.html)
+[**Panel connectors and controls**](https://replicant1.github.io/AsciiArt-Pi/guides/panel-connectors-guide.html)
 is a set of section drawings and specs for the three things that have to cross the enclosure
 wall: video out, power in, and an off switch.
 
@@ -246,7 +246,7 @@ space now takes the service loops the lid's two harnesses need.
 
 ### Seeing it in three dimensions
 
-[**The enclosure, rendered**](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)
+[**The enclosure, rendered**](https://replicant1.github.io/AsciiArt-Pi/guides/enclosure-renders.html)
 is that same box raytraced from four angles: the fascia from the reader's seat, the east wall
 close up, the camera end, and the lid lifted 55 mm off the tray. **None of it has been printed
 yet** — these are renders of a design on paper, and the parts inside the tray are stand-ins at
@@ -255,7 +255,7 @@ the right sizes rather than models of the real boards.
 The geometry is built from the numbers above rather than sketched, so the pictures can be
 measured. That is the point of the second one:
 
-[![Close-up of the enclosure's east wall: a horizontal parting line runs its full length, and two nickel-shelled sockets straddle it exactly, a wider mini-HDMI to the south and a narrower oval USB-C to the north](../images/enclosure-ports-thumb.png)](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)
+[![Close-up of the enclosure's east wall: a horizontal parting line runs its full length, and two nickel-shelled sockets straddle it exactly, a wider mini-HDMI to the south and a narrower oval USB-C to the north](../images/enclosure-ports-thumb.png)](https://replicant1.github.io/AsciiArt-Pi/guides/enclosure-renders.html)
 
 *The parting plane doing its job. `z = 25 mm` passes through the centreline of both
 connectors, which is the only thing that lets a printed pocket capture them at all — half the

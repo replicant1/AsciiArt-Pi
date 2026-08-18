@@ -2,7 +2,7 @@
 """
 Raytraced renders of the AsciiArt enclosure.
 
-Geometry is built from docs/panel-connectors-guide.html, not invented:
+Geometry is built from docs/guides/panel-connectors-guide.html, not invented:
 
     footprint      92 x 105 mm      (x = east-west, y = north-south)
     height         62 mm north, 25 mm south, 19 deg fascia

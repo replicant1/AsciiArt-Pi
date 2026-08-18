@@ -28,7 +28,7 @@ take, and a bar claiming 60% while guessing is worse than one that only shows it
 is alive.
 
 **The gap it covers is about 1.4 seconds**, measured on this Pi — LCD ready to
-first frame. That is worth stating because `docs/enclosure-build-guide.html`
+first frame. That is worth stating because `docs/guides/enclosure-build-guide.html`
 quotes 15–20 seconds for libcamera; that figure is from the Qt `camera_preview`
 program, not this one. A second and a half is too short to read anything, so the
 screen is held for `--lcd-splash-seconds` (3 by default) after frames start
@@ -216,7 +216,7 @@ python3 tests/panel/lcd_concurrency.py    # proves the SPI write does not stall 
 
 ## Choosing a different display
 
-[**Choosing a display**](https://replicant1.github.io/AsciiArt-Pi/display-selection-guide.html)
+[**Choosing a display**](https://replicant1.github.io/AsciiArt-Pi/guides/display-selection-guide.html)
 is a ranked guide to running this app on something other than an HDMI monitor — vintage
 terminals, VFDs, graphic LCDs and OLED modules — priced in AUD and sourced for a buyer in
 Sydney.

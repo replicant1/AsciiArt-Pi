@@ -8,7 +8,7 @@
  * before anyone looked at the output. This renders a chosen element so the
  * layout can be checked before publishing, in either theme.
  *
- *   node tools/render_region.js docs/display-selection-guide.html out.png ".table-wrap" 1 dark
+ *   node tools/render_region.js docs/guides/display-selection-guide.html out.png ".table-wrap" 1 dark
  *
  * Arguments: source, output, CSS selector, index into the matches, theme
  * ("light" or "dark"; omit to follow the OS preference).

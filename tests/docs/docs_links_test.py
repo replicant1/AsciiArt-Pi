@@ -92,16 +92,23 @@ docs_with_anchor_links = [d for d in docs
 check("some document does link to another's heading",
       bool(docs_with_anchor_links), True)
 
-# The four guides and index.html are published at
-# replicant1.github.io/AsciiArt-Pi/, so their file names are public URLs and
-# must stay at the top of docs/. Their own relative links have to resolve from
-# there too - a guide that 404s its own drawings is worse than one nobody moved.
-published = sorted(p for p in (ROOT / "docs").glob("*.html")
-                   if not p.name.startswith("."))
-check("the published pages are still at the top of docs/",
-      [p.name for p in published],
+# GitHub Pages serves main:/docs, so docs/index.html IS the site root -
+# https://replicant1.github.io/AsciiArt-Pi/ is that file and nothing else.
+# Moving it would 404 the front door, which is why it is the one HTML file
+# that cannot live in guides/ with the others.
+check("index.html is still the site root",
+      (ROOT / "docs" / "index.html").exists(), True)
+check("and it is the only HTML at the top of docs/",
+      sorted(p.name for p in (ROOT / "docs").glob("*.html")
+             if not p.name.startswith(".")), ["index.html"])
+check("the four guides are together in docs/guides/",
+      sorted(p.name for p in (ROOT / "docs" / "guides").glob("*.html")
+             if not p.name.startswith(".")),
       ["display-selection-guide.html", "enclosure-build-guide.html",
-       "enclosure-renders.html", "index.html", "panel-connectors-guide.html"])
+       "enclosure-renders.html", "panel-connectors-guide.html"])
+
+published = sorted(p for p in (ROOT / "docs").rglob("*.html")
+                   if not p.name.startswith("."))
 
 broken_assets = []
 for page in published:
@@ -112,6 +119,32 @@ for page in published:
         if not (page.parent / target.split("#")[0]).exists():
             broken_assets.append(f"{page.name} -> {target}")
 check("and every asset they point at is where they say", broken_assets, [])
+
+# Absolute URLs are skipped by the link check above, on purpose: resolving them
+# would need a network. But the *published* ones are this repository's own, and
+# their shape is checkable as a string. Moving the guides into guides/ changed
+# them, and six markdown links were left pointing at the old form - which the
+# link check could not see, because it does not follow http.
+STALE = [f"AsciiArt-Pi/{name}" for name in
+         ("display-selection-guide.html", "enclosure-build-guide.html",
+          "panel-connectors-guide.html", "enclosure-renders.html")]
+old_urls = []
+for d in docs:
+    for pattern in STALE:
+        if pattern in text[d]:
+            old_urls.append(f"{d.name} -> .../{pattern}")
+check("no document links to a guide's pre-move URL", old_urls, [])
+
+# The same mistake one directory over: tooling that opens a guide by path.
+tooling = []
+for tool in sorted((ROOT / "tools").rglob("*.py")) + \
+        sorted((ROOT / "tools").rglob("*.js")):
+    body = tool.read_text(encoding="utf-8")
+    for name in ("display-selection-guide.html", "enclosure-build-guide.html",
+                 "panel-connectors-guide.html", "enclosure-renders.html"):
+        if f"docs/{name}" in body:
+            tooling.append(f"{tool.name} -> docs/{name}")
+check("and no tool opens one by its pre-move path", tooling, [])
 
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)
