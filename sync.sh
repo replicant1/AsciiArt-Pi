@@ -55,7 +55,8 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             language/__init__.py language/parser_test.py
             language/parser_eval.py language/eval_cases.json
             language/shortcuts_test.py language/asklog_test.py
-            docs/__init__.py docs/module_map_test.py docs/docs_links_test.py)
+            docs/__init__.py docs/module_map_test.py
+            docs/docs_links_test.py docs/class_map_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
@@ -66,7 +67,7 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            images/enclosure-hero-thumb.png images/enclosure-ports-thumb.png
            display-selection-guide.html enclosure-build-guide.html
            panel-connectors-guide.html enclosure-renders.html index.html
-           using-it.md architecture.md module-map.md
+           using-it.md architecture.md module-map.md class-map.md
            subsystems/panel.md subsystems/encoder.md subsystems/language.md
            subsystems/colour-schemes.md subsystems/what-the-model-is-told.md
            project/performance.md project/workflow.md project/deployment.md)
@@ -77,7 +78,7 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
 TOOL_FILES=(app/asciicam_cli.py app/ask_parser.py app/utterances.txt
             hardware/probe_encoder.py hardware/watch_button.py
             hardware/notice_demo.py hardware/scheme_montage.py
-            docs/module_map.py)
+            docs/module_map.py docs/class_map.py)
 
 changed=0
 

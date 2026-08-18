@@ -77,7 +77,9 @@ was not.
 **Start here, in this order.** Three documents explain the machine:
 
 1. **[Module map](docs/module-map.md)** — every file in the app, what it is
-   for, one line each. Generated from the code, so it cannot go stale.
+   for, one line each. Generated from the code, so it cannot go stale. Its
+   companion, the **[class map](docs/class-map.md)**, answers the question one
+   level down: what the *things* are, and which of them run on their own thread.
 2. **[Architecture](docs/architecture.md)** — how a frame becomes characters,
    how a setting reaches both displays, and why there is exactly one way in.
 3. **[Telling it what to do](docs/subsystems/language.md)** — the control surface: typed
@@ -92,6 +94,7 @@ was not.
 | [Telling it what to do](docs/subsystems/language.md) | Typed settings, `ask`, the shortcut table, the phone page, honest failure |
 | [Architecture](docs/architecture.md) | The pipeline, `RenderConfig`, the classes, start-up, the main loop |
 | [Module map](docs/module-map.md) | Every module and what it is for — generated |
+| [Class map](docs/class-map.md) | Every class, what it inherits and how much surface it has — generated |
 | [Colour schemes](docs/subsystems/colour-schemes.md) | The nine schemes, how one is drawn, what it costs |
 | [The SPI panel](docs/subsystems/panel.md) | The ILI9341, wiring, why it cannot be verified in software, rotation |
 | [The rotary encoder](docs/subsystems/encoder.md) | The KY-040 knob, quadrature decoding, the button |
@@ -103,9 +106,10 @@ was not.
 `docs/` is arranged the same way as the code:
 
 ```
-docs/using-it.md          the three documents the front page sends you to first
+docs/using-it.md          the documents the front page sends you to first
 docs/architecture.md
-docs/module-map.md
+docs/module-map.md        generated
+docs/class-map.md         generated
 docs/subsystems/          one per part of the machine: panel, encoder,
                           language, colour schemes, what the model is told
 docs/project/             performance, running it at boot, how this is built
