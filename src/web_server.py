@@ -257,12 +257,29 @@ PAGE = """<!DOCTYPE html>
 
 <div class="row">
   <label><input id="nl" type="checkbox" checked> say it in your own words</label>
-  <button class="chip" type="button" data-raw="show">show</button>
-  <button class="chip" type="button" data-raw="help">help</button>
-  <button class="chip" type="button" data-raw="reset">reset</button>
+  <button class="chip" type="button" data-raw="show"
+          title="every setting, as it is right now">show</button>
+  <button class="chip" type="button" data-raw="help"
+          title="everything that can be changed">help</button>
+  <button class="chip" type="button" data-raw="reset"
+          title="put it all back to the defaults">reset</button>
 </div>
 
-<div id="out">Type what you want to see.</div>
+<div id="out">Say what you want to see, and press Send.
+
+  "warmer, and blockier characters"
+  "green, and turn the contrast up"
+  "undo that"
+
+With the toggle on, your words go to a language model, which
+works out which settings you meant. Turn it off to type a
+setting by name, the way the terminal client does:
+
+  scheme amber      contrast 1.4      rotation 180
+
+show    every setting, as it is right now
+help    everything that can be changed, and what it takes
+reset   put it all back to the defaults</div>
 
 <script>
 (function () {
@@ -271,6 +288,7 @@ PAGE = """<!DOCTYPE html>
   var nl = document.getElementById('nl');
   var go = document.getElementById('go');
   var head = document.getElementById('head');
+  var chips = document.querySelectorAll('.chip');
   var busy = false;
 
   function show(said, reply, bad) {
@@ -295,12 +313,22 @@ PAGE = """<!DOCTYPE html>
     while (out.children.length > 40) { out.removeChild(out.lastChild); }
   }
 
-  function send(line, said) {
+  function setBusy(state) {
+    busy = state;
+    go.disabled = state;
+    for (var i = 0; i < chips.length; i++) { chips[i].disabled = state; }
+  }
+
+  // `source` is the control that started this - the Send button, or whichever
+  // chip was tapped. It is the one that shows the wait, because a phone with
+  // one thumb on a chip and a "…" appearing somewhere else reads as a glitch
+  // rather than as progress.
+  function send(line, said, source) {
     if (busy) { return; }
-    busy = true;
-    go.disabled = true;
-    var was = go.textContent;
-    go.textContent = '…';
+    var el = source || go;
+    var was = el.textContent;
+    el.textContent = '…';
+    setBusy(true);
     fetch('ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -313,9 +341,8 @@ PAGE = """<!DOCTYPE html>
     }).catch(function (e) {
       show(said, 'could not reach the camera: ' + e, true);
     }).then(function () {
-      busy = false;
-      go.disabled = false;
-      go.textContent = was;
+      el.textContent = was;
+      setBusy(false);
     });
   }
 
@@ -323,15 +350,14 @@ PAGE = """<!DOCTYPE html>
     e.preventDefault();
     var said = box.value.trim();
     if (!said) { return; }
-    send(nl.checked ? 'ask ' + said : said, said);
+    send(nl.checked ? 'ask ' + said : said, said, go);
     box.value = '';
   });
 
-  var chips = document.querySelectorAll('.chip');
-  for (var i = 0; i < chips.length; i++) {
-    chips[i].addEventListener('click', function () {
+  for (var c = 0; c < chips.length; c++) {
+    chips[c].addEventListener('click', function () {
       var raw = this.getAttribute('data-raw');
-      send(raw, raw);
+      send(raw, raw, this);
     });
   }
 

@@ -22,6 +22,7 @@ would be a guard in name only.
 """
 
 import json
+import re
 import socket
 import sys
 import tempfile
@@ -34,6 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+import commands                                   # noqa: E402
 import web_server                                  # noqa: E402
 
 PASSED = FAILED = 0
@@ -181,6 +183,16 @@ with Served(app.path) as web:
           ("http://" not in page.replace("http://127.0.0.1", "")
            and "https://" not in page), True)
     check("loading the page sends the app nothing", app.received, [])
+
+    # The chips are a shortcut for typing, so what they type has to be real.
+    # A chip for a command the app does not have would fail only when somebody
+    # tapped it, and would say "there is no setting called ..." to a person who
+    # had not typed anything at all.
+    chips = re.findall(r'data-raw="([^"]+)"', page)
+    check("the page offers the three non-setting commands",
+          sorted(chips), ["help", "reset", "show"])
+    check("and every one of them is a command the app accepts",
+          [c for c in chips if c not in commands.WORDS], [])
 
     status, body = request(web.port, "/nonsense")
     check("an unknown path is 404", status, 404)
