@@ -20,9 +20,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 logging.disable(logging.CRITICAL)
 
-from ascii_art import AsciiArt          # noqa: E402
-from camera import CameraCapture        # noqa: E402
-from image_processor import ImageProcessor, fit_grid  # noqa: E402
+from art.ascii_art import AsciiArt          # noqa: E402
+from capture.camera import CameraCapture        # noqa: E402
+from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 
 DURATION = 6.0
 COLS, ROWS = 80, 79

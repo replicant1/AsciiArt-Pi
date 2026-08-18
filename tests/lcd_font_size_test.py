@@ -26,8 +26,8 @@ import numpy as np
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from ascii_art import AsciiArt          # noqa: E402
-from lcd_display import LcdDisplay      # noqa: E402
+from art.ascii_art import AsciiArt          # noqa: E402
+from panel.lcd_display import LcdDisplay      # noqa: E402
 
 failures = []
 

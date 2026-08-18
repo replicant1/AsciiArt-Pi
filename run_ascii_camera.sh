@@ -26,7 +26,7 @@
 #    1080px-tall screen - lxterminal silently clamps it to ~57 rows.  So we
 #    generate a dedicated profile, leaving the user's own settings alone.
 #  * Whether the picture fills the window depends on the character cell's
-#    height/width ratio, which changes with font size.  src/window_plan.py
+#    height/width ratio, which changes with font size.  src/art/window_plan.py
 #    reads the real cell metrics from Pango and sizes the window to match.
 
 set -u
@@ -54,7 +54,7 @@ case " $* " in
 esac
 
 # --- plan the window --------------------------------------------------------
-PLAN=$(python3 "$PROJECT_DIR/src/window_plan.py" \
+PLAN=$(python3 "$PROJECT_DIR/src/art/window_plan.py" \
        "$GEOMETRY" "$SCREEN_W" "$SCREEN_H" "$ASPECT" 2>/dev/null)
 if [ -z "$PLAN" ]; then
     echo "window_plan.py failed; falling back to 80x33 Monospace 7" >&2

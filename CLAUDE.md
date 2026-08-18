@@ -150,9 +150,9 @@ Wiring, taken from the manufacturer's own working example and confirmed by runni
     GND -> GND         SCK      -> GPIO 11       DC/RS -> GPIO 25
     CS  -> GPIO 8 (CE0)   SDO/MISO -> GPIO 9     LED/BL -> GPIO 18 (PWM dimmable)
 
-The panel is on /dev/spidev0.0. SPI is already enabled ("dtparam=spi=on" in /boot/firmware/config.txt). There is deliberately NO kernel driver bound to it - no fbtft, no mipi-dbi-spi overlay, so it is not a /dev/fb device. It is driven entirely from userspace Python via spidev, which is what src/lcd.py does. /dev/fb0 is the HDMI framebuffer and has nothing to do with this panel.
+The panel is on /dev/spidev0.0. SPI is already enabled ("dtparam=spi=on" in /boot/firmware/config.txt). There is deliberately NO kernel driver bound to it - no fbtft, no mipi-dbi-spi overlay, so it is not a /dev/fb device. It is driven entirely from userspace Python via spidev, which is what src/panel/lcd.py does. /dev/fb0 is the HDMI framebuffer and has nothing to do with this panel.
 
-The manufacturer's reference code (Waveshare) is unpacked at /home/rod/LCD_Module_code/LCD_Module_RPI_code/RaspberryPi/python, with the 2.4 inch driver in lib/LCD_2inch4.py and an example in example/2inch4_LCD_test.py. The project does not depend on it, but its init sequence is known to light this exact hardware and was copied into src/lcd.py rather than re-derived from the datasheet.
+The manufacturer's reference code (Waveshare) is unpacked at /home/rod/LCD_Module_code/LCD_Module_RPI_code/RaspberryPi/python, with the 2.4 inch driver in lib/LCD_2inch4.py and an example in example/2inch4_LCD_test.py. The project does not depend on it, but its init sequence is known to light this exact hardware and was copied into src/panel/lcd.py rather than re-derived from the datasheet.
 
 **Verification is the hard part, and there is no software answer.** Two independent facts combine:
 
@@ -163,9 +163,9 @@ So NOTHING can confirm what is actually lit on the panel except asking the user 
 
 Code, all committed:
 
-    src/lcd.py           ILI9341 driver over spidev; PIL images or pre-packed RGB565
-    src/lcd_display.py   ASCII grid -> panel, via a pre-rendered glyph atlas
-    src/lcd_worker.py    background thread so SPI stays off the main render loop
+    src/panel/lcd.py           ILI9341 driver over spidev; PIL images or pre-packed RGB565
+    src/panel/lcd_display.py   ASCII grid -> panel, via a pre-rendered glyph atlas
+    src/panel/lcd_worker.py    background thread so SPI stays off the main render loop
     tests/lcd_selftest.py      colour bars + RGB565 maths (run this first if suspicious)
     tests/lcd_render_bench.py  render path correctness and timing
     tests/lcd_concurrency.py   proves the SPI write does not stall the main loop
@@ -178,7 +178,7 @@ Run it with:
 Performance facts measured on this Pi, worth not rediscovering:
 
 - /sys/module/spidev/parameters/bufsiz is 4096, so a full 240x320 RGB565 frame (153,600 bytes) is 38 writes. Transfer costs ~32 ms; that dominates, not the clock rate. Raise it with "spidev.bufsiz=65536" on the kernel command line if refresh rate ever matters more than memory.
-- Drawing costs only ~3.7 ms of CPU (glyph blit 1.2, RGB565 pack 2.4). Do NOT draw text with one PIL draw.text() per cell - at 64x24 that is 1,536 calls per frame. src/lcd_display.py pre-renders each glyph once and builds a frame as a single numpy gather.
+- Drawing costs only ~3.7 ms of CPU (glyph blit 1.2, RGB565 pack 2.4). Do NOT draw text with one PIL draw.text() per cell - at 64x24 that is 1,536 calls per frame. src/panel/lcd_display.py pre-renders each glyph once and builds a frame as a single numpy gather.
 - spidev DOES release the GIL during the transfer, so a worker thread genuinely overlaps: the main thread keeps 93% of its throughput while the panel runs at 27 fps. tests/lcd_concurrency.py measures this rather than assuming it.
 - Font sizes 6, 8 and 9 (DejaVu Sans Mono) each tile 320x240 exactly AND give a character grid whose on-screen aspect is exactly 4:3, matching the camera - so filling the panel crops nothing. They give 80x30, 64x24 and 64x20 respectively. 8 is the default.
 - The font size can be changed live with the l key, which rebuilds the glyph atlas on the LCD worker's own thread. Measured over eleven rebuilds: 168 ms for the first, then 13-24 ms. The first is an order of magnitude worse, most likely the font file being read from disk once and found in the page cache after - inferred from the shape of the numbers, not measured. Not a per-frame cost: it happens only on a ramp, invert or font-size change. The rebuild must zero the frame buffer, because a larger font gives a SMALLER picture and nothing ever writes to the margin it no longer reaches; tests/lcd_font_size_test.py checks that on the real panel.
@@ -193,7 +193,7 @@ A rotary encoder knob is wired to the Pi and cycles the app's colour schemes. It
     DT  -> GPIO 26      GND -> GND
     SW  -> GPIO 6
 
-Turning cycles the schemes both ways; pressing jumps straight back to grey. Off unless asked for: "bash run_ascii_camera.sh fit --lcd --encoder". Driven from userspace via lgpio (installed; gpiozero and RPi.GPIO are present too, pigpio is NOT). Code is src/encoder.py, tests are tests/encoder_test.py, and tools/probe_encoder.py finds the pins.
+Turning cycles the schemes both ways; pressing jumps straight back to grey. Off unless asked for: "bash run_ascii_camera.sh fit --lcd --encoder". Driven from userspace via lgpio (installed; gpiozero and RPi.GPIO are present too, pigpio is NOT). Code is src/control/encoder.py, tests are tests/encoder_test.py, and tools/probe_encoder.py finds the pins.
 
 GPIO 6 for SW was chosen deliberately, not just because it was free. The module fits no pull-up on SW, so it relies on the internal one, and this chip defaults GPIO 0-8 to pull-UP but 9-27 to pull-DOWN. On a pull-down pin the switch reads as held down from power-on until the app configures it; on GPIO 6 it idles high throughout. Apply the same reasoning to any future switch.
 
@@ -201,7 +201,7 @@ Finding the pins again, if the wiring is ever changed: the module has its own pu
 
 Two things measured here that are worth not rediscovering:
 
-- The contacts bounce about 5:1 - twenty clicks gave 453 edges, 88 after a 1 ms debounce. Do NOT decode by counting edges or by sampling the partner pin at each edge; both read bounce as movement. src/encoder.py uses a quadrature transition table that only emits on a complete cycle, which ignores bounce by construction. One detent is one full cycle on this module.
+- The contacts bounce about 5:1 - twenty clicks gave 453 edges, 88 after a 1 ms debounce. Do NOT decode by counting edges or by sampling the partner pin at each edge; both read bounce as movement. src/control/encoder.py uses a quadrature transition table that only emits on a complete cycle, which ignores bounce by construction. One detent is one full cycle on this module.
 - Applying banked detents one at a time causes a violent strobe and tanks the frame rate. Every scheme change calls display.set_scheme(), which ends in stdscr.clear() and repaints all ~27,000 cells, so a five-detent spin became five full repaints between two frames - four of them of pictures never on screen long enough to see. It feeds back on itself, because a slower frame banks more detents. _cycle_scheme takes the whole move at once and repaints once. A two-detent move writing a single "Scheme:" log line is the check that this still holds.
 
 Which direction is "forwards" cannot be derived - it depends on which pin was called CLK - so it is resolved by turning the real knob. As wired, clockwise is forwards and --encoder-reverse is off.

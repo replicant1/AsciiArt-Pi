@@ -33,11 +33,11 @@ sys.path.insert(0, str(ROOT / "src"))
 import numpy as np                                # noqa: E402
 
 import ascii_camera                                # noqa: E402
-import palettes                                   # noqa: E402
-import render_config                              # noqa: E402
+from art import palettes                                   # noqa: E402
+from control import render_config                              # noqa: E402
 from ascii_camera import AsciiArtLiveCamera       # noqa: E402
-from image_processor import ImageProcessor        # noqa: E402
-from render_config import ConfigError, RenderConfig  # noqa: E402
+from capture.image_processor import ImageProcessor        # noqa: E402
+from control.render_config import ConfigError, RenderConfig  # noqa: E402
 
 failures = []
 
@@ -111,7 +111,7 @@ def test_surface():
     check("every scheme is offerable",
           set(render_config.BY_NAME["scheme"].choices)
           == set(palettes.SCHEME_NAMES))
-    from ascii_art import RAMPS
+    from art.ascii_art import RAMPS
     check("every ramp is offerable",
           set(render_config.BY_NAME["ramp"].choices) == set(RAMPS))
 
@@ -781,7 +781,7 @@ def test_headless_builds_nothing():
 # render loop - and both displays - for the seconds it takes.
 
 class StubParser:
-    """Stands in for src/parser.py, with no API key and no network."""
+    """Stands in for src/language/parser.py, with no API key and no network."""
 
     KEY_FILE = "/nowhere/api_key"
 
@@ -820,15 +820,24 @@ class StubParser:
 
 
 def with_parser(app, stub):
-    """Put the stub where _resolve_ask's `import parser` will find it."""
+    """
+    Put the stub where _resolve_ask's own import will find it.
+
+    The name has to match what the app imports, and that changed when the
+    modules moved into packages: `parser` became `language.parser`. Patching
+    the old name still "worked" in the sense that nothing raised - it just
+    stopped intercepting anything, so these tests quietly went to the real
+    model over the network and were scored against whatever it happened to
+    answer. A stub that is not reached is worse than no stub.
+    """
     import sys
-    sys.modules["parser"] = stub
+    sys.modules["language.parser"] = stub
     return app
 
 
 def test_ask_is_resolved_off_the_loop():
     print("\n34. An ordinary line is not touched by the ask resolver")
-    from command_server import Ask, Reply
+    from control.command_server import Ask, Reply
 
     app = make_app()
     stub = StubParser(result=StubParser._Parsed(delta={"scheme": "green"}))
@@ -839,7 +848,7 @@ def test_ask_is_resolved_off_the_loop():
     check("...and the model was never called", stub.calls == [])
 
     print("\n35. An ask becomes a delta, worked out before the loop sees it")
-    # Not "make it green" - src/shortcuts.py answers that one from its table
+    # Not "make it green" - src/language/shortcuts.py answers that one from its table
     # without a model, which is the point of the table and would leave this
     # test asserting things about a stub nobody called. A phrase with a mood in
     # it is the model's own territory.
@@ -879,7 +888,7 @@ def test_ask_is_resolved_off_the_loop():
 
 def test_ask_failures_are_sentences():
     print("\n37. A refusal from the model changes nothing")
-    from command_server import Ask, Reply
+    from control.command_server import Ask, Reply
 
     app = make_app()
     with_parser(app, StubParser(

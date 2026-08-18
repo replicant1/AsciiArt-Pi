@@ -20,8 +20,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-import palettes                       # noqa: E402
-from ascii_art import AsciiArt        # noqa: E402
+from art import palettes                       # noqa: E402
+from art.ascii_art import AsciiArt        # noqa: E402
 
 # Redmean distance runs 0..~765. Two schemes closer than this in combined ink
 # and screen distance would be a "which one am I looking at?" pair.

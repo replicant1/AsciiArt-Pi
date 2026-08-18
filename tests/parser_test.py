@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Offline tests for src/parser.py - no network, no key, no money.
+Offline tests for src/language/parser.py - no network, no key, no money.
 
     python3 tests/parser_test.py
 
@@ -24,8 +24,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-import parser as nl                                  # noqa: E402
-from render_config import SPECS                      # noqa: E402
+from language import parser as nl                                  # noqa: E402
+from control.render_config import SPECS                      # noqa: E402
 
 PASSED = FAILED = 0
 
@@ -171,7 +171,7 @@ check("...and say so in the description",
 
 # --- 6. the defaults in the prompt are the real ones ------------------------
 section("6. the prompt states the actual defaults")
-from render_config import RenderConfig                # noqa: E402
+from control.render_config import RenderConfig                # noqa: E402
 
 check("no placeholder left behind", "__DEFAULTS__" in nl.SYSTEM_PROMPT, False)
 check("the sentence is there",

@@ -11,7 +11,7 @@ terminal on the HDMI screen.
 
 Press 'q' to quit; other live controls are listed in the status line.
 
-Every live setting lives in one RenderConfig (src/render_config.py) and every
+Every live setting lives in one RenderConfig (src/control/render_config.py) and every
 change to one is a validated delta applied through AsciiArtLiveCamera.apply().
 Nothing here assigns a setting directly - not the keyboard, not the knob - so
 there is a single place that knows what each change costs to make.
@@ -36,20 +36,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 import curses  # noqa: E402
 
-import commands  # noqa: E402
-import palettes  # noqa: E402
-import render_config  # noqa: E402
-import shortcuts  # noqa: E402
-from ascii_art import RAMPS, AsciiArt  # noqa: E402
-from camera import CameraCapture  # noqa: E402
-from display import NcursesDisplay  # noqa: E402
-from headless import HeadlessDisplay  # noqa: E402
-from image_processor import ImageProcessor, fit_grid  # noqa: E402
+from control import commands  # noqa: E402
+from art import palettes  # noqa: E402
+from control import render_config  # noqa: E402
+from language import shortcuts  # noqa: E402
+from art.ascii_art import RAMPS, AsciiArt  # noqa: E402
+from capture.camera import CameraCapture  # noqa: E402
+from screen.display import NcursesDisplay  # noqa: E402
+from screen.headless import HeadlessDisplay  # noqa: E402
+from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 # Only the default, so --help can state it. Safe at module scope where
 # LcdDisplay is not: the lazy imports in _start_lcd are there for spidev and
 # RPi.GPIO, which live in lcd.py, and lcd_worker pulls in neither.
-from lcd_worker import DEFAULT_SPLASH_HOLD  # noqa: E402
-from render_config import ConfigError  # noqa: E402
+from panel.lcd_worker import DEFAULT_SPLASH_HOLD  # noqa: E402
+from control.render_config import ConfigError  # noqa: E402
 from version import APP_NAME, __version__  # noqa: E402
 
 logger = logging.getLogger("ascii_camera")
@@ -394,8 +394,8 @@ class AsciiArtLiveCamera:
         that spidev and RPi.GPIO are only required when the panel is asked for.
         """
         try:
-            from lcd_display import LcdDisplay
-            from lcd_worker import LcdWorker
+            from panel.lcd_display import LcdDisplay
+            from panel.lcd_worker import LcdWorker
 
             font_size = self.config.lcd_font_size
             display = LcdDisplay(
@@ -432,7 +432,7 @@ class AsciiArtLiveCamera:
         imported inside RotaryEncoder so this stays runnable off the Pi.
         """
         try:
-            from encoder import RotaryEncoder
+            from control.encoder import RotaryEncoder
 
             return RotaryEncoder(clk=self.args.encoder_clk,
                                  dt=self.args.encoder_dt,
@@ -454,12 +454,12 @@ class AsciiArtLiveCamera:
         running app is the correct outcome there.
         """
         try:
-            from command_server import CommandServer
+            from control.command_server import CommandServer
 
             server = CommandServer(self.args.command_socket,
                                    resolver=self._resolve_ask).start()
             try:
-                import asklog
+                from language import asklog
 
                 self.asklog = asklog.AskLog()
             except Exception as e:
@@ -487,7 +487,7 @@ class AsciiArtLiveCamera:
         nothing but resident memory on a 416 MB machine.
         """
         try:
-            import parser as nl_parser
+            from language import parser as nl_parser
         except Exception as e:
             logger.info("Natural language unavailable: %s", e)
             return
@@ -527,7 +527,7 @@ class AsciiArtLiveCamera:
         Returns None for any line that is not an ask, which is every ordinary
         typed command - those go straight through untouched.
         """
-        from command_server import Ask, Reply
+        from control.command_server import Ask, Reply
 
         head, _, rest = line.partition(" ")
         if head.lower() != "ask":
@@ -554,7 +554,7 @@ class AsciiArtLiveCamera:
             return Ask(utterance=utterance, delta=delta, note="instant")
 
         try:
-            import parser as nl_parser
+            from language import parser as nl_parser
         except Exception as e:
             return Reply(f"the language model parser is unavailable: {e}")
         if nl_parser.api_key() is None:
@@ -653,7 +653,7 @@ class AsciiArtLiveCamera:
         already worked out on another thread, which from here is just a delta
         like any other and goes down the same path with the same validation.
         """
-        from command_server import Ask
+        from control.command_server import Ask
 
         if isinstance(request, Ask):
             logger.info("Command: ask %s", request.utterance)

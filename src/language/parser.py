@@ -11,7 +11,7 @@ reaches the hardware without going through `with_changes` first, and from the
 app's point of view a parsed delta and a typed one are indistinguishable.
 
 That boundary is the whole design. It is also what makes the two comparable:
-src/commands.py is the deterministic path, this is the fuzzy one, and both are
+src/control/commands.py is the deterministic path, this is the fuzzy one, and both are
 judged by the same validator with the same wording. An eval that scored them
 against different validators would be measuring the validators.
 
@@ -38,8 +38,8 @@ import os
 import threading
 from pathlib import Path
 
-import render_config
-from render_config import SPECS, ConfigError, RenderConfig
+from control import render_config
+from control.render_config import SPECS, ConfigError, RenderConfig
 
 logger = logging.getLogger(__name__)
 

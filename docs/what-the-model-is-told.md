@@ -1,7 +1,7 @@
 # What the model is told
 
 Everything the natural-language layer knows about this camera, in one place:
-the system prompt and the tool schema, exactly as `src/parser.py` sends them.
+the system prompt and the tool schema, exactly as `src/language/parser.py` sends them.
 
 Section 5 is the deliberate complement — the 41 eval cases, which are the one
 thing kept *out* of what the model sees, and which are what say whether any of
@@ -579,7 +579,7 @@ is the measurement's real ceiling, and re-running does not touch it: a case file
 can only test the failure modes its author imagined, and 41 cases put the true
 pass rate somewhere above 93% rather than at the 100% the scoreboard prints.
 
-`src/asklog.py` is the way out. Every ask is written to `logs/asks.jsonl` with
+`src/language/asklog.py` is the way out. Every ask is written to `logs/asks.jsonl` with
 the config it resolved against, so utterances said by an actual person standing
 at the camera accumulate somewhere they can be read and promoted into cases.
 `asklog.as_case()` does the conversion, and deliberately labels the result a
@@ -632,7 +632,7 @@ response is harder cases, not satisfaction.
 
 ### Then change it safely
 
-1. Edit the prompt in `src/parser.py`, or a `note` in `src/render_config.py`.
+1. Edit the prompt in `src/language/parser.py`, or a `note` in `src/control/render_config.py`.
 2. `bash sync.sh push` — or copy the file into the mount.
 3. `python3 tests/parser_eval.py --jobs 4 --save runs/` on the Pi. Costs ~13p.
 4. **Run it more than once.** Run-to-run variance on this set is about ±2–3%;

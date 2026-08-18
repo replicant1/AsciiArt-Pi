@@ -8,7 +8,7 @@
 #   sudo systemctl stop ascii-camera-web     # asking stops, the camera does not
 #
 # A second unit rather than a flag on ascii-camera.service, for the reason
-# src/web_server.py explains at length: this accepts requests that spend money,
+# src/control/web_server.py explains at length: this accepts requests that spend money,
 # and being able to switch that off without stopping the picture is worth one
 # more file. It is also the only part of the build reachable from the network,
 # so it is the part most worth being able to stop.
@@ -33,7 +33,7 @@ User=rod
 Group=rod
 
 WorkingDirectory=/home/rod/Projects/AsciiArt
-ExecStart=/usr/bin/python3 -u /home/rod/Projects/AsciiArt/src/web_server.py
+ExecStart=/usr/bin/python3 -u /home/rod/Projects/AsciiArt/src/control/web_server.py
 
 # It owns a TCP port and one Unix socket connection at a time. No hardware, no
 # groups, no capabilities - which is why the thing exposed to the network is

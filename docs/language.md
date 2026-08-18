@@ -80,7 +80,7 @@ prompt gets tuned; it costs roughly 0.35p a sentence. It is a
 Unix socket with mode 0600, so it is not reachable from the network and only
 the user running the app can connect; `--no-commands` switches it off.
 
-**The split is the point, not the parsing.** `src/commands.py` turns text into
+**The split is the point, not the parsing.** `src/control/commands.py` turns text into
 typed values and stops there; `RenderConfig` decides what is allowed. So
 `rotation 45` parses cleanly and is refused one layer down, in the same wording
 every other route gets. When a language model is added it will produce deltas
@@ -122,7 +122,7 @@ rejected, listing the names that do work.
 
 `ask make it green` used to cross a network, wait 2.6 seconds and cost a third
 of a US cent to work out `{"scheme": "green"}` — which is the scheme's own name,
-said out loud. `src/shortcuts.py` answers that class of phrase from a table
+said out loud. `src/language/shortcuts.py` answers that class of phrase from a table
 before any model call or key check happens. (Not "before the parser is
 imported" — `_warm_parser()` imports it at start-up when a key is present,
 so the first ask of a run does not pay an 11-second import.)
@@ -258,7 +258,7 @@ shutdown button, the camera and WiFi — and everything on that list except WiFi
 carries a few bits per second. Natural language needs a keyboard, and the best
 keyboard available is the one already in a pocket.
 
-`src/web_server.py` serves one page to a phone on the LAN and forwards whatever
+`src/control/web_server.py` serves one page to a phone on the LAN and forwards whatever
 is typed into it to the command socket, verbatim:
 
     phone -> HTTP -> web_server.py -> Unix socket -> resolver -> render loop
@@ -267,7 +267,7 @@ Start it by hand, or install `ascii-camera-web.service` to have it come up at
 boot:
 
 ```bash
-python3 src/web_server.py                    # 0.0.0.0:8080, LAN only
+python3 src/control/web_server.py                    # 0.0.0.0:8080, LAN only
 sudo cp ascii-camera-web.service /etc/systemd/system/ && \
   sudo systemctl enable --now ascii-camera-web
 ```

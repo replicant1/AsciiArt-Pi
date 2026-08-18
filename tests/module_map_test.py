@@ -41,19 +41,29 @@ print("--------------")
 
 page = module_map.render()
 
-check("every module in the app is in a group",
-      module_map.every_module() - {n for _, _, names in module_map.GROUPS
-                                   for n in names}, set())
-check("and every grouped module still exists",
-      {n for _, _, names in module_map.GROUPS for n in names}
-      - module_map.every_module(), set())
+groups = ((("Entry point"), "", list(module_map.ENTRY)),) + tuple(
+    module_map.packages())
+placed = {n for _, _, names in groups for n in names}
+check("every module in the app is in a package", module_map.every_module()
+      - placed, set())
+check("and every placed module still exists",
+      placed - module_map.every_module(), set())
+# The grouping is the directory tree now, so a new package cannot go unnoticed.
+check("every package under src/ is in the presentation order",
+      sorted(d.name for d in (module_map.ROOT / "src").iterdir()
+             if d.is_dir() and not d.name.startswith(("_", "."))),
+      sorted(module_map.ORDER))
+check("and each package says what it is for",
+      [name for name in module_map.ORDER
+       if module_map.summary(module_map.ROOT / "src" / name / "__init__.py")
+       in ("", "(no docstring)")], [])
 
 check("the committed page exists", module_map.OUTPUT.exists(), True)
 check("and is what the tool produces right now",
       module_map.OUTPUT.read_text(encoding="utf-8") == page, True)
 
 # The summaries are the module's own words, not a copy kept in step by hand.
-sample = module_map.ROOT / "src" / "shortcuts.py"
+sample = module_map.ROOT / "src" / "language" / "shortcuts.py"
 first_line = module_map.summary(sample)
 check("a summary is read from the source",
       first_line in page and first_line
@@ -61,7 +71,7 @@ check("a summary is read from the source",
 
 # One line each: an index entry that wraps is not an index entry. 100 leaves
 # room for the longest module path in the table without folding.
-too_long = [name for _, _, names in module_map.GROUPS for name in names
+too_long = [name for _, _, names in groups for name in names
             if len(module_map.summary(module_map.ROOT / name)) > 100]
 check("every summary fits on one line", too_long, [])
 

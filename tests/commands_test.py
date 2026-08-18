@@ -24,10 +24,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-import commands                                    # noqa: E402
-import render_config                               # noqa: E402
-from commands import CommandError                  # noqa: E402
-from render_config import ConfigError, RenderConfig  # noqa: E402
+from control import commands                                    # noqa: E402
+from control import render_config                               # noqa: E402
+from control.commands import CommandError                  # noqa: E402
+from control.render_config import ConfigError, RenderConfig  # noqa: E402
 
 failures = []
 
@@ -273,7 +273,7 @@ def test_an_idle_client_does_not_starve_the_rest():
     from pathlib import Path as _Path
 
     sys.path.insert(0, str(ROOT / "src"))
-    from command_server import CommandServer
+    from control.command_server import CommandServer
 
     sock_path = str(_Path(tempfile.mkdtemp()) / "test.sock")
     server = CommandServer(sock_path).start()

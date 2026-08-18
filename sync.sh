@@ -31,12 +31,16 @@ MODE="${1:-pull}"
 ROOT_FILES=(ascii_camera.py run_ascii_camera.sh setup.sh requirements.txt
             README.md piinput.py setup_uinput.sh lcd_blank.py
             ascii-camera.service ascii-camera-web.service)
-SRC_FILES=(ascii_art.py camera.py display.py headless.py image_processor.py
-           window_plan.py lcd.py lcd_display.py lcd_worker.py lcd_splash.py
-           palettes.py encoder.py render_config.py commands.py
-           command_server.py parser.py asklog.py web_server.py
-           shortcuts.py
-           version.py)
+SRC_FILES=(version.py
+           capture/__init__.py capture/camera.py capture/image_processor.py
+           art/__init__.py art/ascii_art.py art/palettes.py art/window_plan.py
+           screen/__init__.py screen/display.py screen/headless.py
+           panel/__init__.py panel/lcd.py panel/lcd_display.py
+           panel/lcd_worker.py panel/lcd_splash.py
+           control/__init__.py control/render_config.py control/commands.py
+           control/command_server.py control/web_server.py control/encoder.py
+           language/__init__.py language/parser.py language/shortcuts.py
+           language/asklog.py)
 TEST_FILES=(bench_pipeline.py capture_reference.py
             lcd_selftest.py lcd_render_bench.py lcd_concurrency.py
             lcd_splash_test.py
@@ -140,6 +144,9 @@ transfer() {
     if [ "$MODE" = status ]; then
         echo "  DIFF  $label"
     else
+        # src/ is a tree of packages now, so the destination directory may not
+        # exist yet - on a first push to a freshly imaged Pi, none of them do.
+        mkdir -p "$(dirname "$to")"
         cp "$from" "$to"
         echo "  copy  $label"
     fi

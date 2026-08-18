@@ -30,9 +30,9 @@ import threading
 import time
 from queue import Empty, Full, Queue
 
-import palettes
-from ascii_art import AsciiArt
-from image_processor import ImageProcessor
+from art import palettes
+from art.ascii_art import AsciiArt
+from capture.image_processor import ImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -339,7 +339,7 @@ class LcdWorker(threading.Thread):
             # Imported here rather than at module scope so PIL is only needed
             # when the panel is. Repeat imports hit sys.modules, so the cost
             # after the first tick is a dict lookup.
-            from lcd_splash import SWEEP_STEP, SplashScreen
+            from panel.lcd_splash import SWEEP_STEP, SplashScreen
 
             if self._splash_screen is None:
                 width, height = self.display.panel_size

@@ -28,28 +28,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "docs" / "module-map.md"
 
-# The architecture, as six subsystems and an entry point. Order is the order a
-# frame travels: light in at the top, pixels out in the middle, and the ways a
-# human changes what happens at the bottom.
-GROUPS = (
-    ("Entry point", "The process itself: argument parsing, the render loop, "
-                    "and the wiring that connects everything below.",
-     ("ascii_camera.py", "src/version.py")),
-    ("Capture", "Getting frames off the camera and into the right shape.",
-     ("src/camera.py", "src/image_processor.py")),
-    ("ASCII", "Turning brightness into characters, and characters into colour.",
-     ("src/ascii_art.py", "src/palettes.py", "src/window_plan.py")),
-    ("Screen", "The HDMI terminal, and the stand-in for when there is none.",
-     ("src/display.py", "src/headless.py")),
-    ("Panel", "The 2.4 inch ILI9341 over SPI - a second, independent display.",
-     ("src/lcd.py", "src/lcd_display.py", "src/lcd_worker.py",
-      "src/lcd_splash.py")),
-    ("Control", "Every setting, and every way a human reaches one.",
-     ("src/render_config.py", "src/commands.py", "src/command_server.py",
-      "src/web_server.py", "src/encoder.py")),
-    ("Language", "Words in, a validated settings change out.",
-     ("src/parser.py", "src/shortcuts.py", "src/asklog.py")),
-)
+# The order the subsystems are presented in: the order a frame travels, light
+# in at the top and pixels out at the bottom, with the ways a human changes what
+# happens last. Only the ORDER is written here now.
+#
+# The grouping itself used to be a table in this file, listing every module
+# against a subsystem. It is not any more, because the packages under src/ say
+# it: `src/panel/lcd_worker.py` is in the panel subsystem because of where it
+# is, and a statement the filesystem already makes should not be made twice
+# where the two can disagree. What is left is a presentation order and a check
+# that no package has appeared without being placed in it.
+ORDER = ("capture", "art", "screen", "panel", "control", "language")
+
+ENTRY = ("ascii_camera.py", "src/version.py")
+ENTRY_BLURB = ("The process itself: argument parsing, the render loop, and the "
+               "wiring that connects everything below.")
 
 
 def summary(path):
@@ -63,6 +56,36 @@ def summary(path):
         if line.strip():
             return line.strip()
     return "(no docstring)"
+
+
+def packages():
+    """
+    Each package under src/, its own blurb, and the modules in it.
+
+    The blurb is the package's __init__.py docstring, which is where a
+    subsystem gets to say what it is for in one line - the same trick every
+    module already uses, one level up.
+    """
+    found = []
+    for name in ORDER:
+        directory = ROOT / "src" / name
+        if not directory.is_dir():
+            raise SystemExit(f"ORDER names src/{name}, which does not exist")
+        blurb = summary(directory / "__init__.py")
+        modules = [f"src/{name}/{p.name}"
+                   for p in sorted(directory.glob("*.py"))
+                   if p.name != "__init__.py" and not p.name.startswith(".")]
+        found.append((name.capitalize(), blurb, modules))
+
+    on_disk = {d.name for d in (ROOT / "src").iterdir()
+               if d.is_dir() and not d.name.startswith(("_", "."))}
+    unplaced = sorted(on_disk - set(ORDER))
+    if unplaced:
+        raise SystemExit(
+            "These packages exist under src/ but are not in ORDER in "
+            "tools/module_map.py:\n  " + "\n  ".join(unplaced)
+            + "\n\nDecide where each belongs in the order a frame travels.")
+    return found
 
 
 def every_module():
@@ -80,31 +103,34 @@ def every_module():
         silently absorbed into the map - but it does not stop the map being
         generated, because policing the layout is not this tool's job.
     """
-    found = {"ascii_camera.py"}
-    for path in sorted((ROOT / "src").glob("*.py")):
+    found = set(ENTRY)
+    for path in sorted((ROOT / "src").rglob("*.py")):
+        if path.name == "__init__.py":
+            continue                     # a package marker, not a module
         if path.name.startswith("."):
             continue
         if path.name.endswith("_test.py"):
-            print(f"warning: src/{path.name} is a test in the source "
-                  f"directory; tests live in tests/", file=sys.stderr)
+            print(f"warning: {path.relative_to(ROOT)} is a test in the source "
+                  f"tree; tests live in tests/", file=sys.stderr)
             continue
-        found.add(f"src/{path.name}")
+        found.add(str(path.relative_to(ROOT)))
     return found
 
 
 def render():
     """The whole page, as text."""
-    placed = {name for _, _, names in GROUPS for name in names}
+    groups = ((("Entry point"), ENTRY_BLURB, list(ENTRY)),) + tuple(packages())
+    placed = {name for _, _, names in groups for name in names}
     modules = every_module()          # once: it warns, and twice would nag
     missing = sorted(modules - placed)
     if missing:
         # A file nobody placed is exactly the drift this exists to catch, and a
         # map that quietly omitted it would be worse than no map.
         raise SystemExit(
-            "These modules are not in any group in tools/module_map.py:\n  "
+            "These modules are in no package under src/:\n  "
             + "\n  ".join(missing)
-            + "\n\nAdd each to the subsystem it belongs to - deciding that is "
-              "the point, and is not something this tool can do for you.")
+            + "\n\nMove each into the subsystem it belongs to - deciding "
+              "that is the point, and is not something this tool can do.")
     gone = sorted(placed - modules)
     if gone:
         raise SystemExit("These are grouped but no longer exist:\n  "
@@ -122,7 +148,7 @@ def render():
         "",
     ]
     total_lines = total_files = 0
-    for title, blurb, names in GROUPS:
+    for title, blurb, names in groups:
         out += [f"## {title}", "", blurb, "",
                 "| Module | Lines | What it is for |",
                 "|---|---:|---|"]

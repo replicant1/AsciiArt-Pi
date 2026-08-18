@@ -36,10 +36,10 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-import palettes                                  # noqa: E402
-from ascii_art import RAMPS, AsciiArt            # noqa: E402
-from image_processor import ImageProcessor       # noqa: E402
-from lcd_display import DEFAULT_FONT, GlyphAtlas  # noqa: E402
+from art import palettes                                  # noqa: E402
+from art.ascii_art import RAMPS, AsciiArt            # noqa: E402
+from capture.image_processor import ImageProcessor       # noqa: E402
+from panel.lcd_display import DEFAULT_FONT, GlyphAtlas  # noqa: E402
 
 logger = logging.getLogger("montage")
 
@@ -66,7 +66,7 @@ def capture(width=320, height=240, warmup=12.0):
     gets a properly exposed frame, and this runs once to make a figure, so the
     wait costs nothing that matters.
     """
-    from camera import CameraCapture
+    from capture.camera import CameraCapture
 
     camera = CameraCapture(resolution=(width, height), frame_rate=15)
     camera.start()

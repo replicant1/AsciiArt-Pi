@@ -69,12 +69,12 @@ class FakePanel:
         self.pushes.append(data)
 
 
-import lcd_display                                   # noqa: E402
+from panel import lcd_display                                   # noqa: E402
 
 lcd_display.ILI9341 = lambda **kw: FakePanel()
 
-from lcd_display import LcdDisplay                    # noqa: E402
-from lcd_worker import LcdWorker                      # noqa: E402
+from panel.lcd_display import LcdDisplay                    # noqa: E402
+from panel.lcd_worker import LcdWorker                      # noqa: E402
 
 RAMP = " .:-=+*#%@"
 
@@ -97,7 +97,7 @@ check("and actually marks some pixels", bool(mask.any()), True)
 check("an empty message marks none", bool(d.notice_mask("").any()), False)
 
 # Cached, because the panel redraws 27 times a second and a PIL text call per
-# frame is exactly what src/lcd_display.py exists to keep off the hot path.
+# frame is exactly what src/panel/lcd_display.py exists to keep off the hot path.
 first = d.notice_mask("same words")
 check("the same message is not rasterised twice",
       d.notice_mask("same words") is first, True)
@@ -346,7 +346,7 @@ check("so recording the return value is the only correct thing",
       shown != worker._live_notice(), True)
 
 # The in-flight message has to outlive the request it describes.
-import parser as nl_parser                            # noqa: E402
+from language import parser as nl_parser                            # noqa: E402
 check("the asking notice is given longer than the parser's own timeout",
       nl_parser.TIMEOUT_SECONDS + 2 > nl_parser.TIMEOUT_SECONDS, True)
 check("and the default notice would have been far too short",

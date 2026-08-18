@@ -31,7 +31,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from lcd_display import LcdDisplay                     # noqa: E402
+from panel.lcd_display import LcdDisplay                     # noqa: E402
 
 RAMP = " .:-=+*#%@"
 

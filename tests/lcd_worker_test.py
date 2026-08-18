@@ -26,9 +26,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from lcd_worker import LcdWorker              # noqa: E402
-from ascii_art import MAX_COLOUR_LEVELS       # noqa: E402
-from render_config import RenderConfig        # noqa: E402
+from panel.lcd_worker import LcdWorker              # noqa: E402
+from art.ascii_art import MAX_COLOUR_LEVELS       # noqa: E402
+from control.render_config import RenderConfig        # noqa: E402
 
 failures = []
 

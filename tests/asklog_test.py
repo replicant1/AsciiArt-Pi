@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for src/asklog.py.
+Tests for src/language/asklog.py.
 
     python3 tests/asklog_test.py
 
@@ -25,8 +25,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tests"))
 
-import asklog                                      # noqa: E402
-from render_config import SPECS, RenderConfig      # noqa: E402
+from language import asklog                                      # noqa: E402
+from control.render_config import SPECS, RenderConfig      # noqa: E402
 
 PASSED = FAILED = 0
 

@@ -23,11 +23,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
-import palettes                                   # noqa: E402
+from art import palettes                                   # noqa: E402
 from ascii_camera import AsciiArtLiveCamera       # noqa: E402
-from encoder import QuadratureDecoder, RotaryEncoder   # noqa: E402
-from image_processor import ImageProcessor        # noqa: E402
-from render_config import RenderConfig            # noqa: E402
+from control.encoder import QuadratureDecoder, RotaryEncoder   # noqa: E402
+from capture.image_processor import ImageProcessor        # noqa: E402
+from control.render_config import RenderConfig            # noqa: E402
 
 failures = []
 

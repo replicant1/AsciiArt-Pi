@@ -48,9 +48,9 @@ being guarded is a bill, and a bill does not care which phone ran it up.
 
 Run it:
 
-    python3 src/web_server.py                    # 0.0.0.0:8080, LAN only
-    python3 src/web_server.py --port 9000
-    python3 src/web_server.py --host 127.0.0.1   # for tests
+    python3 src/control/web_server.py                    # 0.0.0.0:8080, LAN only
+    python3 src/control/web_server.py --port 9000
+    python3 src/control/web_server.py --host 127.0.0.1   # for tests
 
 Then open http://<the Pi's address>:8080/ on the phone.
 """
@@ -61,6 +61,7 @@ import json
 import logging
 import os
 import socket
+from pathlib import Path
 import sys
 import threading
 import time
@@ -695,5 +696,9 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    # src/, not this file's own directory: the modules moved into packages, so
+    # the importable root is the parent of the package rather than the package
+    # itself. Nothing here imports another app module today, but a path that is
+    # quietly wrong is a trap for whoever adds the first one.
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     sys.exit(main())

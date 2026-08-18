@@ -2,7 +2,7 @@
 A record of every natural-language request, so real use becomes evidence.
 
 Not every record is evidence about the *model*: `source` says whether a parse
-answered or src/shortcuts.py did. Filter on it before counting anything about
+answered or src/language/shortcuts.py did. Filter on it before counting anything about
 the prompt.
 
 The eval in tests/parser_eval.py scores the prompt against 41 utterances, all
@@ -43,7 +43,7 @@ import threading
 import time
 from pathlib import Path
 
-from render_config import SPECS, RenderConfig
+from control.render_config import SPECS, RenderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,12 @@ logger = logging.getLogger(__name__)
 # reason: this is a record of what happened on one camera, not a fact about the
 # code. It is deliberately inside the project directory rather than off in
 # ~/.local/state - the whole point is that somebody goes and reads it.
-DEFAULT_PATH = Path(__file__).resolve().parent.parent / "logs" / "asks.jsonl"
+# parents[2] is the project root: this file is src/language/asklog.py, so it is
+# language -> src -> root. It was parent.parent when the modules were flat, and
+# moving them into packages silently pointed it one level short, at src/logs/ -
+# the log kept being written, just somewhere nobody looks. Anything deriving a
+# path from __file__ has a depth baked into it, and moving the file changes it.
+DEFAULT_PATH = Path(__file__).resolve().parents[2] / "logs" / "asks.jsonl"
 
 # About 5,000 asks at roughly 400 bytes each. One old file is kept. This is not
 # really about disk - it is that an append-only file nobody ever rotates is a
@@ -91,7 +96,7 @@ class AskLog:
         Never raises. The caller is in the middle of answering somebody.
 
         `source` is who answered: "model" for a parse, "table" for a phrase
-        src/shortcuts.py knew already. It is always written, including on the
+        src/language/shortcuts.py knew already. It is always written, including on the
         default, because a record that omits it is ambiguous rather than
         obviously a model answer - and this file is read months later.
 

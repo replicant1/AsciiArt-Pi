@@ -41,8 +41,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-import parser as nl_parser                              # noqa: E402
-from render_config import ConfigError, RenderConfig     # noqa: E402
+from language import parser as nl_parser                              # noqa: E402
+from control.render_config import ConfigError, RenderConfig     # noqa: E402
 
 CASES = Path(__file__).resolve().parent / "eval_cases.json"
 

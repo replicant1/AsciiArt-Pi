@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for src/shortcuts.py.
+Tests for src/language/shortcuts.py.
 
     python3 tests/shortcuts_test.py
 
@@ -32,8 +32,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "tests"))
 
-import shortcuts                                    # noqa: E402
-from render_config import BY_NAME, RenderConfig     # noqa: E402
+from language import shortcuts                                    # noqa: E402
+from control.render_config import BY_NAME, RenderConfig     # noqa: E402
 
 PASSED = FAILED = 0
 

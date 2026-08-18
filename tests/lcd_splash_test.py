@@ -25,7 +25,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 import numpy as np                                          # noqa: E402
-from lcd_splash import (BAR_CELLS, SWEEP_RAMP, SWEEP_STEP, TAIL,  # noqa: E402
+from panel.lcd_splash import (BAR_CELLS, SWEEP_RAMP, SWEEP_STEP, TAIL,  # noqa: E402
                         SplashScreen)
 
 PASS, FAIL = "PASS", "FAIL"
@@ -253,8 +253,8 @@ def test_hold_keeps_the_screen_up():
     """
     print("\nSplash hold")
     import numpy as np
-    from lcd_worker import LcdWorker
-    from render_config import RenderConfig
+    from panel.lcd_worker import LcdWorker
+    from control.render_config import RenderConfig
 
     display = FakeDisplay()
     worker = LcdWorker(display, splash_hold=1.0)
@@ -302,8 +302,8 @@ def test_hold_keeps_the_screen_up():
 def test_zero_hold_hands_over_at_once():
     print("\nSplash hold disabled")
     import numpy as np
-    from lcd_worker import LcdWorker
-    from render_config import RenderConfig
+    from panel.lcd_worker import LcdWorker
+    from control.render_config import RenderConfig
 
     display = FakeDisplay()
     worker = LcdWorker(display, splash_hold=0.0)
@@ -345,7 +345,7 @@ def test_blank_cancels_the_start_up_screen():
     keys and wondering why nothing has appeared yet.
     """
     print("\nBlanking while the start-up screen is up")
-    from lcd_worker import LcdWorker
+    from panel.lcd_worker import LcdWorker
 
     display = FakeDisplay()
     worker = LcdWorker(display, splash_hold=3.0)
@@ -382,8 +382,8 @@ def hold_on_panel(seconds, message, detail):
     displaying, so it prints what should be visible and leaves the judgement to
     whoever is looking at it.
     """
-    from lcd_display import LcdDisplay
-    from lcd_splash import SplashScreen
+    from panel.lcd_display import LcdDisplay
+    from panel.lcd_splash import SplashScreen
 
     display = LcdDisplay(ramp=" .:-=+*#%@")
     try:

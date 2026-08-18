@@ -183,7 +183,7 @@ font hinting changes it with size:
 | Monospace 8 | 6x13 px | 2.167 |
 | Monospace 10 | 8x17 px | 2.125 |
 
-So `src/window_plan.py` reads the real cell metrics from **Pango** — the same
+So `src/art/window_plan.py` reads the real cell metrics from **Pango** — the same
 font machinery VTE uses to lay out lxterminal — and sizes the window and font
 to match. Checked against a screenshot: predicted 6.000x11.000 px, measured
 6.025x11.165. The launcher passes the matching `--cell-aspect` to the app, so

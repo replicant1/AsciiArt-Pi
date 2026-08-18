@@ -20,7 +20,7 @@ import termios
 
 import numpy as np
 
-import palettes
+from art import palettes
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for src/web_server.py.
+Tests for src/control/web_server.py.
 
     python3 tests/web_server_test.py
 
@@ -36,8 +36,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-import commands                                   # noqa: E402
-import web_server                                  # noqa: E402
+from control import commands                                   # noqa: E402
+from control import web_server                                  # noqa: E402
 
 PASSED = FAILED = 0
 

@@ -4,7 +4,7 @@ The phrases that do not need a language model.
 `ask make it green` crosses a network, waits 2.6 seconds and costs a third of a
 US cent to work out `{"scheme": "green"}` - which is the scheme's own name, said
 out loud. This module answers that class of phrase from a table, in microseconds
-and for nothing, and hands everything else to src/parser.py unchanged.
+and for nothing, and hands everything else to src/language/parser.py unchanged.
 
 **The table is exact and the model is fuzzy, and that split is the whole
 design.** A lookup that guessed would be competing with the model at the thing
@@ -45,7 +45,7 @@ Two properties worth stating plainly, because they are the point:
 
 import logging
 
-from render_config import BY_NAME, RenderConfig
+from control.render_config import BY_NAME, RenderConfig
 
 logger = logging.getLogger(__name__)
 

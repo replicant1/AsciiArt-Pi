@@ -22,8 +22,8 @@ setting becomes typeable, documented and listed by `help` without anything here
 being edited.
 """
 
-import render_config
-from render_config import SPECS, RenderConfig
+from control import render_config
+from control.render_config import SPECS, RenderConfig
 
 # What counts as true and false when a bool is being typed by hand. Deliberately
 # not "anything non-empty is true": `invert 0` meaning true would be a nasty

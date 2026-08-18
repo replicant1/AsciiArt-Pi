@@ -126,7 +126,7 @@ Taken from the manufacturer's own working example, and confirmed by running it.
 The panel is on `/dev/spidev0.0`. SPI is enabled with `dtparam=spi=on`, and
 there is deliberately **no kernel driver bound to it** — no `fbtft`, no
 `mipi-dbi-spi` overlay. It is driven from userspace with `spidev`, which is
-what `src/lcd.py` does. `/dev/fb0` is the HDMI framebuffer and has nothing to
+what `src/panel/lcd.py` does. `/dev/fb0` is the HDMI framebuffer and has nothing to
 do with this panel.
 
 ### It is an independent display, not a mirror

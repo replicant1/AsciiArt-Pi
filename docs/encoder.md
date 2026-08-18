@@ -38,7 +38,7 @@ The contacts bounce hard. Measured on this encoder, about twenty clicks produced
 roughly 5:1. Anything that counts edges, or that samples the partner pin at each
 edge, reads that as movement that never happened.
 
-So `src/encoder.py` tracks position within the quadrature cycle using a
+So `src/control/encoder.py` tracks position within the quadrature cycle using a
 transition table, and emits a step only on a complete cycle. Bounce drives the
 table back and forth across transitions that emit nothing, so it costs CPU and
 nothing else. `tests/encoder_test.py` holds it to that by feeding in modelled

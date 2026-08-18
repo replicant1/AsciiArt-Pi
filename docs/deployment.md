@@ -59,7 +59,7 @@ See also [Why the panel lights at 13 s and not 27](deployment.md#why-the-panel-l
 gpio=18=op,dl
 ```
 
-Output, driven low. The pull-up never gets the chance, and `src/lcd.py` turns
+Output, driven low. The pull-up never gets the chance, and `src/panel/lcd.py` turns
 the backlight on only after blanking — so the panel goes straight from dark to
 the start-up screen with nothing ugly in between.
 
@@ -70,7 +70,7 @@ the start-up screen with nothing ugly in between.
 
 ### Why the panel lights at 13 s and not 27
 
-`src/camera.py` imports `picamera2` **inside `CameraCapture.start()`**, not at
+`src/capture/camera.py` imports `picamera2` **inside `CameraCapture.start()`**, not at
 module scope, and that is worth leaving alone. Measured on this Pi:
 
 | Fresh-process import | |
@@ -196,7 +196,7 @@ one core** with the HDMI terminal running and **29%** with `--no-terminal`, so t
 configuration is not merely tidier — it is 3.3x cheaper, and in a sealed box with no fan that
 is a thermal argument rather than an electrical one. And
 the encoder module can be dropped for a bare EC11 with no code change at all, because
-`src/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
+`src/control/encoder.py` already enables internal pull-ups on all three pins and the switch was verified
 to run on nothing else.
 
 [**Panel connectors and controls**](https://replicant1.github.io/AsciiArt-Pi/panel-connectors-guide.html)
@@ -266,5 +266,5 @@ half does not.*
 The renders come from `tools/enclosure_render.py`, which marches a signed distance field in
 numpy — no modelling package, no renderer, not even an image library, with the PNG written by
 hand. The panel is showing real ASCII: a 5x7 bitmap font over the app's own `" .:-=+*#%@"`
-ramp at the 64x24 grid `src/lcd_display.py` produces at its default font size. The gallery
+ramp at the 64x24 grid `src/panel/lcd_display.py` produces at its default font size. The gallery
 page lists which dimensions came from the guide and which were invented to make a picture.

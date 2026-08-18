@@ -17,9 +17,9 @@ font size is chosen.  Verified against a screenshot: predicted 6.000 x 11.000
 px, measured 6.025 x 11.165.
 
 Usage:
-    python3 src/window_plan.py fit          # largest window that fills the screen
-    python3 src/window_plan.py 80           # 80 columns, rows to match
-    python3 src/window_plan.py 80x33        # explicit; just reports the font
+    python3 src/art/window_plan.py fit          # largest window that fills the screen
+    python3 src/art/window_plan.py 80           # 80 columns, rows to match
+    python3 src/art/window_plan.py 80x33        # explicit; just reports the font
 
 Prints: COLS ROWS FONT_SIZE CELL_ASPECT
 """

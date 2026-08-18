@@ -35,8 +35,8 @@ import logging
 from dataclasses import dataclass, fields, replace
 from typing import NamedTuple
 
-import palettes
-from ascii_art import MAX_COLOUR_LEVELS, RAMPS
+from art import palettes
+from art.ascii_art import MAX_COLOUR_LEVELS, RAMPS
 
 logger = logging.getLogger(__name__)
 

@@ -62,7 +62,7 @@ the picture alone.
 ### One config, one way in
 
 Every setting that can change while the camera is running lives in a single
-frozen `RenderConfig` (`src/render_config.py`), and every change to one is a
+frozen `RenderConfig` (`src/control/render_config.py`), and every change to one is a
 *delta* — a dict of field names to values — applied through
 `AsciiArtLiveCamera.apply()`. The keyboard produces deltas. The knob produces
 deltas. Nothing anywhere assigns a setting directly.
@@ -120,7 +120,7 @@ sequenceDiagram
     autonumber
     actor Person
     participant CLI as tools/asciicam_cli.py
-    participant WEB as src/web_server.py<br/>phone page, LAN only
+    participant WEB as src/control/web_server.py<br/>phone page, LAN only
     participant SOCK as CommandServer<br/>a thread per client
     participant RES as _resolve_ask<br/>same client thread
     participant API as parser.py<br/>and the Claude API
@@ -168,7 +168,7 @@ sequenceDiagram
     end
 ```
 
-**Both front ends produce the same line.** `src/web_server.py` is a client of
+**Both front ends produce the same line.** `src/control/web_server.py` is a client of
 the command socket exactly as `tools/asciicam_cli.py` is; it forwards what was
 typed verbatim, and the app has no field anywhere recording which one sent it.
 The single difference is the one the note calls out — the page's **say it in
