@@ -22,6 +22,7 @@ would be a guard in name only.
 """
 
 import json
+import logging
 import re
 import socket
 import sys
@@ -389,6 +390,126 @@ with Served(stalled.path, timeout=0.75) as web:
     check("the message says who was slow",
           "took too long" in body["error"], True)
 stalled.stop()
+
+# --- 6. what a client should not be able to get away with -------------------
+section("6. what a client should not be able to get away with")
+
+app = FakeApp()
+with Served(app.path) as web:
+    # The command socket is newline-framed, so a line carrying its own newline
+    # is two commands in one request. That matters beyond tidiness: costs_money
+    # only ever sees the first word, so "show\nask ..." is billed as free and
+    # slips past the rate limit entirely - and the second reply is left unread
+    # on a socket this closes.
+    status, body = request(web.port, "/ask", {"line": "show\nask spend money"})
+    check("a line carrying a newline is refused", status, 400)
+    check("and not one byte of it reaches the app", app.received, [])
+    status, body = request(web.port, "/ask", {"line": "show\rask spend money"})
+    check("a carriage return is refused too", status, 400)
+    status, body = request(web.port, "/ask", {"line": "show\x00ask spend money"})
+    check("and a NUL, which is what ends a reply", status, 400)
+    check("still nothing reached the app", app.received, [])
+    check("a trailing newline is forgiven, not refused",
+          request(web.port, "/ask", {"line": "show\n"})[0], 200)
+    check("and arrives without it", app.received[-1], "show")
+
+    # A full-length line must survive its own JSON envelope. Capping the body
+    # at the socket's line limit rejected lines shorter than the limit, because
+    # the quotes and the field name are part of the body and not part of the
+    # line.
+    long_line = "contrast " + "1" * 4081        # 4090, body 4101
+    status, body = request(web.port, "/ask", {"line": long_line})
+    check("a 4090-character line is not defeated by JSON overhead",
+          status, 200)
+    check("and arrives whole", app.received[-1], long_line)
+
+    status, body = request(web.port, "/ask", {"line": "x" * (web_server.MAX_LINE + 1)})
+    check("but a line past the socket's own limit is refused", status, 413)
+    check("in its own terms", "line" in body["error"], True)
+
+# The log has to name the limit actually in force. A refusal logged as
+# "over 20 in 60 s" by a server configured for 1 in 30 sends whoever is
+# diagnosing it looking for a burst that never happened.
+records = []
+
+
+class Grab(logging.Handler):
+    def emit(self, record):
+        records.append(record.getMessage())
+
+
+grab = Grab()
+web_server.logger.addHandler(grab)
+with Served(app.path, limit=web_server.AskLimit(limit=1, window=30.0)) as web:
+    request(web.port, "/ask", {"line": "ask one"})
+    request(web.port, "/ask", {"line": "ask two"})
+web_server.logger.removeHandler(grab)
+refusals = [m for m in records if "Refusing an ask" in m]
+check("one refusal was logged", len(refusals), 1)
+check("and it quotes the limit this server was given",
+      ["1" in m and "30" in m for m in refusals], [True])
+
+# HTTP/1.1 means keep-alive by default. An early return that never reads the
+# body leaves those bytes in the stream, and the next request on that
+# connection starts reading a JSON fragment as a request line.
+with Served(app.path) as web:
+    raw = socket.create_connection(("127.0.0.1", web.port), timeout=5)
+    payload = b'{"line": "show"}'
+    raw.sendall(b"POST /nowhere HTTP/1.1\r\nHost: x\r\n"
+                b"Content-Type: application/json\r\n"
+                b"Content-Length: " + str(len(payload)).encode() + b"\r\n\r\n"
+                + payload)
+    got = b""
+    try:
+        while True:
+            chunk = raw.recv(4096)
+            if not chunk:
+                break
+            got += chunk
+        closed = True
+    except socket.timeout:
+        closed = False          # still waiting for a request we cannot send
+    raw.close()
+    check("a response the body was never read for closes the connection",
+          closed, True)
+    check("and says so, so the client does not try to reuse it",
+          b"Connection: close" in got, True)
+
+# A client that announces a body and then says nothing must not hold a thread
+# for ever - ThreadingHTTPServer hands out one per connection.
+#
+# Two checks, because one is not enough. The behavioural half below turns the
+# timeout down to a second so the suite does not sit for fifteen, which means
+# it proves the mechanism works but would still pass with the shipped default
+# deleted - it sets its own. So the value that actually ships is pinned
+# separately, underneath.
+was = web_server.Handler.timeout
+web_server.Handler.timeout = 1.0
+try:
+    with Served(app.path) as web:
+        stall = socket.create_connection(("127.0.0.1", web.port), timeout=8)
+        stall.sendall(b"POST /ask HTTP/1.1\r\nHost: x\r\n"
+                      b"Content-Length: 500\r\n\r\n")   # and then nothing
+        started = time.monotonic()
+        try:
+            while stall.recv(4096):
+                pass
+            gave_up = time.monotonic() - started
+        except socket.timeout:
+            gave_up = None
+        stall.close()
+        check("a stalled client is dropped rather than held", gave_up is not None,
+              True)
+        check("and dropped promptly", gave_up is not None and gave_up < 5.0, True)
+finally:
+    web_server.Handler.timeout = was
+
+check("the shipped handler carries the shipped timeout",
+      web_server.Handler.timeout, web_server.READ_TIMEOUT)
+check("and it is a bound worth having",
+      0 < web_server.READ_TIMEOUT <= 60, True)
+
+app.stop()
 
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

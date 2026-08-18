@@ -83,9 +83,29 @@ END = b"\x00"
 # camera had already made.
 SOCKET_TIMEOUT = 90.0
 
-# Refused rather than buffered, and the same 4096 the command socket enforces on
-# a line. Nothing typed on a phone comes close.
-MAX_BODY = 4096
+# What the command socket itself will accept on one line, so a longer one is
+# refused here in the caller's own terms rather than as a dropped connection.
+MAX_LINE = 4096
+
+# NOT the same number, and the reason is worth writing down: the line travels
+# inside a JSON object, and the envelope and escaping are part of the body but
+# not part of the line. Capping the body at MAX_LINE rejected lines well short
+# of the limit - `{"line": "..."}` is eleven bytes before a character is typed,
+# and a line of quotes doubles. Four times over is generous and still bounded.
+MAX_BODY = 4 * MAX_LINE
+
+# How long a client may take over its own request. Without this, a connection
+# that announces a body and then stalls holds its thread for ever, and
+# ThreadingHTTPServer hands out one thread per connection.
+READ_TIMEOUT = 15.0
+
+# Rejected outright rather than escaped or trimmed. The command socket is
+# newline-framed, so a line carrying its own newline is two commands in one
+# request - and `costs_money` only reads the first word, which makes
+# "show\nask ..." a free request that spends money. A NUL is what ends a reply,
+# so one inside a line would cut the answer short. Nothing typed on a phone
+# contains either.
+FORBIDDEN = ("\n", "\r", "\x00")
 
 # Asks per window, counted across every client. 20 a minute is far more than a
 # person types and far less than a loop costs.
@@ -494,6 +514,10 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "AsciiCamWeb/1.0"
     protocol_version = "HTTP/1.1"
 
+    # socketserver applies this to the connection, so a client that goes quiet
+    # mid-request is dropped instead of owning a thread until the process ends.
+    timeout = READ_TIMEOUT
+
     def do_GET(self):
         if not self._local():
             return
@@ -540,10 +564,20 @@ class Handler(BaseHTTPRequestHandler):
         if not line:
             self._json(400, {"error": "nothing to send"})
             return
+        if any(bad in line for bad in FORBIDDEN):
+            logger.warning("Refusing a line with a newline or NUL in it")
+            self._json(400, {"error": "one command at a time - a line cannot "
+                                      "contain a line break"})
+            return
+        if len(line) > MAX_LINE:
+            self._json(413, {"error": "that line is longer than the camera "
+                                      f"will take ({MAX_LINE} characters)"})
+            return
 
         if costs_money(line) and not self.server.limit.allow():
+            limit = self.server.limit
             logger.warning("Refusing an ask: over %d in %.0f s",
-                           ASK_LIMIT, ASK_WINDOW)
+                           limit.limit, limit.window)
             self._json(429, {"error": "too many asks in the last minute - "
                                       "every setting can still be typed by "
                                       "name, and asking works again shortly"})
@@ -582,6 +616,14 @@ class Handler(BaseHTTPRequestHandler):
         # Nothing here is for anybody else, and a phone browser caching the
         # page across a version change is a support call waiting to happen.
         self.send_header("Cache-Control", "no-store")
+        # Several paths answer without reading the body - a wrong path, an
+        # over-long one, a peer off the LAN. Under keep-alive those unread bytes
+        # are still in the stream, and the next request on that connection
+        # starts parsing a JSON fragment as a request line. Closing every
+        # response costs a phone one connection per tap and removes the whole
+        # class of problem. (BaseHTTPRequestHandler reads this header and sets
+        # close_connection itself.)
+        self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(body)
 
