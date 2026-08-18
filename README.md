@@ -694,6 +694,98 @@ than showing up later as a setting nothing can change — the same shape of trap
 `sync.sh` has, where a module missing from its file list is silently never
 copied.
 
+### From a phrase to the panel
+
+Two front ends, one path. This is what happens between saying "make it warmer"
+and the panel being warmer, whichever way it was said:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Person
+    participant CLI as tools/asciicam_cli.py
+    participant WEB as src/web_server.py<br/>phone page, LAN only
+    participant SOCK as CommandServer<br/>a thread per client
+    participant RES as _resolve_ask<br/>same client thread
+    participant API as parser.py<br/>and the Claude API
+    participant MAIN as render loop<br/>main thread
+    participant TERM as HDMI terminal
+    participant LCD as LcdWorker<br/>its own thread
+    participant PANEL as ILI9341 panel
+
+    alt at a keyboard, over SSH
+        Person->>CLI: ask make it warmer
+        CLI->>SOCK: "ask make it warmer\n"
+    else on a phone, over WiFi
+        Person->>WEB: POST /ask, "make it warmer"
+        Note right of WEB: the toggle prefixes "ask ",<br/>and that is the only thing<br/>this process changes
+        WEB->>SOCK: "ask make it warmer\n"
+    end
+
+    SOCK->>RES: _prepare(line), before the loop hears anything
+    Note over MAIN,PANEL: the loop never waits for any of this —<br/>the picture stays at 15 fps throughout
+    RES->>API: parse(utterance, config, previous_config)
+    API-->>RES: set_render {"scheme": "amber", "ramp": "coarse"}
+    Note left of API: or decline, which is<br/>an answer, not a failure
+    RES->>RES: asklog.record(...) → logs/asks.jsonl
+    RES-->>SOCK: Ask(utterance, delta, note)
+
+    SOCK->>MAIN: inbox.put — a delta with nothing left to wait for
+    MAIN->>MAIN: take() once per frame, beside the keys and the knob
+    MAIN->>MAIN: apply(delta) → RenderConfig.with_changes
+
+    alt the delta validates
+        MAIN->>TERM: _adopt: rebuild AsciiArt, repaint, set_scheme
+        MAIN->>LCD: submit(frame, RenderConfig) with the next frame
+        LCD->>PANEL: glyph atlas → RGB565 → 153,600 bytes over SPI
+        MAIN-->>SOCK: "scheme 'grey'→'amber', ramp 'fine'→'coarse'"
+    else refused
+        MAIN-->>SOCK: every fault in the delta, and nothing changed
+    end
+
+    alt back to the CLI
+        SOCK-->>CLI: the reply, NUL-terminated
+        CLI-->>Person: printed at the prompt
+    else back to the phone
+        SOCK-->>WEB: the same reply, wrapped in JSON
+        WEB-->>Person: appended to the transcript
+    end
+```
+
+**Both front ends produce the same line.** `src/web_server.py` is a client of
+the command socket exactly as `tools/asciicam_cli.py` is; it forwards what was
+typed verbatim, and the app has no field anywhere recording which one sent it.
+The single difference is the one the note calls out — the page's **say it in
+your own words** toggle prefixes `ask `, which at the prompt you would type
+yourself. Turn it off and
+the two are byte-identical.
+
+**The slow part runs on the client's thread, never the loop.** A parse crosses
+a network and takes two to four seconds; on the render loop that would stop both
+displays for the duration. So the resolver does its work before the loop hears
+anything, and what reaches the inbox is a delta with nothing left to wait for.
+That is why `CommandServer`'s own `REPLY_TIMEOUT` is five seconds while the
+CLI's socket timeout is ninety: the loop is only ever asked to apply a dict, and
+five seconds of not doing that means it has wedged.
+
+**A parsed delta and a typed one are the same delta.** `_run_command` unwraps
+the `Ask` and hands it to `apply()` — the same call `scheme amber` makes, the
+same `RenderConfig.with_changes` validation, the same wording on refusal. The
+model cannot reach anything a typed line could not, which is what makes
+`tests/parser_eval.py` meaningful: it scores deltas against the validator that
+will actually judge them.
+
+**The panel is told last, and indirectly.** `_adopt` pushes the cheap changes
+straight onto the processor and repaints the terminal, but nothing calls the
+panel. The whole `RenderConfig` rides along with the next frame, so the panel
+finds out when it next has something to draw — which is why a change made while
+the picture is frozen sets `_redraw` rather than assuming a frame is coming.
+
+**State lives on the app, not on the connection.** `previous_config` is what
+`ask undo that` resolves against, and it belongs to the camera rather than to
+whoever is connected. So an undo from a phone undoes a change typed at the CLI,
+or made with the knob. One history, however many ways in.
+
 ### Classes
 
 ```mermaid
