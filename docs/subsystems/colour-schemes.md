@@ -20,7 +20,7 @@ reads out in the status bar as `sch:amber`.
 each other at the head of the cycle. Schemes 3 to 6 have dark screens, 7 to 9
 light ones, so cycling walks a deliberate arc rather than jumping about.
 
-![The nine colour schemes, all rendering one frame](scheme-montage.png)
+![The nine colour schemes, all rendering one frame](../images/scheme-montage.png)
 
 *All nine schemes, and the comparison is a fair one: every tile is the same
 picture. One frame was captured, the character grid computed from it once, and

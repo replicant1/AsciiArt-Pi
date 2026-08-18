@@ -59,17 +59,17 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
-DOC_FILES=(screenshot.png screenshot-colour.png both-displays.jpg
-           scheme-montage.png display-selection-guide.html
-           enclosure-build-guide.html panel-connectors-guide.html
-           enclosure-renders.html
-           enclosure-hero.png enclosure-ports.png
-           enclosure-north.png enclosure-exploded.png
-           enclosure-hero-thumb.png enclosure-ports-thumb.png
-           index.html what-the-model-is-told.md
-           module-map.md using-it.md language.md architecture.md
-           colour-schemes.md panel.md encoder.md performance.md
-           deployment.md workflow.md)
+DOC_FILES=(images/screenshot.png images/screenshot-colour.png
+           images/both-displays.jpg images/scheme-montage.png
+           images/enclosure-hero.png images/enclosure-ports.png
+           images/enclosure-north.png images/enclosure-exploded.png
+           images/enclosure-hero-thumb.png images/enclosure-ports-thumb.png
+           display-selection-guide.html enclosure-build-guide.html
+           panel-connectors-guide.html enclosure-renders.html index.html
+           using-it.md architecture.md module-map.md
+           subsystems/panel.md subsystems/encoder.md subsystems/language.md
+           subsystems/colour-schemes.md subsystems/what-the-model-is-told.md
+           project/performance.md project/workflow.md project/deployment.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera, and

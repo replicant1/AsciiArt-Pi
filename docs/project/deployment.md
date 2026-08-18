@@ -255,7 +255,7 @@ the right sizes rather than models of the real boards.
 The geometry is built from the numbers above rather than sketched, so the pictures can be
 measured. That is the point of the second one:
 
-[![Close-up of the enclosure's east wall: a horizontal parting line runs its full length, and two nickel-shelled sockets straddle it exactly, a wider mini-HDMI to the south and a narrower oval USB-C to the north](enclosure-ports-thumb.png)](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)
+[![Close-up of the enclosure's east wall: a horizontal parting line runs its full length, and two nickel-shelled sockets straddle it exactly, a wider mini-HDMI to the south and a narrower oval USB-C to the north](../images/enclosure-ports-thumb.png)](https://replicant1.github.io/AsciiArt-Pi/enclosure-renders.html)
 
 *The parting plane doing its job. `z = 25 mm` passes through the centreline of both
 connectors, which is the only thing that lets a printed pocket capture them at all — half the

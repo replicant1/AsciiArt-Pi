@@ -39,9 +39,15 @@ def anchor(heading):
 
 
 def documents():
-    """Every markdown file, skipping the mount's AppleDouble sidecars."""
+    """
+    Every markdown file, skipping the mount's AppleDouble sidecars.
+
+    rglob rather than glob: docs/ has subdirectories now, and a check that
+    silently stopped at the top level would have passed while every link in
+    docs/subsystems/ rotted.
+    """
     found = [ROOT / "README.md"]
-    found += sorted(p for p in (ROOT / "docs").glob("*.md")
+    found += sorted(p for p in (ROOT / "docs").rglob("*.md")
                     if not p.name.startswith("."))
     return found
 
@@ -85,6 +91,27 @@ docs_with_anchor_links = [d for d in docs
                           if re.search(r"\]\([^)]*\.md#", text[d])]
 check("some document does link to another's heading",
       bool(docs_with_anchor_links), True)
+
+# The four guides and index.html are published at
+# replicant1.github.io/AsciiArt-Pi/, so their file names are public URLs and
+# must stay at the top of docs/. Their own relative links have to resolve from
+# there too - a guide that 404s its own drawings is worse than one nobody moved.
+published = sorted(p for p in (ROOT / "docs").glob("*.html")
+                   if not p.name.startswith("."))
+check("the published pages are still at the top of docs/",
+      [p.name for p in published],
+      ["display-selection-guide.html", "enclosure-build-guide.html",
+       "enclosure-renders.html", "index.html", "panel-connectors-guide.html"])
+
+broken_assets = []
+for page in published:
+    body = page.read_text(encoding="utf-8")
+    for attr, target in re.findall(r'(src|href)="([^"]+)"', body):
+        if target.startswith(("http://", "https://", "#", "mailto:")):
+            continue
+        if not (page.parent / target.split("#")[0]).exists():
+            broken_assets.append(f"{page.name} -> {target}")
+check("and every asset they point at is where they say", broken_assets, [])
 
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

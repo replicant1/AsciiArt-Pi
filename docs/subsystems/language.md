@@ -74,7 +74,7 @@ one careless `git add -A` from a public commit.
 The tool schema the model is given is **generated from `SPECS`**, the same
 source as the `help` text and the validator's own rules. Add a setting and it
 becomes typeable, documented, and askable at once — see
-[One config, one way in](architecture.md#one-config-one-way-in). `tools/app/ask_parser.py` runs
+[One config, one way in](../architecture.md#one-config-one-way-in). `tools/app/ask_parser.py` runs
 utterances against the parser without involving the camera, which is where the
 prompt gets tuned; it costs roughly 0.35p a sentence. It is a
 Unix socket with mode 0600, so it is not reachable from the network and only

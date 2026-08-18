@@ -58,11 +58,11 @@ status bar.
 | `--width` | integer | `320` | Camera capture width. The ISP downscales in hardware, so smaller is much cheaper than resizing on the CPU |
 | `--height` | integer | `240` | Camera capture height |
 | `--fps` | integer | `15` | Target frame rate. The sensor is capped to this, which saves real CPU |
-| `--scheme` | `grey`, `live`, `green`, `amber`, `cyan`, `navy`, `azure`, `lime`, `paper` | `grey` | Colour scheme to start in. Step through them live with `s`. See [Colour schemes](colour-schemes.md#colour-schemes) |
+| `--scheme` | `grey`, `live`, `green`, `amber`, `cyan`, `navy`, `azure`, `lime`, `paper` | `grey` | Colour scheme to start in. Step through them live with `s`. See [Colour schemes](subsystems/colour-schemes.md#colour-schemes) |
 | `--colour`, `--color` | flag | off | Shorthand for `--scheme live`. Ignored if `--scheme` is given |
 | `--colour-levels` | 2–32 | `32` | Steps per channel in the live-colour scheme. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding. Applies to both displays: the terminal quantises to that many steps of the xterm cube, the panel posterises its RGB to the same number. `32` means “as many colours as this display can manage” and leaves the panel at full RGB565. Out of range is clamped |
 | `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
-| `--rotation` | 0, 90, 180, 270 | `0` | Camera rotation. Cycle with `r`. See [Rotation and handedness](panel.md#rotation-and-handedness) |
+| `--rotation` | 0, 90, 180, 270 | `0` | Camera rotation. Cycle with `r`. See [Rotation and handedness](subsystems/panel.md#rotation-and-handedness) |
 | `--mirror` | flag | off | Flip the picture left to right, after any rotation |
 | `--contrast` | float | `1.0` | Contrast multiplier about mid-grey. Adjust with `+`/`-` |
 | `--no-auto-levels` | flag | off | Disable per-frame brightness normalisation. Toggle with `a` |
@@ -70,14 +70,14 @@ status bar.
 | `--invert` | flag | off | Invert the ramp, for light-background terminals and positive-mode LCDs. Toggle with `i` |
 | `--cell-aspect` | float | `2.0` | Terminal character height/width ratio, which keeps the picture from looking squashed |
 | `--no-terminal` | flag | off | Draw nothing on the HDMI screen: no curses, no window. Needs `--lcd`. Keys still work when stdin is a terminal, as it is over SSH |
-| `--lcd` | flag | off | Also render to the ILI9341 SPI panel, alongside the terminal. See [The ILI9341 SPI panel](panel.md#the-ili9341-spi-panel) |
+| `--lcd` | flag | off | Also render to the ILI9341 SPI panel, alongside the terminal. See [The ILI9341 SPI panel](subsystems/panel.md#the-ili9341-spi-panel) |
 | `--lcd-font-size` | 4-16 | `8` | Glyph size, which sets the panel's grid. `8` gives 64x24; `6` gives 80x30 and `9` gives 64x20. All three tile 320x240 exactly and match the camera's 4:3, and `l` steps through those three live. Other sizes are accepted and leave a black margin |
 | `--lcd-portrait` | flag | off | Run the panel as 240x320 instead of 320x240 |
 | `--lcd-spi-hz` | integer | `40000000` | SPI clock. Lower it if the wiring is long or on a breadboard |
 | `--lcd-brightness` | 0–100 | `100` | Backlight duty cycle, driven as PWM |
-| `--lcd-splash-seconds` | float | `3.0` | How long the start-up screen stays up once the camera is ready. `0` hands over the moment there is a picture. See [The start-up screen](panel.md#the-start-up-screen) |
+| `--lcd-splash-seconds` | float | `3.0` | How long the start-up screen stays up once the camera is ready. `0` hands over the moment there is a picture. See [The start-up screen](subsystems/panel.md#the-start-up-screen) |
 | `--version` | flag | — | Print `ascii_camera <version>` and exit |
-| `--encoder` | flag | off | Cycle colour schemes with a KY-040 rotary encoder. See [The rotary encoder](encoder.md#the-rotary-encoder) |
+| `--encoder` | flag | off | Cycle colour schemes with a KY-040 rotary encoder. See [The rotary encoder](subsystems/encoder.md#the-rotary-encoder) |
 | `--encoder-clk` | integer | `19` | BCM pin for the encoder's CLK |
 | `--encoder-dt` | integer | `26` | BCM pin for the encoder's DT |
 | `--encoder-sw` | integer | `6` | BCM pin for the push switch, which jumps back to `grey`. Negative if the switch is not wired; harmless to leave set either way, since an unwired pin idles high and stays quiet |

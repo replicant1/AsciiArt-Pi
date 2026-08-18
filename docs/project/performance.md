@@ -36,7 +36,7 @@ exactly what area averaging computes, and it is faster besides.
 `s` steps through the colour schemes; this section is about `live`, the one that
 takes its colour from the camera's chroma, with the character still coming from
 the luma so the two agree. The other schemes are described under
-[Colour schemes](colour-schemes.md#colour-schemes); they cost less than `live` does, because
+[Colour schemes](../subsystems/colour-schemes.md#colour-schemes); they cost less than `live` does, because
 their colours repeat along a row.
 
 Measured in lxterminal on this Pi, redrawing the same scene with and without
