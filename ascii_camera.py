@@ -363,27 +363,6 @@ class AsciiArtLiveCamera:
         logger.error("No camera frame for %.0f s", idle)
         self._note(f"no picture from the camera for {int(idle)}s")
 
-    @staticmethod
-    def _short_failure(error):
-        """
-        Turn a ParseError into something that fits a 320-pixel band.
-
-        The socket reply keeps the full text - whoever typed it can read a
-        sentence. The panel gets the kind of failure, because "the network is
-        down" and "the key was refused" call for different actions and the
-        difference between them is worth the two words it costs.
-        """
-        text = str(error).lower()
-        if "timeout" in text or "timed out" in text:
-            return "the model took too long - try again"
-        if "connection" in text or "network" in text or "resolve" in text:
-            return "no network - words need one, settings do not"
-        if "authentication" in text or "api key" in text or "401" in text:
-            return "the API key was refused"
-        if "rate" in text and "limit" in text:
-            return "asking too fast - wait a moment"
-        return "could not ask the model"
-
     def _start_lcd(self):
         """
         Bring the SPI panel up as a second, independent output.
@@ -455,173 +434,38 @@ class AsciiArtLiveCamera:
         """
         try:
             from control.command_server import CommandServer
+            from language.resolver import AskResolver
 
+            # Built before the socket because constructing it does nothing but
+            # remember three references. The settings are read through a
+            # callable rather than handed over: an ask arrives whenever
+            # somebody types one, and it is about the settings as they are at
+            # that moment, not as they were when the socket opened.
+            self.asks = AskResolver(
+                settings=lambda: (self.config, self.previous_config),
+                note=self._note)
             server = CommandServer(self.args.command_socket,
-                                   resolver=self._resolve_ask).start()
+                                   resolver=self.asks.resolve).start()
             try:
                 from language import asklog
 
-                self.asklog = asklog.AskLog()
+                self.asks.log = asklog.AskLog()
             except Exception as e:
                 # Asks still work; they are just not written down.
                 logger.error("Ask log unavailable: %s", e, exc_info=True)
-            self._warm_parser()
+            self.asks.warm()
             return server
         except Exception as e:
             logger.error("Command socket unavailable, continuing without "
                          "it: %s", e, exc_info=True)
             return None
 
-    def _warm_parser(self):
-        """
-        Import the model SDK in the background, so the first ask is not slow.
-
-        Measured on this Pi: `import anthropic` alone costs 11 seconds, which
-        is longer than the CLI used to wait for any reply at all. Left lazy,
-        the first "ask" after every restart timed out on the client while
-        quietly succeeding on the app - the worst of both, a reported failure
-        and a changed setting.
-
-        A daemon thread, started once, and only when there is a key to make it
-        worth paying for: without one, ask is off and an 11-second import buys
-        nothing but resident memory on a 416 MB machine.
-        """
-        try:
-            from language import parser as nl_parser
-        except Exception as e:
-            logger.info("Natural language unavailable: %s", e)
-            return
-        if nl_parser.api_key() is None:
-            logger.info("No API key found, so \"ask\" is off; every other "
-                        "command still works")
-            return
-
-        def warm():
-            import time
-            started = time.monotonic()
-            try:
-                import anthropic                            # noqa: F401
-            except Exception as e:
-                logger.error("Could not load the model SDK: %s", e)
-                return
-            logger.info("Model SDK ready in %.1f s; \"ask\" is available",
-                        time.monotonic() - started)
-
-        threading.Thread(target=warm, name="warm-parser", daemon=True).start()
-
     # Set when the command socket comes up, which is the only way an ask can
     # arrive. A class attribute rather than an __init__ line so that anything
     # holding an app built without running __init__ - the tests do exactly
-    # this - still finds the name and gets a no-op instead of AttributeError.
-    asklog = None
+    # this - still finds the name.
+    asks = None
 
-    def _resolve_ask(self, line):
-        """
-        Turn "ask warmer, and blockier" into a delta - on the caller's thread.
-
-        This is the one piece of the app that is allowed to be slow. It runs on
-        the command socket's client thread, never the render loop: a parse
-        crosses a network and takes seconds, and the loop cannot stop for that
-        without stopping both displays with it.
-
-        Returns None for any line that is not an ask, which is every ordinary
-        typed command - those go straight through untouched.
-        """
-        from control.command_server import Ask, Reply
-
-        head, _, rest = line.partition(" ")
-        if head.lower() != "ask":
-            return None
-
-        utterance = rest.strip()
-        if not utterance:
-            return Reply('say what you want changed, e.g. ask make it warmer')
-
-        # Read the config from this thread. It is a frozen dataclass replaced
-        # wholesale on the loop's thread, so this either sees the change or does
-        # not - never a half-applied one.
-        config, previous = self.config, self.previous_config
-
-        # The table first, and deliberately before the key check: "green" and
-        # "freeze it" are answerable with no key and no network, so an ask is no
-        # longer all or nothing when the WiFi is down. A hit costs nothing and
-        # takes no measurable time.
-        delta = shortcuts.look_up(utterance, config, previous)
-        if delta is not None:
-            logger.info("Ask %r -> %s (table)", utterance, delta)
-            self._log_ask(utterance, config, previous, delta=delta,
-                          source="table", seconds=0.0)
-            return Ask(utterance=utterance, delta=delta, note="instant")
-
-        try:
-            from language import parser as nl_parser
-        except Exception as e:
-            return Reply(f"the language model parser is unavailable: {e}")
-        if nl_parser.api_key() is None:
-            self._note("no API key, so words are off")
-            return Reply("no API key, so ask is off. Put one in "
-                         f"{nl_parser.KEY_FILE} to switch it on; every other "
-                         "command works without it.")
-
-        # A parse takes two to four seconds, and on a panel with no spinner
-        # that is indistinguishable from a camera that ignored you. Say so - and
-        # for longer than the parser's own timeout, since the point is that the
-        # message cannot expire while the request is still out. The default four
-        # seconds was wrong for exactly this: a request may run for twenty, and
-        # the panel would go quiet two-thirds of the way through it.
-        self._note(f"asking: {utterance[:40]}",
-                   seconds=nl_parser.TIMEOUT_SECONDS + 2)
-
-        # A parse that raced a keypress resolves against settings one change
-        # stale, which for "a bit warmer" is not worth a lock.
-        try:
-            parsed = nl_parser.parse(utterance, config, previous=previous)
-        except nl_parser.ParseError as e:
-            # Network down, key rejected, timeout. The panel and the terminal
-            # both have to survive this, so it is a sentence, not a traceback.
-            logger.warning("Ask failed for %r: %s", utterance, e)
-            self._log_ask(utterance, config, previous, error=str(e))
-            # Said on the panel as well as returned to whoever asked. This is
-            # the whole of "honest failure": the camera did not do what it was
-            # told, and the only display in the box has to admit it rather than
-            # carry on showing a picture as though nothing was asked.
-            self._note(self._short_failure(e))
-            return Reply(f"could not reach the model: {e}")
-
-        if parsed.declined is not None:
-            logger.info("Ask declined %r: %s", utterance, parsed.declined)
-            self._log_ask(utterance, config, previous, parsed=parsed)
-            # A decline is an answer, not a failure - but it is still an answer
-            # nobody sees if it only goes back down the socket.
-            self._note("cannot do that: " + parsed.declined)
-            return Reply(f"  {parsed.declined}")
-
-        note = f"{parsed.seconds:.1f}s"
-        if parsed.unmet:
-            note += f" - {parsed.unmet}"
-        logger.info("Ask %r -> %s (%s)", utterance, parsed.delta, note)
-        self._log_ask(utterance, config, previous, parsed=parsed)
-        return Ask(utterance=utterance, delta=parsed.delta, note=note)
-
-    def _log_ask(self, utterance, config, previous, parsed=None, error=None,
-                 delta=None, seconds=None, source="model"):
-        """
-        Write one ask down, if there is anywhere to write it.
-
-        Runs on the socket's client thread with the parse, never the render
-        loop. Silent when there is no log: an ask that works is worth more than
-        a record of it, so this is the one place in the path allowed to do
-        nothing at all.
-        """
-        if self.asklog is None:
-            return
-        self.asklog.record(
-            utterance, config, previous=previous, error=error, source=source,
-            delta=delta if parsed is None else parsed.delta or None,
-            declined=None if parsed is None else parsed.declined,
-            unmet=None if parsed is None else parsed.unmet,
-            seconds=seconds if parsed is None else parsed.seconds,
-            usage=None if parsed is None else parsed.usage)
 
     def _poll_commands(self):
         """

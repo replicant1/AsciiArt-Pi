@@ -75,7 +75,8 @@ only, so it reads as surface rather than size.
 | `AskLog` | `asklog.py` | — | 1 | Append-only record of asks, one JSON object per line. |
 | `ParseError` | `parser.py` | `RuntimeError` | 0 | The parse could not be completed - network, key, or a refusal. |
 | `Parsed` | `parser.py` | — | 1 | What one utterance came back as. |
+| `AskResolver` | `resolver.py` | — | 4 | Turns "ask <words>" into a delta, on whatever thread called it. |
 
 ---
 
-29 classes.
+30 classes.

@@ -40,7 +40,7 @@ SRC_FILES=(version.py
            control/__init__.py control/render_config.py control/commands.py
            control/command_server.py control/web_server.py control/encoder.py
            language/__init__.py language/parser.py language/shortcuts.py
-           language/asklog.py)
+           language/asklog.py language/resolver.py)
 TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             capture/capture_reference.py capture/orientation_test.py
             art/__init__.py art/palette_test.py
@@ -55,6 +55,7 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             language/__init__.py language/parser_test.py
             language/parser_eval.py language/eval_cases.json
             language/shortcuts_test.py language/asklog_test.py
+            language/resolver_test.py
             docs/__init__.py docs/module_map_test.py
             docs/docs_links_test.py docs/class_map_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
