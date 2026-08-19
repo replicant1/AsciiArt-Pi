@@ -23,7 +23,7 @@ thing.
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`CommandServer`](../../src/control/command_server.py#L80) | The Unix socket and a thread per client. Here it is only the **doorway**: [`_prepare`](../../src/control/command_server.py#L214) offers the line to a resolver and does nothing else, which is what lets everything below run on a thread the picture does not depend on |
-| [`AsciiArtLiveCamera`](../../ascii_camera.py#L102) | The render loop — but not here. Here it is the **triage**: [`_resolve_ask`](../../ascii_camera.py#L518) recognises an `ask`, reads the current settings, and tries the table first. Only if the table declines does it reach for a key, a network and the model |
+| [`AskResolver`](../../src/language/resolver.py#L33) | The whole of the ask path, and the one part of the app allowed to be slow. Here it is the **triage**: [`resolve`](../../src/language/resolver.py#L98) recognises an `ask`, reads the settings through a callable, and tries the table first. Only if the table declines does it reach for a key, a network and the model |
 | [`shortcuts`](../../src/language/shortcuts.py) | A module of functions, not a class. Here it is the **exact matcher**: [`look_up`](../../src/language/shortcuts.py#L227) either knows a phrase precisely or says `None`. It holds no fuzziness at all, on purpose |
 | [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state. Here it is **read, never written**: a stepped phrase like "a bit more contrast" is meaningless without the current value, so the table's entries are functions of the config rather than constants |
 | [`AskLog`](../../src/language/asklog.py#L75) | An append-only record of every ask. Here it records `source: "table"`, which is what makes the entry evidence of the *table* and not of the prompt — anything counting hit rate or promoting real phrases into eval cases has to filter on it |
@@ -35,15 +35,15 @@ sequenceDiagram
     autonumber
     actor Asker as whoever asked<br/>the CLI or the phone page
     participant CS as CommandServer<br/>a thread per client
-    participant App as AsciiArtLiveCamera<br/>_resolve_ask, on that thread
+    participant App as AskResolver<br/>on the client's thread
     participant Sh as shortcuts<br/>module of functions
     participant Cfg as RenderConfig<br/>frozen, read here not changed
     participant Log as AskLog<br/>append-only
 
     Asker->>CS: ask a bit more contrast
     CS->>App: _prepare offers the line to the resolver
-    App->>App: _resolve_ask splits "ask" from the utterance
-    App->>Cfg: reads config and previous_config
+    App->>App: resolve splits "ask" from the utterance
+    App->>Cfg: the settings callable gives config and previous
     Cfg-->>App: two frozen configs, neither half-applied
     App->>Sh: look_up("a bit more contrast", config, previous)
     Sh->>Sh: normalise gives "a bit more contrast"
@@ -59,8 +59,8 @@ sequenceDiagram
 |---:|---|---|
 | 1 | `ask a bit more contrast` | The `ask` prefix is the whole of the syntax. On the phone page a toggle adds it for you, so what is typed there is bare words |
 | 2 | [`_prepare`](../../src/control/command_server.py#L214) offers the line to the resolver | The resolver hook exists so that anything slow happens **here**, on the client's thread, rather than on the render loop. That a table hit turns out not to be slow at all is a bonus — the hook was built for the four-second case |
-| 3 | [`_resolve_ask`](../../ascii_camera.py#L518) splits "ask" from the utterance | Anything whose first word is not `ask` returns `None` and passes through untouched as an ordinary typed command. An `ask` with nothing after it returns a [`Reply`](../../src/control/command_server.py#L74) — an answer that never troubles the render loop at all |
-| 4 | reads config and previous_config | Read from this thread without a lock |
+| 3 | [`resolve`](../../src/language/resolver.py#L98) splits "ask" from the utterance | Anything whose first word is not `ask` returns `None` and passes through untouched as an ordinary typed command. An `ask` with nothing after it returns a [`Reply`](../../src/control/command_server.py#L74) — an answer that never troubles the render loop at all |
+| 4 | the settings callable gives config and previous | Read from this thread without a lock. [`AskResolver`](../../src/language/resolver.py#L33) is given a callable rather than the values, because an ask arrives whenever somebody types one and is about the settings as they are at that moment |
 | 5 | two frozen configs, neither half-applied | Safe precisely because [`RenderConfig`](../../src/control/render_config.py#L118) is frozen and replaced wholesale on the loop's thread: this either sees a change or does not, and can never catch one halfway |
 | 6 | [`look_up`](../../src/language/shortcuts.py#L227)`("a bit more contrast", config, previous)` | Tried **before** the API key is even looked for. That ordering is the whole reason a hit survives a dead network, and it is worth more than the money it saves |
 | 7 | [`normalise`](../../src/language/shortcuts.py#L64) gives "a bit more contrast" | Lower case, single-spaced, trailing punctuation dropped, [courtesies](../../src/language/shortcuts.py#L61) stripped. **Deliberately shallow** — stemming or stopword removal would let two different requests collapse to one string, and "a bit more contrast" is not "way more contrast" |

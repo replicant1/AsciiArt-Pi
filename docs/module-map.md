@@ -13,7 +13,7 @@ The process itself: argument parsing, the render loop, and the wiring that conne
 
 | Module | Lines | What it is for |
 |---|---:|---|
-| `ascii_camera.py` | 1347 | ASCII Art Live Camera Preview for Raspberry Pi Zero 2. |
+| `ascii_camera.py` | 1191 | ASCII Art Live Camera Preview for Raspberry Pi Zero 2. |
 | `src/version.py` | 19 | The one place the app's version is written down. |
 
 ## Capture
@@ -75,8 +75,9 @@ Words in, a validated settings change out.
 |---|---:|---|
 | `src/language/asklog.py` | 234 | A record of every natural-language request, so real use becomes evidence. |
 | `src/language/parser.py` | 548 | Natural language in, a validated RenderConfig delta out. |
+| `src/language/resolver.py` | 221 | "ask <words>" in, a delta out - on the caller's thread, never the render loop. |
 | `src/language/shortcuts.py` | 251 | The phrases that do not need a language model. |
 
 ---
 
-21 modules, 6,946 lines.
+22 modules, 7,011 lines.
