@@ -154,9 +154,17 @@ for d in docs:
 check("no document links to a guide's pre-move URL", old_urls, [])
 
 # The same mistake one directory over: tooling that opens a guide by path.
+#
+# Dotfiles are skipped for the same reason documents() skips them: on the Pi,
+# tools/ is full of the mount's AppleDouble sidecars - ._piinput.py and the
+# rest - which are not UTF-8 and are not source. Reading one raises, so this
+# check could only ever pass on the Mac, where they are not there. That is the
+# worst shape for a test: green on the machine nobody deploys from.
 tooling = []
-for tool in sorted((ROOT / "tools").rglob("*.py")) + \
-        sorted((ROOT / "tools").rglob("*.js")):
+for tool in sorted(p for p in (ROOT / "tools").rglob("*.py")
+                   if not p.name.startswith(".")) + \
+        sorted(p for p in (ROOT / "tools").rglob("*.js")
+               if not p.name.startswith(".")):
     body = tool.read_text(encoding="utf-8")
     for name in ("display-selection-guide.html", "enclosure-build-guide.html",
                  "panel-connectors-guide.html", "enclosure-renders.html"):

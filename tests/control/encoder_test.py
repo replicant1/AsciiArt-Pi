@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                                   # noqa: E402
 from ascii_camera import AsciiArtLiveCamera       # noqa: E402
+from control.scheme_cycle import SchemeCycle      # noqa: E402
 from control.encoder import QuadratureDecoder, RotaryEncoder   # noqa: E402
 from capture.image_processor import ImageProcessor        # noqa: E402
 from control.render_config import RenderConfig            # noqa: E402
@@ -197,17 +198,23 @@ def make_app(steps, presses=0):
     app.display = StubDisplay()
     app.processor = ImageProcessor()
     # The scheme is a field of one config object now, not an index the app
-    # kept alongside the ramp name and the invert flag. _cycle_scheme still
-    # walks the list by index; it just does not store the result as one.
+    # kept alongside the ramp name and the invert flag. SchemeCycle.step
+    # still walks the list by index; it just does not store the result as one.
     app.config = RenderConfig()
     app.notice = None
-    app.refusal = None
     app.previous_config = None
     app.grid_key = None
     app.lcd = None
     app._redraw = False
-    app.encoder = StubEncoder(steps, presses)
     app._rebuild_ascii()
+    # The cycle is what the knob and the `s` key both go through now. The app
+    # is still built around it on purpose: what these tests are really about is
+    # how many times the window is repainted, and that only becomes visible at
+    # the far end of apply() -> _adopt() -> display.set_scheme().
+    app.schemes = SchemeCycle(settings=lambda: app.config,
+                              apply=app.apply,
+                              colour_ok=lambda: app.display.colour_ok)
+    app.schemes.encoder = StubEncoder(steps, presses)
     return app
 
 
@@ -216,17 +223,17 @@ def test_app_wiring():
     names = list(palettes.SCHEME_NAMES)
 
     app = make_app(1)
-    app._poll_encoder()
+    app.schemes.poll()
     check("one click forwards is one scheme forwards",
           app.scheme.name == names[1], app.scheme.name)
 
     app = make_app(-1)
-    app._poll_encoder()
+    app.schemes.poll()
     check("one click back wraps to the last scheme",
           app.scheme.name == names[-1], app.scheme.name)
 
     app = make_app(3)
-    app._poll_encoder()
+    app.schemes.poll()
     check("three clicks move three schemes",
           app.scheme.name == names[3], app.scheme.name)
 
@@ -234,7 +241,7 @@ def test_app_wiring():
     # One full lap plus two: the answer must be the same as two, since going
     # round the list changes nothing.
     app = make_app(len(names) + 2)
-    app._poll_encoder()
+    app.schemes.poll()
     check("a spin past the end of the list still lands correctly",
           app.scheme.name == names[2], app.scheme.name)
 
@@ -242,12 +249,12 @@ def test_app_wiring():
     # instead of reducing modulo it lands here, on a full lap, and looks
     # plausible enough to miss.
     app = make_app(len(names))
-    app._poll_encoder()
+    app.schemes.poll()
     check("an exact lap leaves the scheme alone",
           app.scheme.name == names[0], app.scheme.name)
 
     app = make_app(-(len(names) + 2))
-    app._poll_encoder()
+    app.schemes.poll()
     check("and the same spinning backwards",
           app.scheme.name == names[-2], app.scheme.name)
 
@@ -257,25 +264,25 @@ def test_app_wiring():
     # passed through. On a slow colour scheme, where a single frame is long
     # enough to bank several detents, that reads as a hard strobe.
     app = make_app(5)
-    app._poll_encoder()
+    app.schemes.poll()
     check("five detents land five schemes on", app.scheme.name == names[5],
           app.scheme.name)
     check("but cost exactly one repaint", app.display.repaints == 1,
           f"{app.display.repaints} repaints")
 
     app = make_app(-4)
-    app._poll_encoder()
+    app.schemes.poll()
     check("and the same going backwards", app.display.repaints == 1,
           f"{app.display.repaints} repaints")
 
     print("\n10. A knob nobody touches changes nothing at all")
     app = make_app(0)
-    app._poll_encoder()
+    app.schemes.poll()
     check("no movement means no repaint", app.display.repaints == 0,
           f"{app.display.repaints} repaints")
 
     app = make_app(len(names))
-    app._poll_encoder()
+    app.schemes.poll()
     check("an exact lap does not repaint either", app.display.repaints == 0,
           f"{app.display.repaints} repaints")
 
@@ -283,19 +290,19 @@ def test_app_wiring():
     # From the far end of the list, so a pass cannot be an accident of
     # starting next door to grey.
     app = make_app(len(names) - 1)
-    app._poll_encoder()
+    app.schemes.poll()
     check("wound round to the last scheme", app.scheme.name == names[-1],
           app.scheme.name)
 
-    app.encoder.presses = 1
-    app._poll_encoder()
+    app.schemes.encoder.presses = 1
+    app.schemes.poll()
     check("a press lands on grey", app.scheme.name == "grey", app.scheme.name)
     check("and it is the greyscale one, not just the name",
           app.scheme.kind == "grey", app.scheme.kind)
 
     print("\n12. Pressing when already home does nothing at all")
     app = make_app(0, presses=1)
-    app._poll_encoder()
+    app.schemes.poll()
     check("still grey", app.scheme.name == "grey", app.scheme.name)
     check("and no repaint, so no flash", app.display.repaints == 0,
           f"{app.display.repaints} repaints")
@@ -305,21 +312,21 @@ def test_app_wiring():
     # folding that into the total is how the first version of this test came to
     # assert the wrong number.
     app = make_app(3)
-    app._poll_encoder()
+    app.schemes.poll()
     before = app.display.repaints
-    app.encoder.presses = 4
-    app._poll_encoder()
+    app.schemes.encoder.presses = 4
+    app.schemes.poll()
     check("four presses in one frame cost one repaint between them",
           app.display.repaints - before == 1,
           f"{app.display.repaints - before} repaints")
 
     print("\n13. A press beats rotation banked in the same frame")
     app = make_app(5)
-    app._poll_encoder()                 # away from grey first
+    app.schemes.poll()                 # away from grey first
     before = app.display.repaints
-    app.encoder.steps = 3
-    app.encoder.presses = 1
-    app._poll_encoder()
+    app.schemes.encoder.steps = 3
+    app.schemes.encoder.presses = 1
+    app.schemes.poll()
     check("the knob goes home, not to the turned-to scheme",
           app.scheme.name == "grey", app.scheme.name)
     check("and does it in one repaint, not two",
@@ -335,6 +342,34 @@ def test_app_wiring():
           f"{app.display.repaints} repaints")
 
 
+def test_the_key_needs_no_knob():
+    print("\n13. Cycling works with no encoder attached at all")
+    # The point of the split: --encoder decides whether a *second* way in
+    # exists, not whether schemes can be cycled. Before SchemeCycle this was
+    # only true by accident of the walk living on the app beside a
+    # self.encoder that happened to be None.
+    names = list(palettes.SCHEME_NAMES)
+    app = make_app(0)
+    app.schemes.encoder = None
+
+    app.schemes.poll()
+    check("polling a cycle with no knob does nothing",
+          app.display.repaints == 0, f"{app.display.repaints} repaints")
+
+    app.schemes.step()
+    check("but the key still steps it", app.scheme.name == names[1],
+          app.scheme.name)
+    check("...for one repaint", app.display.repaints == 1,
+          f"{app.display.repaints} repaints")
+
+    app.schemes.home()
+    check("and home still goes home", app.scheme.name == "grey",
+          app.scheme.name)
+
+    app.schemes.stop()
+    check("stopping a cycle that never claimed a pin is safe", True)
+
+
 def main():
     print("=" * 60)
     print("Rotary encoder")
@@ -346,6 +381,7 @@ def main():
     test_direction_changes()
     test_accumulator()
     test_app_wiring()
+    test_the_key_needs_no_knob()
 
     print("\n" + "=" * 60)
     if failures:

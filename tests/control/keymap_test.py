@@ -23,6 +23,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                                   # noqa: E402
 from ascii_camera import AsciiArtLiveCamera       # noqa: E402
+from control.scheme_cycle import SchemeCycle      # noqa: E402
 from capture.image_processor import ImageProcessor        # noqa: E402
 from control.render_config import RenderConfig            # noqa: E402
 
@@ -69,12 +70,16 @@ def make_app():
     # other and with the processor. See tests/control/render_config_test.py.
     app.config = RenderConfig()
     app.notice = None
-    app.refusal = None
     app.previous_config = None
     app.grid_key = None
     app.lcd = None
     app._redraw = False
     app._rebuild_ascii()
+    # The `s` key goes through the cycle, so it has to exist even
+    # where no knob does.
+    app.schemes = SchemeCycle(settings=lambda: app.config,
+                              apply=app.apply,
+                              colour_ok=lambda: app.display.colour_ok)
     return app
 
 

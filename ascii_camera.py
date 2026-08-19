@@ -50,6 +50,8 @@ from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 # RPi.GPIO, which live in lcd.py, and lcd_worker pulls in neither.
 from panel.lcd_worker import DEFAULT_SPLASH_HOLD  # noqa: E402
 from control.render_config import ConfigError  # noqa: E402
+from control.scheme_cycle import SchemeCycle  # noqa: E402
+from screen.status_line import status_line  # noqa: E402
 from version import APP_NAME, __version__  # noqa: E402
 
 logger = logging.getLogger("ascii_camera")
@@ -94,11 +96,6 @@ STALL_REPEAT = 30.0
 FROZEN_TICK = 0.05
 
 
-def _on_off(flag):
-    """Render a toggle's state for the status line."""
-    return "on" if flag else "off"
-
-
 class AsciiArtLiveCamera:
     """Capture -> process -> ASCII -> terminal, once per frame."""
 
@@ -112,7 +109,6 @@ class AsciiArtLiveCamera:
         # by _adopt whenever it changes.
         self.config = render_config.from_args(args)
         self.notice = None          # (text, expiry), for the status line
-        self.refusal = None         # why the last apply() said no, if it did
         # The config as it stood before the most recent change. Only the
         # parser reads it, and only so that "undo that" has something to
         # undo to - a request that means nothing without a before.
@@ -151,7 +147,6 @@ class AsciiArtLiveCamera:
         # not exist yet. They are started below, once the settings they are
         # built from have been applied.
         self.lcd = None
-        self.encoder = None
 
         # Everything the config touches is pushed out from here, so start-up
         # and a later change go down exactly the same path. `previous=None`
@@ -160,8 +155,17 @@ class AsciiArtLiveCamera:
 
         if args.lcd:
             self.lcd = self._start_lcd()
+        # Always built, even with no knob: the `s` key cycles schemes too, and
+        # the walk that skips what this terminal cannot show is the same walk
+        # either way. --encoder only decides whether a second way in exists.
+        self.schemes = SchemeCycle(settings=lambda: self.config,
+                                   apply=self.apply,
+                                   colour_ok=lambda: self.display.colour_ok)
         if args.encoder:
-            self.encoder = self._start_encoder()
+            self.schemes.start_encoder(clk=args.encoder_clk,
+                                       dt=args.encoder_dt,
+                                       sw=args.encoder_sw,
+                                       reverse=args.encoder_reverse)
         self.commands = (self._start_commands() if args.command_socket
                          else None)
 
@@ -241,37 +245,40 @@ class AsciiArtLiveCamera:
                 as logged.
 
         Returns:
-            True if the config changed, False if it was refused or was a no-op.
-            On a refusal `self.refusal` carries why, so a caller that shows the
-            user something other than the status line - the command socket - can
-            say what happened rather than only "nothing changed".
+            (changed, refusal). `changed` is True only if the config really
+            moved; `refusal` is why it did not, or None when nothing was
+            refused - a delta that asks for what is already set is a no-op, not
+            a refusal, and the two need telling apart by anyone answering on a
+            channel of their own.
+
+            The reason used to be left on `self.refusal` for the caller to pick
+            up afterwards, because this slot was taken by a bare bool. Exactly
+            one caller ever read it, which makes it a return value wearing a
+            disguise.
         """
-        self.refusal = None
         try:
             proposed = self.config.with_changes(delta)
         except ConfigError as e:
             logger.warning("Refused %r: %s", delta, e)
-            self.refusal = "\n".join(e.problems)
             if note:
                 self._note(str(e))
-            return False
+            return False, "\n".join(e.problems)
 
         if proposed.target != self.config.target:
             problem = self._target_problem(proposed.target)
             if problem is not None:
                 logger.warning("Refused target %r: %s; staying on %r",
                                proposed.target, problem, self.config.target)
-                self.refusal = problem
                 if note:
                     self._note(problem)
-                return False
+                return False, problem
 
         if proposed == self.config:
-            return False
+            return False, None
 
         previous, self.config = self.config, proposed
         self._adopt(proposed, previous)
-        return True
+        return True, None
 
     def _adopt(self, config, previous):
         """
@@ -401,27 +408,6 @@ class AsciiArtLiveCamera:
                          exc_info=True)
             return None
 
-    def _start_encoder(self):
-        """
-        Bring the rotary encoder up, or carry on without it.
-
-        Not fatal on failure, for the same reason the LCD is not: the knob is a
-        convenience over a key that still works, so an unplugged or misconfigured
-        encoder should cost a log line rather than the whole app.  lgpio is
-        imported inside RotaryEncoder so this stays runnable off the Pi.
-        """
-        try:
-            from control.encoder import RotaryEncoder
-
-            return RotaryEncoder(clk=self.args.encoder_clk,
-                                 dt=self.args.encoder_dt,
-                                 sw=self.args.encoder_sw,
-                                 reverse=self.args.encoder_reverse).start()
-        except Exception as e:
-            logger.error("Rotary encoder unavailable, continuing without "
-                         "it: %s", e, exc_info=True)
-            return None
-
     def _start_commands(self):
         """
         Open the typed-command socket, or carry on without it.
@@ -491,155 +477,24 @@ class AsciiArtLiveCamera:
 
     def _run_command(self, request):
         """
-        One request in, the text to print back out.
+        Answer one request, by binding this run's state to the dispatcher.
 
-        Usually a line somebody typed. Sometimes an Ask: a delta the resolver
-        already worked out on another thread, which from here is just a delta
-        like any other and goes down the same path with the same validation.
+        The dispatching itself is `commands.run_command`, a function of its
+        arguments, so that everything about typed commands - parsing, help,
+        reset, and the wording of every answer - sits in one module. What only
+        the app knows is supplied here: the live config, the one way settings
+        change, and which targets this particular run can honour.
         """
-        from control.command_server import Ask
-
-        if isinstance(request, Ask):
-            logger.info("Command: ask %s", request.utterance)
-            before = self.config
-            if self.apply(request.delta, note=False):
-                return (f"  {self.config.describe_changes(before)}"
-                        f"\n  ({request.note})")
-            if self.refusal:
-                return "\n".join("  " + line
-                                  for line in self.refusal.splitlines())
-            return f"  nothing changed ({request.note})"
-
-        line = request
-        logger.info("Command: %s", line)
-        try:
-            kind, payload = commands.parse(line)
-        except commands.CommandError as e:
-            return str(e)
-
-        if kind == "none":
-            return ""
-        if kind == "help":
-            return commands.help_text(payload, self.config)
-        if kind == "show":
-            return commands.show_text(self.config)
-        if kind == "reset":
-            payload = commands.defaults_delta(self.config)
-            # A delta is applied whole or not at all, so a single field this
-            # run cannot honour would take the other eleven down with it. That
-            # is right for a delta somebody typed - it says what they asked for
-            # and they should be told no - but wrong for "put everything back",
-            # which should restore what it can. Headless, the default target of
-            # "both" is unreachable, and reset used to refuse outright and
-            # report "nothing changed" over five non-default settings.
-            if "target" in payload:
-                payload["target"] = self._feasible_target(payload["target"])
-            payload = {name: value for name, value in payload.items()
-                       if getattr(self.config, name) != value}
-            if not payload:
-                return "already at the defaults"
-
-        # From here it is an ordinary delta, applied down the same path a
-        # keypress uses - so a typed setting and a pressed key cannot diverge,
-        # and neither can get past the validation the other would have hit.
-        before = self.config
-        # note=False: the reply says what happened, and a status-line notice
-        # would be saying it a second time to someone looking elsewhere.
-        if self.apply(payload, note=False):
-            return "  " + self.config.describe_changes(before)
-        if self.refusal:
-            return "\n".join("  " + line
-                             for line in self.refusal.splitlines())
-        return "  nothing changed"
-
-    def _poll_encoder(self):
-        """Turn accumulated knob movement and presses into scheme changes."""
-        if self.encoder is None:
-            return
-        steps = self.encoder.take()
-        pressed = self.encoder.take_presses()
-
-        # A press wins over rotation banked in the same frame, and the rotation
-        # is dropped rather than applied on top. Only counts survive the wait
-        # between frames, not the order they happened in, so there is no way to
-        # tell "turn then press" from "press then turn" - and of the two
-        # answers available, going home is the one the user can see is right,
-        # since it is the same wherever the knob had got to. Applying both would
-        # also cost two repaints for one glance at the screen.
-        if pressed:
-            self._home_scheme()
-            return
-
-        # Handed over as one move, not one call per detent: everything banked
-        # since the last frame lands on a single repaint. See _cycle_scheme.
-        if steps:
-            self._cycle_scheme(steps)
-
-    def _home_scheme(self):
-        """
-        Jump straight back to greyscale, however far the knob has wandered.
-
-        Found by kind rather than by name, so renaming the scheme cannot turn
-        this into a lookup that raises. The greyscale scheme is also the one
-        scheme every terminal can show, so this is the one jump that is always
-        available - see the colour_ok test in _cycle_scheme.
-        """
-        home = next(scheme for scheme in palettes.SCHEMES
-                    if scheme.kind == "grey")
-        # apply() is a no-op when the value is already there, so being home
-        # already costs nothing and no repaint flashes.
-        if self.apply({"scheme": home.name}):
-            logger.info("Scheme: %s (%s) - knob pressed", home.name, home.note)
+        return commands.run_command(
+            request,
+            settings=lambda: self.config,
+            apply=lambda delta: self.apply(delta, note=False),
+            feasible_target=self._feasible_target)
 
     @property
     def scheme(self):
         """The active colour scheme."""
         return palettes.by_name(self.config.scheme)
-
-    def _cycle_scheme(self, step=1):
-        """
-        Step to the next scheme, skipping any this terminal cannot show.
-
-        Args:
-            step: +1 for the next scheme, -1 for the previous one.  The
-                keyboard only ever goes forwards, but a knob that could not go
-                back would be a poor knob.
-        """
-        count = len(palettes.SCHEMES)
-        direction = 1 if step >= 0 else -1
-        start = palettes.SCHEME_NAMES.index(self.config.scheme)
-
-        # Walk to the destination first and change the display once, rather
-        # than changing it at every scheme on the way. set_scheme() repaints
-        # the whole window - it has to, since a light-screen scheme needs a
-        # different background on every cell - so a five-detent move applied
-        # one scheme at a time is five full repaints of pictures that are never
-        # on screen long enough to be seen. That is visible as a hard strobe,
-        # and the slower the scheme the worse it gets, because a slow frame
-        # gives the knob more time to bank detents before anything is drawn.
-        #
-        # A whole lap is the identity, so the count reduces modulo the list
-        # length; clamping to it instead lands a lap off.
-        index = start
-        for _ in range(abs(step) % count):
-            for offset in range(1, count + 1):
-                candidate = (index + direction * offset) % count
-                if (palettes.SCHEMES[candidate].kind == "grey"
-                        or self.display.colour_ok):
-                    index = candidate
-                    break
-            else:
-                return
-
-        if index == start:
-            return
-        # No grid invalidation on purpose: the grid does not depend on the
-        # scheme any more, so recomputing it would only produce the same answer
-        # and log a line claiming a change that did not happen. _adopt knows
-        # this - the scheme is not in the set that clears grid_key.
-        scheme = palettes.SCHEMES[index]
-        if self.apply({"scheme": scheme.name}):
-            logger.info("Scheme: %s (%s)", scheme.name, scheme.note)
 
     def _colours_for(self, frame, processed, cols, rows):
         """
@@ -715,13 +570,15 @@ class AsciiArtLiveCamera:
 
     def _status(self):
         """
-        Text for the bottom status line, trimmed to what the window can show.
+        Text for the bottom status line.
 
-        Rather than let a fixed string get chopped mid-word, drop whole
-        sections from the right until it fits.
+        Everything here is state the formatting cannot work out for itself: how
+        fast frames are arriving, whether a notice has outlived its few seconds,
+        and how wide the window is this frame. The line itself is built by
+        src/screen/status_line.py, which is a function of its arguments and can
+        be tested without any of this.
         """
-        config = self.config
-        if config.freeze:
+        if self.config.freeze:
             # A frozen picture stops appending frame times, so the number would
             # sit at whatever it was when the freeze started and slowly decay -
             # a reading that looks live and is not.
@@ -734,43 +591,20 @@ class AsciiArtLiveCamera:
             rate = " 0.0fps"
 
         cols, rows = self.grid or (0, 0)
-        geometry = f"{cols}x{rows}" if self.display.draws else "headless"
-        stats = (f" {rate} {geometry} rot{config.rotation}"
-                 f" con{config.contrast:.1f}"
-                 f" sch:{config.scheme}"
-                 f" chr:{config.ramp}"
-                 f" auto:{_on_off(config.auto_levels)}"
-                 f" fill:{_on_off(config.fill)}"
-                 f" inv:{_on_off(config.invert)}"
-                 f" tgt:{config.target}")
 
-        if self.lcd is not None:
-            # Showing the panel's own grid makes its independence from the
-            # terminal's visible: resizing the window moves one and not the
-            # other, and changing the panel font moves the panel's alone.
-            stats += " lcd:%dx%d@%d" % (self.lcd.display.grid_size
-                                        + (config.lcd_font_size,))
-
-        width = self.display.cols - 1
-
-        # A refusal or a clamp beats the key list: the list is the same every
-        # frame and the message is the answer to what was just pressed.
+        notice = None
         if self.notice is not None:
             text, expires = self.notice
             if time.monotonic() < expires:
-                return f"{stats} | {text}"[:width]
-            self.notice = None
+                notice = text
+            else:
+                self.notice = None
 
-        for keys in (" | q:quit r:rotate f:fill i:invert c:chars +/-:contrast"
-                     " a:auto s:scheme SPC:freeze t:target l:lcdfont",
-                     " | q:quit r:rotate f:fill i:invert c:chars s:scheme"
-                     " SPC:freeze t:target",
-                     " | q:quit r:rotate f:fill s:scheme SPC:freeze",
-                     " | q:quit",
-                     ""):
-            if len(stats) + len(keys) <= width:
-                return stats + keys
-        return stats
+        return status_line(
+            self.config, rate,
+            f"{cols}x{rows}" if self.display.draws else "headless",
+            lcd_grid=None if self.lcd is None else self.lcd.display.grid_size,
+            notice=notice, width=self.display.cols - 1)
 
     def _handle_key(self, key):
         """
@@ -793,7 +627,7 @@ class AsciiArtLiveCamera:
         elif key in ("r", "R"):
             self.apply({"rotation": (self.config.rotation + 90) % 360})
         elif key in ("s", "S"):
-            self._cycle_scheme()
+            self.schemes.step()
         elif key in ("f", "F"):
             self.apply({"fill": not self.config.fill})
         elif key in ("i", "I"):
@@ -854,8 +688,103 @@ class AsciiArtLiveCamera:
                 # this elsewhere keeps the default behaviour.
                 logger.info("Could not handle signal %d here", received)
 
+    def _next_frame(self):
+        """
+        The frame to draw this pass, or None to skip it.
+
+        Quitting is signalled by clearing `is_running` rather than by a return
+        value, which is the same way the signal handler stops the loop - one
+        mechanism for "stop", not two.
+        """
+        if self.config.freeze and self._held is not None:
+            # Frozen, so the picture is whatever was last captured. The camera
+            # is deliberately left running: stopping it would make unfreezing
+            # cost the 15-20 seconds libcamera takes to come back, and its
+            # queue is one deep, so nothing piles up.
+            if not self._redraw and self.notice is None:
+                # Nothing has changed and nothing is moving, so there is no
+                # picture to draw. Without this the loop would redraw a still
+                # frame at the full rate - and push it down the SPI bus - for
+                # no visible difference at all.
+                #
+                # A live notice is the exception: it has to appear and then,
+                # four seconds later, go away, and _status is what retires it.
+                # This settles by itself - the redraw that shows the expired
+                # notice is the one that clears it.
+                if not self._drain_input():
+                    self.is_running = False
+                else:
+                    time.sleep(FROZEN_TICK)
+                return None
+            return self._held
+
+        frame = self.camera.get_frame(timeout=1.0)
+        if frame is None:
+            # The camera caps its own rate, so a miss here means it is still
+            # warming up (or has stalled) rather than that we are polling too
+            # fast.
+            self.dropped += 1
+            self.display.message("Waiting for camera...")
+            self._note_if_stalled()
+            if not self._drain_input():
+                self.is_running = False
+            return None
+
+        self._held = frame
+        self._last_frame_at = time.monotonic()
+        self._stall_noted = None
+        return frame
+
+    def _build_picture(self, frame):
+        """
+        (lines, colours) for the terminal, or None if the frame could not be
+        processed.
+
+        Three cases, and two of them build nothing on purpose. The panel does
+        its own downscale and character mapping on its own thread, so whenever
+        the terminal is not showing the picture there is no reason to build one
+        for it - that saving is the whole point of `--no-terminal` and of
+        `tgt:lcd`.
+        """
+        if self.terminal_on:
+            cols, rows = self._grid_for(frame.shape)
+            try:
+                processed = self.processor.process(frame.luma, cols, rows)
+                return (self.ascii_art.to_ascii_text(processed),
+                        self._colours_for(frame, processed, cols, rows))
+            except Exception as e:
+                logger.error("Frame processing failed: %s", e, exc_info=True)
+                return None
+        if self.display.draws:
+            # There is a window, but the picture has been sent to the panel
+            # alone. Say so rather than leave it blank, and skip the build.
+            return (TERMINAL_OFF,), None
+        # No terminal at all: nothing would ever look at what was built.
+        return (), None
+
+    def _shut_down(self, started):
+        """
+        Release every device this run claimed, and say what it managed.
+
+        A claim left behind - the camera, the panel's GPIO, the encoder's pins,
+        the socket file - makes the *next* run fail to start, which is a much
+        worse failure than the one that got us here.
+        """
+        self.is_running = False
+        elapsed = time.time() - started
+        avg = self.frame_count / elapsed if elapsed > 0 else 0
+        self.camera.stop()
+        if self.lcd is not None:
+            self.lcd.stop()
+        self.schemes.stop()
+        if self.commands is not None:
+            self.commands.stop()
+        logger.info("Rendered %d frames in %.1fs (%.1f avg fps), "
+                    "%d camera timeouts", self.frame_count, elapsed,
+                    avg, self.dropped)
+
     def run(self):
-        """Main loop."""
+        """Main loop: a frame in, a picture out, until something says stop."""
         self._install_signal_handlers()
         self.display.message("Starting camera, please wait...")
         if self.lcd is not None:
@@ -876,42 +805,9 @@ class AsciiArtLiveCamera:
                     self._refresh_cell_aspect()
                     self._redraw = True
 
-                if self.config.freeze and self._held is not None:
-                    # Frozen, so the picture is whatever was last captured. The
-                    # camera is deliberately left running: stopping it would
-                    # make unfreezing cost the 15-20 seconds libcamera takes to
-                    # come back, and its queue is one deep, so nothing piles up.
-                    if not self._redraw and self.notice is None:
-                        # Nothing has changed and nothing is moving, so there is
-                        # no picture to draw. Without this the loop would redraw
-                        # a still frame at the full rate - and push it down the
-                        # SPI bus - for no visible difference at all.
-                        #
-                        # A live notice is the exception: it has to appear and
-                        # then, four seconds later, go away, and _status is what
-                        # retires it. This settles by itself - the redraw that
-                        # shows the expired notice is the one that clears it.
-                        if not self._drain_input():
-                            break
-                        time.sleep(FROZEN_TICK)
-                        continue
-                    frame = self._held
-                else:
-                    frame = self.camera.get_frame(timeout=1.0)
-                    if frame is None:
-                        # The camera caps its own rate, so a miss here means it
-                        # is still warming up (or has stalled) rather than that
-                        # we are polling too fast.
-                        self.dropped += 1
-                        self.display.message("Waiting for camera...")
-                        self._note_if_stalled()
-                        if not self._drain_input():
-                            break
-                        continue
-                    self._held = frame
-                    self._last_frame_at = time.monotonic()
-                    self._stall_noted = None
-
+                frame = self._next_frame()
+                if frame is None:
+                    continue
                 self._redraw = False
 
                 # Hand the panel the frame before doing any work for the
@@ -919,28 +815,10 @@ class AsciiArtLiveCamera:
                 if self.lcd_on:
                     self.lcd.submit(frame, self.config)
 
-                if self.terminal_on:
-                    cols, rows = self._grid_for(frame.shape)
-                    try:
-                        processed = self.processor.process(frame.luma,
-                                                           cols, rows)
-                        ascii_lines = self.ascii_art.to_ascii_text(processed)
-                        colours = self._colours_for(frame, processed,
-                                                    cols, rows)
-                    except Exception as e:
-                        logger.error("Frame processing failed: %s", e,
-                                     exc_info=True)
-                        continue
-                elif self.display.draws:
-                    # There is a window, but the picture has been sent to the
-                    # panel alone. Say so rather than leave it blank, and skip
-                    # the build - which is the whole saving being asked for.
-                    ascii_lines, colours = (TERMINAL_OFF,), None
-                else:
-                    # No terminal at all: the panel does its own downscale and
-                    # character mapping on its own thread, so building a
-                    # picture here would be work nothing ever looks at.
-                    ascii_lines, colours = (), None
+                picture = self._build_picture(frame)
+                if picture is None:
+                    continue
+                ascii_lines, colours = picture
 
                 self.frame_count += 1
                 self.frame_times.append(time.time())
@@ -948,27 +826,10 @@ class AsciiArtLiveCamera:
 
                 if not self._drain_input():
                     break
-
         except KeyboardInterrupt:
             logger.info("Interrupted by user")
         finally:
-            self.is_running = False
-            elapsed = time.time() - started
-            avg = self.frame_count / elapsed if elapsed > 0 else 0
-            self.camera.stop()
-            if self.lcd is not None:
-                self.lcd.stop()
-            if self.encoder is not None:
-                # Releasing the pins matters as much as it does for the panel:
-                # a claim left behind makes the next run's start() fail.
-                self.encoder.stop()
-            if self.commands is not None:
-                # Same reasoning again, for the socket file: one left behind
-                # makes the next run's bind fail with the address still in use.
-                self.commands.stop()
-            logger.info("Rendered %d frames in %.1fs (%.1f avg fps), "
-                        "%d camera timeouts", self.frame_count, elapsed,
-                        avg, self.dropped)
+            self._shut_down(started)
 
     def _drain_input(self):
         """
@@ -980,7 +841,7 @@ class AsciiArtLiveCamera:
         by the same route, from the socket thread - and later, a phone's HTTP
         handler will deliver into the same queue.
         """
-        self._poll_encoder()
+        self.schemes.poll()
         self._poll_commands()
         while True:
             key = self.display.get_key()
