@@ -1,11 +1,5 @@
 # A typed command updates the render configuration
 
-**Classes involved:**
-[`CommandServer`](../../src/control/command_server.py) ·
-[`commands`](../../src/control/commands.py) (a module of functions, not a class) ·
-[`AsciiArtLiveCamera`](../../ascii_camera.py) ·
-[`RenderConfig`](../../src/control/render_config.py)
-
 Somebody types `contrast 2.4 invert on` at a shell and the picture changes on
 both displays. The value is that this works against a process with no terminal
 of its own — the boot service, in the enclosure — where no key can be pressed;
@@ -26,6 +20,13 @@ because deciding what is *allowed* belongs to `RenderConfig` one layer down.
 That is why `rotation 45` parses cleanly and is then refused, in the same words
 a keypress would have earned. A front end that could accept more than the
 validated path would let a phrase work by hand and fail through the parser.
+
+| Class | What it represents, and its part in this scenario |
+|---|---|
+| [`CommandServer`](../../src/control/command_server.py#L80) | A `threading.Thread` owning the Unix socket, with a thread per connected client. Here it is the **courier**: it splits lines, offers each to the resolver, puts it on the inbox and blocks its own client for the answer. It understands not one setting, which is exactly what keeps the socket's concerns out of the render loop |
+| [`commands`](../../src/control/commands.py) | A module of functions rather than a class — its only class is [`CommandError`](../../src/control/commands.py#L45), the exception. Here it is the **translator**: [`parse`](../../src/control/commands.py#L49) turns a line into typed values and stops, holding no opinion about what is allowed so that exactly one place does |
+| [`AsciiArtLiveCamera`](../../ascii_camera.py#L102) | The render loop, and the one object the whole process is hung off. Here it is the **applier**: it [drains the inbox once per frame](../../ascii_camera.py#L626), dispatches the parsed request, and is the only thing that pushes an adopted config out to the terminal and the panel worker |
+| [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen so that it is replaced rather than mutated. Here it is both **validator and diff**: [`with_changes`](../../src/control/render_config.py#L141) returns the new config, and [`describe_changes`](../../src/control/render_config.py#L191) produces the text the person gets back |
 
 ## From the command socket to the render loop
 
@@ -69,68 +70,44 @@ sequenceDiagram
     CLI-->>Person: contrast 1.0->2.4, invert False->True
 ```
 
-`parse` is where a line stops being text. `_ask` putting the request on the
-inbox and `take()` draining it are the same queue seen from its two ends, and
-they are why the diagram is drawn in two bands: everything above the handover
-may take as long as it likes, and nothing below it may.
+| Step | Message | What is going on |
+|---:|---|---|
+| 1 | `contrast 2.4 invert on` | Two settings in one line. Syntax is forgiving — `contrast=2.4` works too — and names and values are not, which is the distinction that stops this front end accepting anything the validated path would refuse |
+| 2 | the line, over the Unix socket | The socket is created mode 0600, so it is unreachable from the network and only the user running the app can connect. `--no-commands` switches it off entirely |
+| 3 | [`_serve`](../../src/control/command_server.py#L189) splits on newline | Reads from one client until it goes away. Anything past [4 KB](../../src/control/command_server.py#L47) is refused rather than buffered: nothing legitimate comes close, and it stops a stuck client growing memory without limit |
+| 4 | [`_prepare`](../../src/control/command_server.py#L214) gives the resolver first refusal<br>(None for a typed line — see the ask scenarios) | The hook where anything slow belongs. A typed line comes back `None` and passes straight through. The natural-language path instead returns an [`Ask`](../../src/control/command_server.py#L55) here — a delta already worked out, on this thread — which is why a four-second model call never reaches the render loop as a wait. A resolver that raises is contained here: the client is told, the loop never hears about it, and the connection stays up |
+| 5 | [`_ask`](../../src/control/command_server.py#L236) puts (line, answer queue) on the inbox | The handover. Each request carries its own single-slot answer queue, so replies cannot be crossed between clients |
+| 6 | waits on the answer queue, 5 s limit | The loop [drains the inbox once per frame](../../ascii_camera.py#L626), so [five seconds](../../src/control/command_server.py#L43) is generous by two orders of magnitude. It exists to stop a client hanging for ever against an app that has wedged — on a timeout the client is told the app did not answer, which on this hardware is a real possibility worth being able to see |
+| 7 | [`take`](../../src/control/command_server.py#L258)`()` — everything waiting, never blocks | Drained on this thread rather than the socket's, because applying a setting repaints the window, rebuilds the ASCII generator and talks to the panel worker, none of which is safe elsewhere. Called in the same place [keys](../../ascii_camera.py#L931) and [the knob](../../ascii_camera.py#L711) are read, so a typed setting lands exactly where a keypress would and cannot arrive halfway through a frame |
+| 8 | [`parse`](../../src/control/commands.py#L49)`("contrast 2.4 invert on")` | Text in, typed values out, and nothing more. Returns `(kind, payload)` — `"delta"` here, or `"help"`, `"show"`, `"reset"`, `"none"`. Raises [`CommandError`](../../src/control/commands.py#L45) with a message written to be read by whoever typed it |
+| 9 | `("delta", {contrast: 2.4, invert: True})` | Only the **type** has been settled. A value of the right type and the wrong magnitude — [`rotation 45`](a-render-configuration-change-is-refused.md) — is handed on untouched, because deciding what is allowed belongs one layer down |
+| 10 | [`with_changes`](../../src/control/render_config.py#L141)`(delta)` | Reached through [`apply`](../../ascii_camera.py#L232), the single way settings ever change and the same call a keypress and the knob make |
+| 11 | a new [`RenderConfig`](../../src/control/render_config.py#L118), this one unchanged | Frozen, so it is replaced rather than mutated. A setting that can be assigned in place is one that can change without anyone being told, which is how the panel's copy came to be maintained by hand |
+| 12 | [`_adopt`](../../ascii_camera.py#L276)`(proposed, previous)`<br>tells the terminal and the panel worker | The one place that knows what each setting costs to change. Before it existed, "invert also has to rebuild the ASCII generator" and "fill also has to invalidate the grid" were spread across [the key handler](../../ascii_camera.py#L931), and every new setting had to remember them all |
+| 13 | [`describe_changes`](../../src/control/render_config.py#L191)`(before)` | Diffs the adopted config against the one it replaced, in [`SPECS`](../../src/control/render_config.py#L74) order |
+| 14 | `"contrast 1.0->2.4, invert False->True"` | Empty when nothing changed, so a caller can use it as the test for whether the change was real rather than tracking that itself |
+| 15 | `answer.put_nowait(reply text)` | [Every line is answered](../../ascii_camera.py#L626), including the ones that changed nothing, so no client is ever left waiting on a reply that is not coming |
+| 16 | the reply, terminated so the client knows it is complete | A reply may run to several lines — what [`help_text`](../../src/control/commands.py#L172) returns does — and the client has no other way to know it has all of them |
+| 17 | `contrast 1.0->2.4, invert False->True` | What the person sees, in the same wording a keypress would have put in the [status line](../../ascii_camera.py#L872) |
+
+`_ask` putting the request on the inbox and `take()` draining it are the same
+queue seen from its two ends, and that handover is the boundary the two bands
+mark: everything above it may take as long as it likes, and nothing below it
+may.
 
 This is the accepted path only. When `with_changes` refuses instead of
 returning, the collaboration is a different shape and has its own scenario —
 see below.
 
-## What each class contributes
-
-### `CommandServer` — accepts typed lines on a Unix socket and queues them
-A `threading.Thread` that owns the socket file and a thread per connected
-client. It knows nothing about settings; its whole job is to get a line to the
-render loop and an answer back, and to never let either side wait for ever.
-
-| Method | In this scenario |
-|---|---|
-| `_serve(conn)` | Reads from one client, splits on newlines, refuses anything over 4 KB rather than buffering it |
-| `_prepare(line)` | Offers the line to the resolver first. A typed line comes back `None` and passes through unchanged; this is the hook the natural-language path uses instead |
-| `_ask(line)` | Puts `(line, answer queue)` on the inbox and waits up to 5 s. On a timeout it says the app did not answer, rather than leaving the client looking at nothing |
-| `take()` | Everything waiting, as `(line, answer queue)` pairs. **Never blocks** — this is what makes it safe to call from the render loop |
-
-### `commands` — text in, typed values out
-A module of functions rather than a class; the only class in it is
-`CommandError`, the exception. It is stateless by design, because it holds no
-opinion that could disagree with `RenderConfig`.
-
-| Function | In this scenario |
-|---|---|
-| `parse(line)` | Returns `(kind, payload)` — here `("delta", {...})`. Also recognises `help`, `show` and `reset`. Raises `CommandError` with a message written to be read by whoever typed it |
-| `CommandError` | A `ValueError` carrying that message |
-
-### `AsciiArtLiveCamera` — the render loop, and the only way settings change
-Owns the config and every device that has to be told when it changes.
-
-| Method | In this scenario |
-|---|---|
-| `_poll_commands()` | Drains `take()` once per pass and answers **every** line, including ones that changed nothing, so no client is left waiting |
-| `_run_command(request)` | One request in, the text to print back out. Dispatches `help`/`show`/`reset`, and hands an ordinary delta to `apply()` |
-| `apply(delta, note=False)` | The single way settings ever change. Calls `with_changes`, adopts the result, and returns `True` if the config really changed. `note=False` here because the reply already says what happened, and a status-line notice would say it a second time to somebody looking elsewhere |
-| `_adopt(config, previous)` | Pushes the new config to the terminal and the panel worker — the one place that knows what each setting costs to change |
-
-### `RenderConfig` — the complete live render state
-A frozen dataclass: it is replaced, never mutated, so "the config" is always one
-object and no half-applied state exists.
-
-| Method | In this scenario |
-|---|---|
-| `with_changes(delta)` | Returns a **new** config, leaving this one alone. Raises `ConfigError` naming *every* unknown field and bad value at once, not the first. Values outside a range are clamped rather than refused |
-| `describe_changes(other)` | `"contrast 1.0->2.4, invert False->True"`. Empty when nothing changed, so a caller can use it as the test for whether the change was real |
-| `changes_from(other)` | The field names that differ, in `SPECS` order — what `_adopt` iterates |
-
 ## Related scenarios
 
-- **Words become a change through the model** — the same diagram with
+- **A spoken phrase is turned into a config delta by the language model** — the same diagram with
   `_prepare`'s resolver returning an `Ask` instead of `None`, so the delta is
   worked out on the client's thread and the render loop still only ever applies
   a dict.
-- **A keypress becomes a config change** — joins this one at `apply()`, which is
+- **A keypress updates the render configuration** — joins this one at `apply()`, which is
   the point of routing both through it.
-- **One change reaches both displays** — takes over at `_adopt`, where this
+- **One configuration change is pushed to both displays** — takes over at `_adopt`, where this
   scenario stops.
 - [A render configuration change is refused](a-render-configuration-change-is-refused.md)
   — what happens in place of the `_adopt` and `describe_changes` exchange when a
