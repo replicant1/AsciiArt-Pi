@@ -61,7 +61,7 @@ status bar.
 | `--scheme` | `grey`, `live`, `green`, `amber`, `cyan`, `navy`, `azure`, `lime`, `paper` | `grey` | Colour scheme to start in. Step through them live with `s`. See [Colour schemes](subsystems/colour-schemes.md#colour-schemes) |
 | `--colour`, `--color` | flag | off | Shorthand for `--scheme live`. Ignored if `--scheme` is given |
 | `--colour-levels` | 2–32 | `32` | Steps per channel in the live-colour scheme. Fewer gives longer runs of one colour and a cheaper redraw, at the cost of banding. Applies to both displays: the terminal quantises to that many steps of the xterm cube, the panel posterises its RGB to the same number. `32` means “as many colours as this display can manage” and leaves the panel at full RGB565. Out of range is clamped |
-| `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. Toggle with `f` |
+| `--fill` | flag | off | Crop the picture to fill the window rather than letterboxing it. The panel always fills and ignores this. Toggle with `f` |
 | `--rotation` | 0, 90, 180, 270 | `0` | Camera rotation. Cycle with `r`. See [Rotation and handedness](subsystems/panel.md#rotation-and-handedness) |
 | `--mirror` | flag | off | Flip the picture left to right, after any rotation |
 | `--contrast` | float | `1.0` | Contrast multiplier about mid-grey. Adjust with `+`/`-` |

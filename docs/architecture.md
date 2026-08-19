@@ -122,7 +122,7 @@ sequenceDiagram
     participant CLI as tools/app/asciicam_cli.py
     participant WEB as src/control/web_server.py<br/>phone page, LAN only
     participant SOCK as CommandServer<br/>a thread per client
-    participant RES as _resolve_ask<br/>same client thread
+    participant RES as AskResolver.resolve<br/>same client thread
     participant API as parser.py<br/>and the Claude API
     participant MAIN as render loop<br/>main thread
     participant TERM as HDMI terminal
@@ -184,9 +184,10 @@ That is why `CommandServer`'s own `REPLY_TIMEOUT` is five seconds while the
 CLI's socket timeout is ninety: the loop is only ever asked to apply a dict, and
 five seconds of not doing that means it has wedged.
 
-**A parsed delta and a typed one are the same delta.** `_run_command` unwraps
-the `Ask` and hands it to `apply()` — the same call `scheme amber` makes, the
-same `RenderConfig.with_changes` validation, the same wording on refusal. The
+**A parsed delta and a typed one are the same delta.** `commands.run_command`
+unwraps the `Ask` and hands it to `apply()` — the same call `scheme amber`
+makes, the same `RenderConfig.with_changes` validation, and literally the same
+wording on refusal, since both answers come out of the same `_report`. The
 model cannot reach anything a typed line could not, which is what makes
 `tests/language/parser_eval.py` meaningful: it scores deltas against the validator that
 will actually judge them.
@@ -213,26 +214,46 @@ classDiagram
         +CameraCapture camera
         +ImageProcessor processor
         +AsciiArt ascii_art
+        +LcdWorker lcd
+        +SchemeCycle schemes
+        +AskResolver asks
+        +CommandServer commands
         +Namespace args
         +RenderConfig config
+        +RenderConfig previous_config
         +bool terminal_on
         +bool lcd_on
         +tuple grid
-        +tuple grid_key
         +float cell_aspect
-        +int frame_count
-        +int dropped
         +deque frame_times
         +bool is_running
         +run()
-        +apply(delta) bool
+        +apply(delta) tuple
+        -_next_frame() YuvFrame
+        -_build_picture(frame) tuple
+        -_shut_down(started)
         -_adopt(config, previous)
         -_feasible_target(target) str
-        -_refresh_cell_aspect()
         -_grid_for(frame_shape) tuple
         -_status() str
         -_handle_key(key) bool
         -_drain_input() bool
+    }
+
+    class AskResolver {
+        +AskLog log
+        +warm()
+        +resolve(line) Ask
+        +short_failure(error) str$
+    }
+
+    class SchemeCycle {
+        +RotaryEncoder encoder
+        +start_encoder(clk, dt, sw)
+        +poll()
+        +step(step)
+        +home()
+        +stop()
     }
 
     class CameraCapture {
@@ -428,6 +449,11 @@ classDiagram
     AsciiArtLiveCamera o-- NcursesDisplay : render, keys
     AsciiArtLiveCamera o-- LcdWorker : only with --lcd
     AsciiArtLiveCamera *-- RenderConfig : every live setting
+    AsciiArtLiveCamera *-- SchemeCycle : the s key and the knob
+    AsciiArtLiveCamera *-- AskResolver : only with a command socket
+    AsciiArtLiveCamera o-- CommandServer : typed lines, its own thread
+    CommandServer ..> AskResolver : resolver hook, on the client's thread
+    SchemeCycle o-- RotaryEncoder : only with --encoder
     LcdWorker ..> RenderConfig : arrives with each frame
 
     CameraCapture ..> YuvFrame : produces
