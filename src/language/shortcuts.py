@@ -65,19 +65,38 @@ def normalise(utterance):
     """
     Lower case, one space between words, no trailing punctuation, no manners.
 
-    Deliberately shallow. Stemming or stopword removal would let two different
-    requests normalise to the same string, which is the one failure this table
-    cannot afford - it would answer confidently and never reach the model.
+    Punctuation and manners come off **together**, in one loop, rather than
+    punctuation once and then manners. Stripping in that order left whatever
+    sat between them: "green, please" lost the courtesy and kept the comma,
+    normalised to "green," and missed the table. Nothing broke - a miss falls
+    through to the model, which answers correctly - but the phrasing most
+    people actually type paid 2.6 seconds and an API call to reach an answer
+    the table already had. The docstring promised both and delivered each
+    separately.
+
+    A leading courtesy may be followed by a comma as well as a space, so
+    "please, green" comes apart too. The character after the word is checked
+    rather than assumed, so "pleasant" is not read as "please".
+
+    Deliberately shallow otherwise. Stemming or stopword removal would let two
+    different requests normalise to the same string, which is the one failure
+    this table cannot afford - it would answer confidently and never reach the
+    model. An inner comma is part of the request and survives: "green, high
+    contrast" is not "green".
     """
-    text = " ".join(utterance.lower().split()).strip(" .!?,")
+    text = " ".join(utterance.lower().split())
     changed = True
     while changed:
         changed = False
+        trimmed = text.strip(" .!?,")
+        if trimmed != text:
+            text, changed = trimmed, True
         for word in COURTESIES:
-            if text.startswith(word + " "):
-                text, changed = text[len(word) + 1:].strip(), True
+            if (text.startswith(word)
+                    and text[len(word):len(word) + 1] in (" ", ",")):
+                text, changed = text[len(word):], True
             if text.endswith(" " + word):
-                text, changed = text[:-len(word) - 1].strip(), True
+                text, changed = text[:-len(word) - 1], True
     return text
 
 
