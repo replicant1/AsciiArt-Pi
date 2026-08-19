@@ -814,6 +814,62 @@ def test_an_ask_is_applied_like_a_typed_delta():
           str(app.config.rotation))
 
 
+
+def test_the_camera_says_what_it_did():
+    """
+    The reply is a report, not an echo, and has to read as one.
+
+    At a prompt your line and the camera's answer look alike, and they are
+    nothing alike: one is a request, the other is what became of it. Nothing
+    pinned this wording until now, which is how the whole class of question
+    "did that work, or is it just repeating me" stayed open.
+    """
+    print("\n36. The camera says which of the three things happened")
+    app = make_app()
+
+    reply = app._run_command("scheme green")
+    check("a real change is reported as changed",
+          reply.startswith("changed:"), reply)
+    check("...naming the old value and the new", "'grey'->'green'" in reply,
+          reply)
+
+    reply = app._run_command("scheme green")
+    check("asking for what is already set is unchanged",
+          reply.startswith("unchanged:"), reply)
+    check("...and names the field rather than shrugging",
+          "scheme is already 'green'" in reply, reply)
+
+    reply = app._run_command("rotation 45")
+    check("a value outside an enumeration is refused",
+          reply.startswith("refused:"), reply)
+
+    reply = app._run_command("banana 3")
+    check("so is a setting that does not exist",
+          reply.startswith("refused:"), reply)
+
+    print("\n37. Clamping is said out loud, not left to be inferred")
+    app = make_app()
+    reply = app._run_command("contrast 9")
+    check("the change is real", app.config.contrast == 4.0, app.config.contrast)
+    check("and reported as a change", reply.startswith("changed:"), reply)
+    # The whole reason the reply carries the old value: what you asked for and
+    # what you got are different here, and only the camera knows that.
+    check("...saying the asked-for value was outside the range",
+          "9.0 is outside" in reply, reply)
+    check("...and which end it stopped at", "the most this can do" in reply,
+          reply)
+
+    app = make_app()
+    reply = app._run_command("contrast -5")
+    check("the other end says least", "the least this can do" in reply, reply)
+
+    app = make_app()
+    reply = app._run_command("contrast 2.5")
+    check("a value inside the range is taken exactly",
+          app.config.contrast == 2.5, app.config.contrast)
+    check("...and claims no clamping", "outside" not in reply, reply)
+
+
 def main():
     print("=" * 68)
     print("RenderConfig: the app's settings surface")
@@ -834,6 +890,7 @@ def main():
     test_target_reshapes_the_loop()
     test_headless_builds_nothing()
     test_an_ask_is_applied_like_a_typed_delta()
+    test_the_camera_says_what_it_did()
 
     print("\n" + "=" * 68)
     if failures:

@@ -276,14 +276,77 @@ def reset_delta(config, feasible_target):
             if getattr(config, name) != value}
 
 
-def _applied(changed, refusal, before, config, note=None):
-    """The reply for one delta that has been through apply()."""
-    tail = f"\n  ({note})" if note else ""
+def _label(outcome, text):
+    """One outcome word, then what it is about, wrapped across lines."""
+    lines = text.splitlines() or [""]
+    pad = " " * (len(outcome) + 2)
+    return "\n".join([f"{outcome}: {lines[0]}"]
+                     + [pad + line for line in lines[1:]])
+
+
+def _clamped(requested, config):
+    """
+    Which requested values the ranges would not go all the way to.
+
+    Read back off the config rather than predicted, so this reports what the
+    setting actually became and cannot drift from the rule that decided it.
+    """
+    notes = []
+    for name, value in (requested or {}).items():
+        spec = render_config.BY_NAME.get(name)
+        if spec is None or spec.low is None:
+            continue
+        actual = getattr(config, name, None)
+        if isinstance(value, (int, float)) and actual != value:
+            edge = "most" if actual == spec.high else "least"
+            notes.append(f"{name} {value!r} is outside {spec.low}-{spec.high},"
+                         f" so {actual!r} is the {edge} this can do")
+    return notes
+
+
+def _report(before, requested, changed, refusal, config, aside=None):
+    """
+    Say what happened to the settings, in the camera's own voice.
+
+    Every reply starts with an outcome word - changed, unchanged, refused -
+    and that is the point rather than decoration. At a prompt the line you
+    typed and the line that comes back look alike, and they are not alike at
+    all: one is a request and the other is a report of what the camera did
+    with it. Only the camera can say which of the three happened, so the word
+    identifies the speaker as a side effect of being useful.
+
+    It matters most where the two differ. A value outside a range is clamped
+    rather than refused - contrast 9 becomes 4.0 - so "changed" alone would
+    leave you comparing the reply against what you typed to notice. It says so
+    instead.
+
+    The three outcomes are exactly what `apply` now returns: `changed` true,
+    `changed` false with a reason, and `changed` false without one. Before it
+    returned a bare bool the third case could not be told from the second
+    without reaching for an attribute left behind on the app.
+    """
     if changed:
-        return f"  {config.describe_changes(before)}{tail}"
+        body = config.describe_changes(before)
+        clamp = _clamped(requested, config)
+        if clamp:
+            body += "\n" + "; ".join(clamp)
+        if aside:
+            body += f"\n({aside})"
+        return _label("changed", body)
+
     if refusal:
-        return "\n".join("  " + line for line in refusal.splitlines())
-    return f"  nothing changed{f' ({note})' if note else ''}"
+        return _label("refused", refusal)
+
+    # Nothing moved and nothing was wrong: every field asked for already held
+    # the value asked for. Naming them beats "nothing changed", which leaves
+    # you wondering whether it was heard.
+    already = ", ".join(f"{name} is already {getattr(config, name)!r}"
+                        for name in sorted(requested or {})
+                        if hasattr(config, name))
+    body = already or "nothing to do"
+    if aside:
+        body += f"\n({aside})"
+    return _label("unchanged", body)
 
 
 def run_command(request, settings, apply, feasible_target):
@@ -313,14 +376,18 @@ def run_command(request, settings, apply, feasible_target):
     if isinstance(request, Ask):
         logger.info("Command: ask %s", request.utterance)
         changed, refusal = apply(request.delta)
-        return _applied(changed, refusal, config, settings(), request.note)
+        return _report(config, request.delta, changed, refusal, settings(),
+                       aside=request.note)
 
     line = request
     logger.info("Command: %s", line)
     try:
         kind, payload = parse(line)
     except CommandError as e:
-        return str(e)
+        # The camera refusing a line before any state was touched. Same word
+        # as a refusal from the validator, because from where the reader sits
+        # they are the same event: nothing moved, and here is why.
+        return _label("refused", str(e))
 
     if kind == "none":
         return ""
@@ -331,10 +398,10 @@ def run_command(request, settings, apply, feasible_target):
     if kind == "reset":
         payload = reset_delta(config, feasible_target)
         if not payload:
-            return "already at the defaults"
+            return _label("unchanged", "already at the defaults")
 
     # From here it is an ordinary delta, applied down the same path a keypress
     # uses - so a typed setting and a pressed key cannot diverge, and neither
     # can get past the validation the other would have hit.
     changed, refusal = apply(payload)
-    return _applied(changed, refusal, config, settings())
+    return _report(config, payload, changed, refusal, settings())

@@ -24,7 +24,7 @@ validated path would let a phrase work by hand and fail through the parser.
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`CommandServer`](../../src/control/command_server.py#L80) | A `threading.Thread` owning the Unix socket, with a thread per connected client. Here it is the **courier**: it splits lines, offers each to the resolver, puts it on the inbox and blocks its own client for the answer. It understands not one setting, which is exactly what keeps the socket's concerns out of the render loop |
-| [`commands`](../../src/control/commands.py) | A module of functions rather than a class — its only class is [`CommandError`](../../src/control/commands.py#L49), the exception. Here it is the **translator and the dispatcher**: [`parse`](../../src/control/commands.py#L53) turns a line into typed values and stops, holding no opinion about what is allowed so that exactly one place does, while [`run_command`](../../src/control/commands.py#L289) decides what each kind of line means and words every answer |
+| [`commands`](../../src/control/commands.py) | A module of functions rather than a class — its only class is [`CommandError`](../../src/control/commands.py#L49), the exception. Here it is the **translator and the dispatcher**: [`parse`](../../src/control/commands.py#L53) turns a line into typed values and stops, holding no opinion about what is allowed so that exactly one place does, while [`run_command`](../../src/control/commands.py#L352) decides what each kind of line means and words every answer |
 | [`AsciiArtLiveCamera`](../../ascii_camera.py#L99) | The render loop, and the one object the whole process is hung off. Here it is the **applier**: it [drains the inbox once per frame](../../ascii_camera.py#L456), binds this run's own state to the dispatcher, and is the only thing that pushes an adopted config out to the terminal and the panel worker |
 | [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen so that it is replaced rather than mutated. Here it is both **validator and diff**: [`with_changes`](../../src/control/render_config.py#L141) returns the new config, and [`describe_changes`](../../src/control/render_config.py#L191) produces the text the person gets back |
 
@@ -67,7 +67,7 @@ sequenceDiagram
     end
 
     CS-->>CLI: the reply, terminated so the client knows it is complete
-    CLI-->>Person: contrast 1.0->2.4, invert False->True
+    CLI-->>Person: changed: contrast 1.0->2.4, invert False->True
 ```
 
 | Step | Message | What is going on |
@@ -88,7 +88,7 @@ sequenceDiagram
 | 14 | `"contrast 1.0->2.4, invert False->True"` | Empty when nothing changed, so a caller can use it as the test for whether the change was real rather than tracking that itself |
 | 15 | `answer.put_nowait(reply text)` | [Every line is answered](../../ascii_camera.py#L456), including the ones that changed nothing, so no client is ever left waiting on a reply that is not coming |
 | 16 | the reply, terminated so the client knows it is complete | A reply may run to several lines — what [`help_text`](../../src/control/commands.py#L176) returns does — and the client has no other way to know it has all of them |
-| 17 | `contrast 1.0->2.4, invert False->True` | What the person sees, in the same wording a keypress would have put in the [status line](../../ascii_camera.py#L571) |
+| 17 | `changed: contrast 1.0->2.4, invert False->True` | What the person sees. The outcome word comes from [`_report`](../../src/control/commands.py#L307): at a prompt a request and a report of what became of it look alike, and only the camera can say which of *changed*, *unchanged* or *refused* it was. The change itself is worded exactly as a keypress would have put it in the [status line](../../ascii_camera.py#L571) |
 
 `_ask` putting the request on the inbox and `take()` draining it are the same
 queue seen from its two ends, and that handover is the boundary the two bands
