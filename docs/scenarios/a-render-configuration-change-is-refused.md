@@ -17,7 +17,7 @@ the validator at all — `tests/control/commands_test.py` caught it.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`AsciiArtLiveCamera`](../../ascii_camera.py#L98) | The render loop, and the one object the whole process is hung off. Here it is the **caller**: it holds the live config, offers every delta to the validator through [`apply`](../../ascii_camera.py#L235), and adds the single check the validator is not in a position to make — whether this run actually has the display a `target` names |
+| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the whole process is hung off, and the only thread a setting may be changed on. Here it is the **caller**: it holds the live config, offers every delta to the validator through [`apply`](../../ascii_camera.py#L235), and adds the single check the validator is not in a position to make — whether this run actually has the display a `target` names |
 | [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen so that it is replaced rather than mutated. Here it is the **judge**: [`with_changes`](../../src/control/render_config.py#L141) is the only code in the app that decides whether a value is allowed, and it answers identically whoever asked |
 | [`Spec`](../../src/control/render_config.py#L63) | What one setting accepts and what it is for — its `kind`, and either its `choices` or its `low` and `high`. Here it supplies the rule each value is tested against by [`_coerce`](../../src/control/render_config.py#L211), and the wording of the complaint when a value misses. The [twelve of them](../../src/control/render_config.py#L74) are also the source of the `help` text and the model's tool schema, so all three agree by construction |
 | [`ConfigError`](../../src/control/render_config.py#L49) | A delta that could not be applied. Here it is the **vehicle for every reason at once** rather than the first one found, which is what lets a caller — or the eval harness — fix a whole delta in a single pass |
@@ -28,7 +28,7 @@ the validator at all — `tests/control/commands_test.py` caught it.
 sequenceDiagram
     autonumber
     participant Asker as whoever asked<br/>key, knob, socket or model
-    participant App as AsciiArtLiveCamera
+    participant App as MainRenderLooper
     participant Cfg as RenderConfig<br/>frozen, replaced not mutated
 
     Asker->>App: apply({rotation: 45, target: "speaker"})
@@ -68,7 +68,7 @@ after the first and deliberately not inside it.
 sequenceDiagram
     autonumber
     participant Asker as whoever asked
-    participant App as AsciiArtLiveCamera
+    participant App as MainRenderLooper
     participant Cfg as RenderConfig
 
     Asker->>App: apply({target: "lcd"})

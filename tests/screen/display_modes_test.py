@@ -141,12 +141,12 @@ def test_no_output_is_refused_at_runtime():
     # GPIO pins open behind a half-constructed app - which segfaults the
     # interpreter on the way out. Patching the one method keeps the check
     # about the refusal and nothing else, and makes it run anywhere.
-    original = ascii_camera.AsciiArtLiveCamera._start_lcd
-    ascii_camera.AsciiArtLiveCamera._start_lcd = lambda self: None
+    original = ascii_camera.MainRenderLooper._start_lcd
+    ascii_camera.MainRenderLooper._start_lcd = lambda self: None
 
     display = HeadlessDisplay(status_interval=0, stream=io.StringIO())
     try:
-        ascii_camera.AsciiArtLiveCamera(display, args)
+        ascii_camera.MainRenderLooper(display, args)
         check("a headless run with no panel is refused", False,
               "it started anyway")
     except RuntimeError as e:
@@ -156,7 +156,7 @@ def test_no_output_is_refused_at_runtime():
         check("a headless run with no panel is refused", False,
               f"raised {type(e).__name__}: {e}")
     finally:
-        ascii_camera.AsciiArtLiveCamera._start_lcd = original
+        ascii_camera.MainRenderLooper._start_lcd = original
         display.close()
 
 

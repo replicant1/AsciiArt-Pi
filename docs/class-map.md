@@ -16,7 +16,7 @@ only, so it reads as surface rather than size.
 
 | Class | In | Base | Methods | What it is for |
 |---|---|---|---:|---|
-| `AsciiArtLiveCamera` | `ascii_camera.py` | — | 5 | Capture -> process -> ASCII -> terminal, once per frame. |
+| `MainRenderLooper` | `ascii_camera.py` | — | 5 | Capture -> process -> ASCII -> terminal, once per frame. |
 
 ## Capture
 

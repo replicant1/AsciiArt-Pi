@@ -218,7 +218,7 @@ import ascii_camera                                   # noqa: E402
 class StallApp:
     """Just the stall logic, with the clock and the output in the test's hands."""
 
-    _note_if_stalled = ascii_camera.AsciiArtLiveCamera._note_if_stalled
+    _note_if_stalled = ascii_camera.MainRenderLooper._note_if_stalled
 
     def __init__(self):
         self._last_frame_at = None
@@ -378,7 +378,7 @@ class NoteApp:
     parts overwrites the method with the tuple on the first call.
     """
 
-    _note = ascii_camera.AsciiArtLiveCamera._note
+    _note = ascii_camera.MainRenderLooper._note
 
     def __init__(self):
         self.notice = None

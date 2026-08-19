@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                                   # noqa: E402
-from ascii_camera import AsciiArtLiveCamera       # noqa: E402
+from ascii_camera import MainRenderLooper       # noqa: E402
 from control.scheme_cycle import SchemeCycle      # noqa: E402
 from control.encoder import QuadratureDecoder, RotaryEncoder   # noqa: E402
 from capture.image_processor import ImageProcessor        # noqa: E402
@@ -194,7 +194,7 @@ class StubEncoder:
 
 
 def make_app(steps, presses=0):
-    app = object.__new__(AsciiArtLiveCamera)
+    app = object.__new__(MainRenderLooper)
     app.display = StubDisplay()
     app.processor = ImageProcessor()
     # The scheme is a field of one config object now, not an index the app

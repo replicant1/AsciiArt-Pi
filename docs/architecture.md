@@ -64,7 +64,7 @@ the picture alone.
 Every setting that can change while the camera is running lives in a single
 frozen `RenderConfig` (`src/control/render_config.py`), and every change to one is a
 *delta* — a dict of field names to values — applied through
-`AsciiArtLiveCamera.apply()`. The keyboard produces deltas. The knob produces
+`MainRenderLooper.apply()`. The keyboard produces deltas. The knob produces
 deltas. Nothing anywhere assigns a setting directly.
 
 The settings used to be scattered: some on the `ImageProcessor`, some as plain
@@ -209,7 +209,7 @@ or made with the knob. One history, however many ways in.
 classDiagram
     direction TB
 
-    class AsciiArtLiveCamera {
+    class MainRenderLooper {
         +NcursesDisplay display
         +CameraCapture camera
         +ImageProcessor processor
@@ -443,15 +443,15 @@ classDiagram
         -_tap(code, shift)
     }
 
-    AsciiArtLiveCamera *-- CameraCapture : luma frames
-    AsciiArtLiveCamera *-- ImageProcessor : rotate, crop, resize, levels
-    AsciiArtLiveCamera *-- AsciiArt : brightness to characters
-    AsciiArtLiveCamera o-- NcursesDisplay : render, keys
-    AsciiArtLiveCamera o-- LcdWorker : only with --lcd
-    AsciiArtLiveCamera *-- RenderConfig : every live setting
-    AsciiArtLiveCamera *-- SchemeCycle : the s key and the knob
-    AsciiArtLiveCamera *-- AskResolver : only with a command socket
-    AsciiArtLiveCamera o-- CommandServer : typed lines, its own thread
+    MainRenderLooper *-- CameraCapture : luma frames
+    MainRenderLooper *-- ImageProcessor : rotate, crop, resize, levels
+    MainRenderLooper *-- AsciiArt : brightness to characters
+    MainRenderLooper o-- NcursesDisplay : render, keys
+    MainRenderLooper o-- LcdWorker : only with --lcd
+    MainRenderLooper *-- RenderConfig : every live setting
+    MainRenderLooper *-- SchemeCycle : the s key and the knob
+    MainRenderLooper *-- AskResolver : only with a command socket
+    MainRenderLooper o-- CommandServer : typed lines, its own thread
     CommandServer ..> AskResolver : resolver hook, on the client's thread
     SchemeCycle o-- RotaryEncoder : only with --encoder
     LcdWorker ..> RenderConfig : arrives with each frame
@@ -472,7 +472,7 @@ classDiagram
     Keyboard ..> NcursesDisplay : synthetic keys, via the kernel
 ```
 
-The app core is `AsciiArtLiveCamera`, which constructs the camera, processor and
+The app core is `MainRenderLooper`, which constructs the camera, processor and
 renderer, hence composition; `NcursesDisplay` is aggregation instead, because
 `curses.wrapper()` owns the screen and hands the window in. `LcdWorker` is
 aggregation for a different reason — it only exists when `--lcd` is passed, so
@@ -604,7 +604,7 @@ sequenceDiagram
     autonumber
     participant T as CameraCapture._capture_loop<br/>background thread
     participant Q as frame_queue<br/>maxsize 1
-    participant App as AsciiArtLiveCamera.run<br/>main thread
+    participant App as MainRenderLooper.run<br/>main thread
     participant P as ImageProcessor
     participant A as AsciiArt
     participant D as NcursesDisplay

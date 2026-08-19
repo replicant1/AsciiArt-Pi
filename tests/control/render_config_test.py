@@ -35,7 +35,7 @@ import numpy as np                                # noqa: E402
 import ascii_camera                                # noqa: E402
 from art import palettes                                   # noqa: E402
 from control import render_config                              # noqa: E402
-from ascii_camera import AsciiArtLiveCamera       # noqa: E402
+from ascii_camera import MainRenderLooper       # noqa: E402
 from control.scheme_cycle import SchemeCycle      # noqa: E402
 from capture.image_processor import ImageProcessor        # noqa: E402
 from control.render_config import ConfigError, RenderConfig  # noqa: E402
@@ -304,8 +304,8 @@ class StubLcd:
 
 
 def make_app(lcd=None, draws=True):
-    """An AsciiArtLiveCamera with only what apply() and the keys touch."""
-    app = object.__new__(AsciiArtLiveCamera)
+    """An MainRenderLooper with only what apply() and the keys touch."""
+    app = object.__new__(MainRenderLooper)
     app.display = StubDisplay()
     app.display.draws = draws
     app.processor = ImageProcessor()
