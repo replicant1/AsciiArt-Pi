@@ -42,6 +42,20 @@ def anchor(heading):
     return re.sub(r"\s+", "-", text)
 
 
+def prose(body):
+    """
+    `body` with code removed, so examples are not mistaken for links.
+
+    A document that teaches a link format contains link *samples* - in fenced
+    blocks and in inline code - and GitHub renders none of them as links. The
+    check below would otherwise chase `[`take`](...#L258)` out of a table of
+    rules and report the placeholder as a broken path.
+    """
+    body = re.sub(r"```.*?```", "", body, flags=re.S)
+    body = re.sub(r"``[^`]*``", "", body)
+    return re.sub(r"`[^`]*`", "", body)
+
+
 def documents():
     """
     Every markdown file, skipping the mount's AppleDouble sidecars.
@@ -67,7 +81,7 @@ check("there are documents to check", len(docs) > 1, True)
 
 missing_files, missing_anchors = [], []
 for d in docs:
-    for _, target in re.findall(r"\[([^\]]*)\]\(([^)]+)\)", text[d]):
+    for _, target in re.findall(r"\[([^\]]*)\]\(([^)]+)\)", prose(text[d])):
         if target.startswith(("http://", "https://", "mailto:")):
             continue
         path, _, frag = target.partition("#")

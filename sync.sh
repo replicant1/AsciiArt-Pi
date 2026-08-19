@@ -70,6 +70,7 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            guides/panel-connectors-guide.html
            guides/enclosure-renders.html index.html
            using-it.md architecture.md module-map.md class-map.md
+           how-to-write-scenario-docs.md
            subsystems/panel.md subsystems/encoder.md subsystems/language.md
            subsystems/colour-schemes.md subsystems/what-the-model-is-told.md
            project/performance.md project/workflow.md project/deployment.md
