@@ -7,8 +7,8 @@ automated verification goes: it proves the geometry, the colours and the
 animation are what they claim to be, and then leaves a PNG for a human to look
 at.  A clean run here is NOT evidence that anything appeared on the glass.
 
-Run:  python3 tests/panel/lcd_splash_test.py            # no hardware needed
-      python3 tests/panel/lcd_splash_test.py --panel    # drive the real panel
+Run:  python3 tests/lcd/lcd_splash_test.py            # no hardware needed
+      python3 tests/lcd/lcd_splash_test.py --panel    # drive the real panel
 
 --panel exists because the real thing is over in about a second and a half: the
 camera on this Pi hands over its first frame far sooner than the enclosure notes'
@@ -25,7 +25,7 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 import numpy as np                                          # noqa: E402
-from panel.lcd_splash import (BAR_CELLS, SWEEP_RAMP, SWEEP_STEP, TAIL,  # noqa: E402
+from lcd.lcd_splash import (BAR_CELLS, SWEEP_RAMP, SWEEP_STEP, TAIL,  # noqa: E402
                         SplashScreen)
 
 PASS, FAIL = "PASS", "FAIL"
@@ -253,7 +253,7 @@ def test_hold_keeps_the_screen_up():
     """
     print("\nSplash hold")
     import numpy as np
-    from panel.lcd_worker import LcdWorker
+    from lcd.lcd_worker import LcdWorker
     from control.render_config import RenderConfig
 
     display = FakeDisplay()
@@ -302,7 +302,7 @@ def test_hold_keeps_the_screen_up():
 def test_zero_hold_hands_over_at_once():
     print("\nSplash hold disabled")
     import numpy as np
-    from panel.lcd_worker import LcdWorker
+    from lcd.lcd_worker import LcdWorker
     from control.render_config import RenderConfig
 
     display = FakeDisplay()
@@ -345,7 +345,7 @@ def test_blank_cancels_the_start_up_screen():
     keys and wondering why nothing has appeared yet.
     """
     print("\nBlanking while the start-up screen is up")
-    from panel.lcd_worker import LcdWorker
+    from lcd.lcd_worker import LcdWorker
 
     display = FakeDisplay()
     worker = LcdWorker(display, splash_hold=3.0)
@@ -382,8 +382,8 @@ def hold_on_panel(seconds, message, detail):
     displaying, so it prints what should be visible and leaves the judgement to
     whoever is looking at it.
     """
-    from panel.lcd_display import LcdDisplay
-    from panel.lcd_splash import SplashScreen
+    from lcd.lcd_display import LcdDisplay
+    from lcd.lcd_splash import SplashScreen
 
     display = LcdDisplay(ramp=" .:-=+*#%@")
     try:

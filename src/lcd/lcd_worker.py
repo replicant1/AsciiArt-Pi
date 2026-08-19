@@ -339,7 +339,7 @@ class LcdWorker(threading.Thread):
             # Imported here rather than at module scope so PIL is only needed
             # when the panel is. Repeat imports hit sys.modules, so the cost
             # after the first tick is a dict lookup.
-            from panel.lcd_splash import SWEEP_STEP, SplashScreen
+            from lcd.lcd_splash import SWEEP_STEP, SplashScreen
 
             if self._splash_screen is None:
                 width, height = self.display.panel_size

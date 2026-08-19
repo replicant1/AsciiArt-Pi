@@ -39,7 +39,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from art import palettes                                  # noqa: E402
 from art.ascii_art import RAMPS, AsciiArt            # noqa: E402
 from capture.image_processor import ImageProcessor       # noqa: E402
-from panel.lcd_display import DEFAULT_FONT, GlyphAtlas  # noqa: E402
+from lcd.lcd_display import DEFAULT_FONT, GlyphAtlas  # noqa: E402
 
 logger = logging.getLogger("montage")
 

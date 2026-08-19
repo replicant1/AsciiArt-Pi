@@ -105,7 +105,7 @@ check("and says it on one line", too_long, [])
 # than either page not existing.
 check("it groups by the same packages the module map uses",
       [title for title, _, _ in module_map.packages()],
-      [title for title in ("Capture", "Art", "Screen", "Panel", "Control",
+      [title for title in ("Capture", "Art", "Screen", "LCD", "Control",
                            "Language")])
 check("and every one of those appears as a heading",
       [t for t, _, _ in module_map.packages() if f"## {t}" not in page], [])

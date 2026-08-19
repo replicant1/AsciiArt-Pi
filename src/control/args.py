@@ -22,7 +22,7 @@ from pathlib import Path
 from art import palettes
 from art.ascii_art import RAMPS
 from control import render_config
-from panel.lcd_worker import DEFAULT_SPLASH_HOLD
+from lcd.lcd_worker import DEFAULT_SPLASH_HOLD
 from version import APP_NAME, __version__
 
 RAMP_CYCLE = list(RAMPS)

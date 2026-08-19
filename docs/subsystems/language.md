@@ -241,7 +241,7 @@ packed**, not part of the character grid. The glyph atlas holds only the ramp,
 so the grid literally cannot spell anything; and text tinted by whatever cell
 colours happened to sit under it would be unreadable exactly when it mattered.
 Fixed ink on a fixed band is legible over every scheme including `live`, and
-`tests/panel/notice_test.py` asserts the band comes out byte-identical over a bright
+`tests/lcd/notice_test.py` asserts the band comes out byte-identical over a bright
 picture and a blank one.
 
 **The stalled camera is the case that shaped the design.** On 18 August an OOM
@@ -256,7 +256,7 @@ That message is the one a frame-driven display cannot deliver: there are no
 frames for it to ride on. The frame buffer is persistent, so it is painted over
 whatever picture is already up there and pushed on its own.
 
-**Verification is split, because it has to be.** `tests/panel/notice_test.py` (36
+**Verification is split, because it has to be.** `tests/lcd/notice_test.py` (36
 checks) covers the geometry, the caching, the wrapping, the frameless path and
 the stall thresholds, and was checked by breaking the implementation four ways —
 each mutant failed exactly the tests meant to catch it. What no test on this

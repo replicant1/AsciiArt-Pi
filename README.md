@@ -155,7 +155,7 @@ src/art/                 ascii_art.py         brightness -> characters
 src/screen/              display.py           ncurses on the HDMI monitor
                          headless.py          the stand-in when there is none
                          status_line.py       the bottom line, and what fits
-src/panel/               lcd.py               ILI9341 over SPI, RGB565
+src/lcd/               lcd.py               ILI9341 over SPI, RGB565
                          lcd_display.py       the character grid, as pixels
                          lcd_worker.py        its own thread, so SPI never stalls
                          lcd_splash.py        the start-up screen

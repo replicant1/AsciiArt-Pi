@@ -34,11 +34,11 @@ OUTPUT = ROOT / "docs" / "module-map.md"
 #
 # The grouping itself used to be a table in this file, listing every module
 # against a subsystem. It is not any more, because the packages under src/ say
-# it: `src/panel/lcd_worker.py` is in the panel subsystem because of where it
+# it: `src/lcd/lcd_worker.py` is in the lcd subsystem because of where it
 # is, and a statement the filesystem already makes should not be made twice
 # where the two can disagree. What is left is a presentation order and a check
 # that no package has appeared without being placed in it.
-ORDER = ("capture", "art", "screen", "panel", "control", "language")
+ORDER = ("capture", "art", "screen", "lcd", "control", "language")
 
 ENTRY = ("ascii_camera.py", "src/version.py")
 ENTRY_BLURB = ("The process itself: argument parsing, the render loop, and the "
@@ -58,6 +58,17 @@ def summary(path):
     return "(no docstring)"
 
 
+# capitalize() turns "lcd" into "Lcd", which is not how anyone writes it. The
+# package names are ordinary words apart from the initialisms, so the exceptions
+# are listed rather than guessed at.
+INITIALISMS = {"lcd": "LCD"}
+
+
+def heading(name):
+    """A package name as a section heading."""
+    return INITIALISMS.get(name, name.capitalize())
+
+
 def packages():
     """
     Each package under src/, its own blurb, and the modules in it.
@@ -75,7 +86,7 @@ def packages():
         modules = [f"src/{name}/{p.name}"
                    for p in sorted(directory.glob("*.py"))
                    if p.name != "__init__.py" and not p.name.startswith(".")]
-        found.append((name.capitalize(), blurb, modules))
+        found.append((heading(name), blurb, modules))
 
     on_disk = {d.name for d in (ROOT / "src").iterdir()
                if d.is_dir() and not d.name.startswith(("_", "."))}

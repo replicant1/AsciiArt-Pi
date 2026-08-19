@@ -749,4 +749,4 @@ The three `lcd_*` modules are a deliberate stack rather than one file:
 `lcd_worker.py` deals only in threading and settings, `lcd_display.py` only in
 turning a character grid into pixels, and `lcd.py` only in what the ILI9341
 wants to hear. Only the bottom one knows about SPI, which is what lets
-`tests/panel/lcd_render_bench.py` exercise the render path without a panel attached.
+`tests/lcd/lcd_render_bench.py` exercise the render path without a panel attached.

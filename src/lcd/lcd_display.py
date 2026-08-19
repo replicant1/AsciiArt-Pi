@@ -26,7 +26,7 @@ import textwrap
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from panel.lcd import ILI9341
+from lcd.lcd import ILI9341
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +217,7 @@ class LcdDisplay:
         Returns a (band_h, width) uint8 array. Cached because a notice stands
         for seconds and the panel redraws 27 times a second; rasterising per
         frame would put a PIL text call back on the hot path, which is the one
-        thing src/panel/lcd_display.py exists to keep off it.
+        thing src/lcd/lcd_display.py exists to keep off it.
         """
         if self._notice_cache is not None and self._notice_cache[0] == text:
             return self._notice_cache[1]

@@ -2,10 +2,10 @@
 """
 Check that the LCD worker adopts config changes, without a panel attached.
 
-    python3 tests/panel/lcd_worker_test.py
+    python3 tests/lcd/lcd_worker_test.py
 
 This is the wiring between the app's RenderConfig and the panel, and until now
-nothing in software tested it. tests/panel/lcd_font_size_test.py drives
+nothing in software tested it. tests/lcd/lcd_font_size_test.py drives
 LcdDisplay.set_font_size directly and needs the real ILI9341; what it does not
 cover is the worker's *decision* to call it. So a config change that stopped
 reaching the panel would have been caught only by running the hardware test, or
@@ -26,7 +26,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from panel.lcd_worker import LcdWorker              # noqa: E402
+from lcd.lcd_worker import LcdWorker              # noqa: E402
 from art.ascii_art import MAX_COLOUR_LEVELS       # noqa: E402
 from control.render_config import RenderConfig        # noqa: E402
 
@@ -312,7 +312,7 @@ def main():
         return 1
     print("RESULT: config changes reach the panel as they should.")
     print("        This is the wiring, not the glass - see")
-    print("        tests/panel/lcd_font_size_test.py for the hardware half.")
+    print("        tests/lcd/lcd_font_size_test.py for the hardware half.")
     return 0
 
 

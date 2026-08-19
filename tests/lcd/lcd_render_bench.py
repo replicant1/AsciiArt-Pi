@@ -2,7 +2,7 @@
 """
 Check and time the LCD ASCII render path, without needing the camera.
 
-    python3 tests/panel/lcd_render_bench.py [hold_seconds]
+    python3 tests/lcd/lcd_render_bench.py [hold_seconds]
 
 The correctness half matters more than the timing half: it asserts that the
 glyph the panel draws for a given brightness is the same one the terminal would
@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                                    # noqa: E402
 from art.ascii_art import RAMPS, AsciiArt              # noqa: E402
-from panel.lcd_display import LcdDisplay                 # noqa: E402
+from lcd.lcd_display import LcdDisplay                 # noqa: E402
 
 failures = []
 

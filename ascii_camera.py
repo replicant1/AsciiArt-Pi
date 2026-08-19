@@ -379,8 +379,8 @@ class MainRenderLooper:
         that spidev and RPi.GPIO are only required when the panel is asked for.
         """
         try:
-            from panel.lcd_display import LcdDisplay
-            from panel.lcd_worker import LcdWorker
+            from lcd.lcd_display import LcdDisplay
+            from lcd.lcd_worker import LcdWorker
 
             font_size = self.config.lcd_font_size
             display = LcdDisplay(
