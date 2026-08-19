@@ -78,8 +78,8 @@ Words in, a validated settings change out.
 | `src/language/asklog.py` | 234 | A record of every natural-language request, so real use becomes evidence. |
 | `src/language/parser.py` | 548 | Natural language in, a validated RenderConfig delta out. |
 | `src/language/resolver.py` | 221 | "ask <words>" in, a delta out - on the caller's thread, never the render loop. |
-| `src/language/shortcuts.py` | 251 | The phrases that do not need a language model. |
+| `src/language/shortcuts.py` | 270 | The phrases that do not need a language model. |
 
 ---
 
-24 modules, 7,314 lines.
+24 modules, 7,333 lines.

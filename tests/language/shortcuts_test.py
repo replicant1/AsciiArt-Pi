@@ -72,6 +72,25 @@ check("manners are stripped", shortcuts.normalise("please make it green"),
       "make it green")
 check("at either end", shortcuts.normalise("could you make it green please"),
       "make it green")
+# Punctuation and manners have to come off together, not one then the other.
+# Stripping punctuation once, before the courtesies, leaves the comma that sat
+# between them: "green, please" became "green," and missed the table, so the
+# phrasing most people actually type paid 2.6 s and an API call for an answer
+# the table already had.
+check("a comma before the manners goes too",
+      shortcuts.normalise("green, please"), "green")
+check("...and after them", shortcuts.normalise("please, green"), "green")
+check("...however many there are",
+      shortcuts.normalise("could you make it green, please!"), "make it green")
+check("the phrase that missed now hits", look("Green, please"),
+      {"scheme": "green"})
+check("...and so does the polite freeze", look("could you freeze it, please"),
+      {"freeze": True})
+# Not everything with a comma is manners: an inner one is part of the request
+# and must survive, or two different phrases could collapse into one string.
+check("an inner comma is left alone",
+      shortcuts.normalise("green, high contrast"), "green, high contrast")
+
 # The shallowness is deliberate: two different requests must never normalise to
 # one string, because the table would then answer confidently and never ask.
 check("but 'a bit' survives, since it is a different request",
