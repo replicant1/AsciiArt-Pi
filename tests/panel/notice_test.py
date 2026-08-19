@@ -258,7 +258,11 @@ check("but said again once the notice would have expired", len(app.said), 2)
 # --- 7. a failure becomes a sentence, not a traceback -------------------------
 section("7. a failure becomes a sentence, not a traceback")
 
-short = ascii_camera.AsciiArtLiveCamera._short_failure
+# Moved off the app with the rest of the ask path; the wording is the
+# resolver's now, and the panel is still where it has to fit.
+from language.resolver import AskResolver                    # noqa: E402
+
+short = AskResolver.short_failure
 check("a timeout says so", short(Exception("Request timed out")),
       "the model took too long - try again")
 check("a dead network says what still works",

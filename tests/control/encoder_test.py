@@ -198,11 +198,10 @@ def make_app(steps, presses=0):
     app.display = StubDisplay()
     app.processor = ImageProcessor()
     # The scheme is a field of one config object now, not an index the app
-    # kept alongside the ramp name and the invert flag. _cycle_scheme still
-    # walks the list by index; it just does not store the result as one.
+    # kept alongside the ramp name and the invert flag. SchemeCycle.step
+    # still walks the list by index; it just does not store the result as one.
     app.config = RenderConfig()
     app.notice = None
-    app.refusal = None
     app.previous_config = None
     app.grid_key = None
     app.lcd = None
@@ -347,7 +346,7 @@ def test_the_key_needs_no_knob():
     print("\n13. Cycling works with no encoder attached at all")
     # The point of the split: --encoder decides whether a *second* way in
     # exists, not whether schemes can be cycled. Before SchemeCycle this was
-    # only true by accident of _cycle_scheme living on the app beside a
+    # only true by accident of the walk living on the app beside a
     # self.encoder that happened to be None.
     names = list(palettes.SCHEME_NAMES)
     app = make_app(0)
