@@ -870,6 +870,77 @@ def test_the_camera_says_what_it_did():
     check("...and claims no clamping", "outside" not in reply, reply)
 
 
+def test_the_command_line_quotes_the_specs():
+    """
+    Every setting's flag takes its wording from its own Spec.
+
+    It used to be written out a second time in parse_args, and the two had
+    drifted: --help called the ramp a "character ramp" where the Spec calls it
+    a character set, and said nothing about the panel ignoring --fill, which
+    the Spec does say. Three places had to be edited to add a setting. This is
+    what stops that happening again - and it can fail, which the drift it
+    replaced never could.
+    """
+    print("\n38. The command line quotes the Specs rather than paraphrasing")
+    import ascii_camera
+    from control import args as cli
+    from control.render_config import BY_NAME
+
+    actions = {}
+    for action in cli.build_parser()._actions:
+        for flag in action.option_strings:
+            actions[flag] = action
+
+    # flag -> the setting it carries, and whether it is phrased as a negative
+    FLAGS = {"--scheme": ("scheme", False), "--ramp": ("ramp", False),
+             "--invert": ("invert", False), "--fill": ("fill", False),
+             "--mirror": ("mirror", False), "--rotation": ("rotation", False),
+             "--contrast": ("contrast", False),
+             "--colour-levels": ("colour_levels", False),
+             "--lcd-font-size": ("lcd_font_size", False),
+             "--no-auto-levels": ("auto_levels", True)}
+
+    missing = [f for f in FLAGS if f not in actions]
+    check("every setting flag is still on the parser", not missing,
+          str(missing))
+
+    wrong = []
+    for flag, (name, negated) in FLAGS.items():
+        note = BY_NAME[name].note
+        body = note if not negated else note[0].lower() + note[1:]
+        if body not in (actions[flag].help or ""):
+            wrong.append(f"{flag} does not quote {name}'s Spec")
+    check("...and its help quotes that setting's Spec.note", not wrong,
+          "; ".join(wrong))
+
+    check("a negated flag says so rather than being written again",
+          actions["--no-auto-levels"].help.startswith("Do not "),
+          actions["--no-auto-levels"].help)
+
+    # The one fact --help used to omit, which is the drift this replaced.
+    check("--fill now mentions that the panel ignores it",
+          "panel always fills" in actions["--fill"].help,
+          actions["--fill"].help)
+
+    # Both of these are written beside the app, and both were defined as
+    # "beside this file" - which silently changed meaning the moment the
+    # command line moved into src/control/. The service then opened its socket
+    # where no client looks, and the CLI reported a running app as not running.
+    root = Path(ascii_camera.__file__).resolve().parent
+    for flag, leaf in (("--command-socket", "asciicam.sock"),
+                       ("--log", "ascii_camera.log")):
+        check(f"{flag} defaults beside the app, not beside the parser",
+              Path(actions[flag].default) == root / leaf,
+              actions[flag].default)
+
+    defaults = RenderConfig()
+    off = [name for flag, (name, neg) in FLAGS.items()
+           if not neg and flag != "--scheme"
+           and actions[flag].default != getattr(defaults, name)]
+    check("and the command line's defaults are the config's defaults",
+          not off, str(off))
+
+
 def main():
     print("=" * 68)
     print("RenderConfig: the app's settings surface")
@@ -891,6 +962,7 @@ def main():
     test_headless_builds_nothing()
     test_an_ask_is_applied_like_a_typed_delta()
     test_the_camera_says_what_it_did()
+    test_the_command_line_quotes_the_specs()
 
     print("\n" + "=" * 68)
     if failures:
