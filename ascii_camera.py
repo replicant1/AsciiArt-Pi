@@ -17,7 +17,6 @@ Nothing here assigns a setting directly - not the keyboard, not the knob - so
 there is a single place that knows what each change costs to make.
 """
 
-import argparse
 import logging
 import os
 import signal
@@ -48,8 +47,8 @@ from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 # Only the default, so --help can state it. Safe at module scope where
 # LcdDisplay is not: the lazy imports in _start_lcd are there for spidev and
 # RPi.GPIO, which live in lcd.py, and lcd_worker pulls in neither.
-from panel.lcd_worker import DEFAULT_SPLASH_HOLD  # noqa: E402
 from control.render_config import ConfigError  # noqa: E402
+from control.args import parse_args  # noqa: E402
 from control.scheme_cycle import SchemeCycle  # noqa: E402
 from screen.status_line import status_line  # noqa: E402
 from version import APP_NAME, __version__  # noqa: E402
@@ -851,141 +850,6 @@ class AsciiArtLiveCamera:
                 return False
 
 
-def parse_args(argv=None):
-    parser = argparse.ArgumentParser(
-        description="ASCII Art Live Camera Preview for Raspberry Pi",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument("--version", action="version",
-                        version=f"{APP_NAME} {__version__}",
-                        help="Print the version and exit")
-    parser.add_argument("--width", type=int, default=320,
-                        help="Camera capture width (the ISP downscales in "
-                             "hardware, so smaller is much cheaper)")
-    parser.add_argument("--height", type=int, default=240,
-                        help="Camera capture height")
-    parser.add_argument("--fps", type=int, default=15,
-                        help="Target frame rate")
-    parser.add_argument("--scheme", choices=palettes.SCHEME_NAMES,
-                        help="Colour scheme to start in; step through them "
-                             "live with s. "
-                             + "; ".join(f"{s.name}: {s.note}"
-                                         for s in palettes.SCHEMES))
-    parser.add_argument("--colour", "--color", action="store_true",
-                        dest="colour",
-                        help="Shorthand for --scheme live. Ignored if "
-                             "--scheme is given")
-    parser.add_argument("--colour-levels", type=int,
-                        default=render_config.MAX_COLOUR_LEVELS,
-                        help=f"Steps per channel in the live-colour scheme, "
-                             f"2 to {render_config.MAX_COLOUR_LEVELS}. Fewer "
-                             "means longer runs of one colour and a cheaper "
-                             "redraw, at the cost of banding. The maximum "
-                             "quantises nothing. The terminal saturates at 6 "
-                             "of these, which is all the xterm cube has; the "
-                             "panel uses the whole range. Out of range is "
-                             "clamped")
-    parser.add_argument("--fill", action="store_true",
-                        help="Crop the picture to fill the whole window "
-                             "instead of letterboxing it to fit")
-    parser.add_argument("--mirror", action="store_true",
-                        help="Flip the picture left to right, after any "
-                             "rotation. Off by default: the sensor is "
-                             "delivering the picture the right way round as "
-                             "currently mounted")
-    parser.add_argument("--rotation", type=int, default=0,
-                        choices=[0, 90, 180, 270],
-                        help="Camera rotation in degrees. Cycle with r")
-    parser.add_argument("--contrast", type=float, default=1.0,
-                        help="Contrast multiplier about mid-grey")
-    parser.add_argument("--no-auto-levels", action="store_true",
-                        help="Disable per-frame brightness normalisation")
-    parser.add_argument("--ramp", default="coarse", choices=RAMP_CYCLE,
-                        help="Character ramp, ordered light to dark. Cycle "
-                             "with c")
-    parser.add_argument("--invert", action="store_true",
-                        help="Invert the ramp (for light-background terminals)")
-    parser.add_argument("--cell-aspect", type=float, default=2.0,
-                        help="Terminal character height/width ratio, used to "
-                             "keep the picture from looking squashed")
-    parser.add_argument("--no-terminal", action="store_true",
-                        help="Draw nothing on the HDMI screen: no curses, no "
-                             "window. Needs --lcd, since otherwise there is "
-                             "no output at all. The single-key controls still "
-                             "work when stdin is a terminal, as it is over "
-                             "SSH. Distinct from t, which moves the picture "
-                             "between outputs that both exist; this one "
-                             "declines to open a window at all")
-    lcd = parser.add_argument_group(
-        "ILI9341 SPI panel",
-        "A second, independent output. Its grid is fixed by the font and is "
-        "unaffected by the terminal window's size; it always fills the panel, "
-        "so --fill is not mirrored. Colour, invert, ramp, rotation, contrast "
-        "and auto-levels are.")
-    lcd.add_argument("--lcd", action="store_true",
-                     help="Also render to the SPI panel")
-    lcd.add_argument("--lcd-font-size", type=int, default=8,
-                     help="Glyph size, which sets the panel's grid. 8 gives "
-                          "64x24, 6 gives 80x30 and 9 gives 64x20; all three "
-                          "tile 320x240 exactly and match the camera's 4:3, so "
-                          "nothing is cropped or letterboxed. Step through "
-                          "those three live with l")
-    lcd.add_argument("--lcd-portrait", action="store_true",
-                     help="Run the panel as 240x320 instead of 320x240")
-    lcd.add_argument("--lcd-spi-hz", type=int, default=40_000_000,
-                     help="SPI clock. Lower it if the wiring is long or on a "
-                          "breadboard")
-    lcd.add_argument("--lcd-brightness", type=int, default=100,
-                     help="Backlight duty cycle, 0-100")
-    lcd.add_argument("--lcd-splash-seconds", type=float,
-                     default=DEFAULT_SPLASH_HOLD,
-                     help="How long the start-up screen stays on the panel "
-                          "once the camera is ready. The camera beats it by "
-                          "some margin, so without this the screen would be a "
-                          "flicker. 0 hands over as soon as there is a "
-                          "picture")
-    knob = parser.add_argument_group(
-        "KY-040 rotary encoder",
-        "A knob that steps through the colour schemes, doing what s does from "
-        "the keyboard - except that it also goes backwards. Pressing it jumps "
-        "back to greyscale. Works headless, where there is no keyboard to "
-        "press s on.")
-    knob.add_argument("--encoder", action="store_true",
-                      help="Cycle colour schemes with the rotary encoder")
-    knob.add_argument("--encoder-clk", type=int, default=19,
-                      help="BCM pin for CLK")
-    knob.add_argument("--encoder-dt", type=int, default=26,
-                      help="BCM pin for DT")
-    knob.add_argument("--encoder-sw", type=int, default=6,
-                      help="BCM pin for the push switch, which jumps back to "
-                           "greyscale. Give a negative number if the switch is "
-                           "not wired; leaving it set costs nothing either way, "
-                           "since an unwired pin idles high and stays quiet")
-    knob.add_argument("--encoder-reverse", action="store_true",
-                      help="Swap which way the knob steps. Which rotation "
-                           "counts as forwards depends on which pin was wired "
-                           "to CLK, so if the knob runs backwards, add this")
-    typed = parser.add_argument_group(
-        "Typed commands",
-        "A local socket for setting things by name rather than by key - "
-        "\"scheme green\", \"contrast 2.4 invert on\". Drive it with "
-        "tools/app/asciicam_cli.py from any shell, including against the systemd "
-        "service, which has no terminal to type at. It is a Unix socket with "
-        "mode 0600, so it is not reachable from the network and only this user "
-        "can connect.")
-    typed.add_argument("--command-socket",
-                       default=str(Path(__file__).resolve().parent
-                                   / "asciicam.sock"),
-                       help="Path to the command socket")
-    typed.add_argument("--no-commands", action="store_const", const="",
-                       dest="command_socket",
-                       help="Do not open the command socket at all")
-    parser.add_argument("--log", default=str(Path(__file__).resolve().parent
-                                             / "ascii_camera.log"),
-                        help="Log file (stderr is redirected here too)")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Debug-level logging")
-    return parser.parse_args(argv)
 
 
 def setup_logging(path, verbose):

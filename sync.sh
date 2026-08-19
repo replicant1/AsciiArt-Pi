@@ -39,6 +39,7 @@ SRC_FILES=(version.py
            panel/__init__.py panel/lcd.py panel/lcd_display.py
            panel/lcd_worker.py panel/lcd_splash.py
            control/__init__.py control/render_config.py control/commands.py
+           control/args.py
            control/command_server.py control/web_server.py control/encoder.py
            control/scheme_cycle.py
            language/__init__.py language/parser.py language/shortcuts.py
