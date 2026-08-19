@@ -1,7 +1,10 @@
-# A typed line becomes a config change
+# A typed command updates the render configuration
 
-**Classes involved:** `CommandServer` · `commands` (a module of functions, not a
-class) · `AsciiArtLiveCamera` · `RenderConfig`
+**Classes involved:**
+[`CommandServer`](../../src/control/command_server.py) ·
+[`commands`](../../src/control/commands.py) (a module of functions, not a class) ·
+[`AsciiArtLiveCamera`](../../ascii_camera.py) ·
+[`RenderConfig`](../../src/control/render_config.py)
 
 Somebody types `contrast 2.4 invert on` at a shell and the picture changes on
 both displays. The value is that this works against a process with no terminal
@@ -24,7 +27,7 @@ That is why `rotation 45` parses cleanly and is then refused, in the same words
 a keypress would have earned. A front end that could accept more than the
 validated path would let a phrase work by hand and fail through the parser.
 
-## The sequence
+## From the command socket to the render loop
 
 ```mermaid
 sequenceDiagram
@@ -129,9 +132,9 @@ object and no half-applied state exists.
   the point of routing both through it.
 - **One change reaches both displays** — takes over at `_adopt`, where this
   scenario stops.
-- **A refused change is refused in one place** — what happens in place of the
-  `_adopt` and `describe_changes` exchange when a name or value is rejected.
-  Same cast, same reply channel, different outcome, which is why it is drawn
-  separately rather than as a branch here.
+- [A render configuration change is refused](a-render-configuration-change-is-refused.md)
+  — what happens in place of the `_adopt` and `describe_changes` exchange when a
+  name or value is rejected. Same cast, same reply channel, different outcome,
+  which is why it is drawn separately rather than as a branch here.
 
-*(Links go in as those documents are written; none exist yet.)*
+*(The unlinked entries above are documents not written yet.)*
