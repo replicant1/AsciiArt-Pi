@@ -2,7 +2,7 @@
 """
 Does driving the LCD actually cost the main loop anything?
 
-    python3 tests/panel/lcd_concurrency.py
+    python3 tests/lcd/lcd_concurrency.py
 
 The whole point of putting the panel on its own thread is that ~32 ms of every
 LCD frame is SPI transfer, which the kernel is doing rather than Python.  That
@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from art.ascii_art import AsciiArt          # noqa: E402
-from panel.lcd_display import LcdDisplay      # noqa: E402
+from lcd.lcd_display import LcdDisplay      # noqa: E402
 
 WINDOW = 4.0        # seconds per measurement
 

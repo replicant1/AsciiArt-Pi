@@ -42,7 +42,7 @@ about 33 ms, so speed has to come from distance per frame rather than frames per
 second, and the step is kept below the tail length so consecutive frames still
 overlap.
 
-`tests/panel/lcd_splash_test.py` checks the layout, colours and the hold without any
+`tests/lcd/lcd_splash_test.py` checks the layout, colours and the hold without any
 hardware, and `--panel` puts it on the real glass and holds it there, since a
 clean test run is not evidence that anything was lit.
 
@@ -51,7 +51,7 @@ PWM at 0 and the caller turns it on once there is something worth seeing:
 lighting an uninitialised panel shows a bright flash of undefined frame memory
 for the ~200 ms that `init()` and the first `fill()` take. `LcdDisplay` blanks
 and then lights, in that order. Anything constructing `ILI9341` directly has to
-call `backlight()` itself — `tests/panel/lcd_selftest.py` does, and without it that
+call `backlight()` itself — `tests/lcd/lcd_selftest.py` does, and without it that
 test runs on a dark panel and looks exactly like dead hardware.
 
 ### Version
@@ -126,7 +126,7 @@ Taken from the manufacturer's own working example, and confirmed by running it.
 The panel is on `/dev/spidev0.0`. SPI is enabled with `dtparam=spi=on`, and
 there is deliberately **no kernel driver bound to it** — no `fbtft`, no
 `mipi-dbi-spi` overlay. It is driven from userspace with `spidev`, which is
-what `src/panel/lcd.py` does. `/dev/fb0` is the HDMI framebuffer and has nothing to
+what `src/lcd/lcd.py` does. `/dev/fb0` is the HDMI framebuffer and has nothing to
 do with this panel.
 
 ### It is an independent display, not a mirror
@@ -160,7 +160,7 @@ this hardware.
 
 The SPI write is kept off the main render loop by a worker thread that takes the
 latest frame and drops anything it falls behind on. That only pays off if
-`spidev` releases the GIL during the transfer, which `tests/panel/lcd_concurrency.py`
+`spidev` releases the GIL during the transfer, which `tests/lcd/lcd_concurrency.py`
 measures rather than assumes: **the main thread keeps 93% of its throughput**
 while the panel renders at 27 fps.
 
@@ -190,7 +190,7 @@ loop — the terminal does not stutter when the panel's font changes. It also
 zeroes the frame buffer, because a larger font gives a *smaller* picture and
 nothing ever writes to the margin it no longer reaches; without that, the old
 picture's outer pixels would survive there for good.
-`tests/panel/lcd_font_size_test.py` checks exactly that, on the real panel.
+`tests/lcd/lcd_font_size_test.py` checks exactly that, on the real panel.
 
 ### You cannot verify this panel in software
 
@@ -209,9 +209,9 @@ panel path picks the same glyph the terminal would — and then say plainly that
 the rest needs a human.
 
 ```bash
-python3 tests/panel/lcd_selftest.py       # colour bars and the RGB565 maths
-python3 tests/panel/lcd_render_bench.py   # render path correctness and timing
-python3 tests/panel/lcd_concurrency.py    # proves the SPI write does not stall the app
+python3 tests/lcd/lcd_selftest.py       # colour bars and the RGB565 maths
+python3 tests/lcd/lcd_render_bench.py   # render path correctness and timing
+python3 tests/lcd/lcd_concurrency.py    # proves the SPI write does not stall the app
 ```
 
 ## Choosing a different display

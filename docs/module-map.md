@@ -45,16 +45,16 @@ The HDMI terminal, and the stand-in for when there is none.
 | `src/screen/headless.py` | 168 | A stand-in display for when there is no terminal to draw on. |
 | `src/screen/status_line.py` | 104 | The bottom line of the terminal: every setting's state, and what fits. |
 
-## Panel
+## LCD
 
 The 2.4 inch ILI9341 over SPI - a second, independent display.
 
 | Module | Lines | What it is for |
 |---|---:|---|
-| `src/panel/lcd.py` | 273 | ILI9341 2.4" SPI LCD driver (240x320, RGB565). |
-| `src/panel/lcd_display.py` | 421 | ASCII picture output on the ILI9341 SPI panel. |
-| `src/panel/lcd_splash.py` | 177 | Start-up screen for the ILI9341 panel. |
-| `src/panel/lcd_worker.py` | 462 | Background thread driving the LCD alongside the terminal display. |
+| `src/lcd/lcd.py` | 273 | ILI9341 2.4" SPI LCD driver (240x320, RGB565). |
+| `src/lcd/lcd_display.py` | 421 | ASCII picture output on the ILI9341 SPI panel. |
+| `src/lcd/lcd_splash.py` | 177 | Start-up screen for the ILI9341 panel. |
+| `src/lcd/lcd_worker.py` | 462 | Background thread driving the LCD alongside the terminal display. |
 
 ## Control
 

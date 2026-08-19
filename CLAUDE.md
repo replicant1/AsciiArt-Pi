@@ -150,9 +150,9 @@ Wiring, taken from the manufacturer's own working example and confirmed by runni
     GND -> GND         SCK      -> GPIO 11       DC/RS -> GPIO 25
     CS  -> GPIO 8 (CE0)   SDO/MISO -> GPIO 9     LED/BL -> GPIO 18 (PWM dimmable)
 
-The panel is on /dev/spidev0.0. SPI is already enabled ("dtparam=spi=on" in /boot/firmware/config.txt). There is deliberately NO kernel driver bound to it - no fbtft, no mipi-dbi-spi overlay, so it is not a /dev/fb device. It is driven entirely from userspace Python via spidev, which is what src/panel/lcd.py does. /dev/fb0 is the HDMI framebuffer and has nothing to do with this panel.
+The panel is on /dev/spidev0.0. SPI is already enabled ("dtparam=spi=on" in /boot/firmware/config.txt). There is deliberately NO kernel driver bound to it - no fbtft, no mipi-dbi-spi overlay, so it is not a /dev/fb device. It is driven entirely from userspace Python via spidev, which is what src/lcd/lcd.py does. /dev/fb0 is the HDMI framebuffer and has nothing to do with this panel.
 
-The manufacturer's reference code (Waveshare) is unpacked at /home/rod/LCD_Module_code/LCD_Module_RPI_code/RaspberryPi/python, with the 2.4 inch driver in lib/LCD_2inch4.py and an example in example/2inch4_LCD_test.py. The project does not depend on it, but its init sequence is known to light this exact hardware and was copied into src/panel/lcd.py rather than re-derived from the datasheet.
+The manufacturer's reference code (Waveshare) is unpacked at /home/rod/LCD_Module_code/LCD_Module_RPI_code/RaspberryPi/python, with the 2.4 inch driver in lib/LCD_2inch4.py and an example in example/2inch4_LCD_test.py. The project does not depend on it, but its init sequence is known to light this exact hardware and was copied into src/lcd/lcd.py rather than re-derived from the datasheet.
 
 **Verification is the hard part, and there is no software answer.** Two independent facts combine:
 
@@ -163,12 +163,12 @@ So NOTHING can confirm what is actually lit on the panel except asking the user 
 
 Code, all committed:
 
-    src/panel/lcd.py           ILI9341 driver over spidev; PIL images or pre-packed RGB565
-    src/panel/lcd_display.py   ASCII grid -> panel, via a pre-rendered glyph atlas
-    src/panel/lcd_worker.py    background thread so SPI stays off the main render loop
-    tests/panel/lcd_selftest.py      colour bars + RGB565 maths (run this first if suspicious)
-    tests/panel/lcd_render_bench.py  render path correctness and timing
-    tests/panel/lcd_concurrency.py   proves the SPI write does not stall the main loop
+    src/lcd/lcd.py           ILI9341 driver over spidev; PIL images or pre-packed RGB565
+    src/lcd/lcd_display.py   ASCII grid -> panel, via a pre-rendered glyph atlas
+    src/lcd/lcd_worker.py    background thread so SPI stays off the main render loop
+    tests/lcd/lcd_selftest.py      colour bars + RGB565 maths (run this first if suspicious)
+    tests/lcd/lcd_render_bench.py  render path correctness and timing
+    tests/lcd/lcd_concurrency.py   proves the SPI write does not stall the main loop
 
 Run it with:
 
@@ -178,10 +178,10 @@ Run it with:
 Performance facts measured on this Pi, worth not rediscovering:
 
 - /sys/module/spidev/parameters/bufsiz is 4096, so a full 240x320 RGB565 frame (153,600 bytes) is 38 writes. Transfer costs ~32 ms; that dominates, not the clock rate. Raise it with "spidev.bufsiz=65536" on the kernel command line if refresh rate ever matters more than memory.
-- Drawing costs only ~3.7 ms of CPU (glyph blit 1.2, RGB565 pack 2.4). Do NOT draw text with one PIL draw.text() per cell - at 64x24 that is 1,536 calls per frame. src/panel/lcd_display.py pre-renders each glyph once and builds a frame as a single numpy gather.
-- spidev DOES release the GIL during the transfer, so a worker thread genuinely overlaps: the main thread keeps 93% of its throughput while the panel runs at 27 fps. tests/panel/lcd_concurrency.py measures this rather than assuming it.
+- Drawing costs only ~3.7 ms of CPU (glyph blit 1.2, RGB565 pack 2.4). Do NOT draw text with one PIL draw.text() per cell - at 64x24 that is 1,536 calls per frame. src/lcd/lcd_display.py pre-renders each glyph once and builds a frame as a single numpy gather.
+- spidev DOES release the GIL during the transfer, so a worker thread genuinely overlaps: the main thread keeps 93% of its throughput while the panel runs at 27 fps. tests/lcd/lcd_concurrency.py measures this rather than assuming it.
 - Font sizes 6, 8 and 9 (DejaVu Sans Mono) each tile 320x240 exactly AND give a character grid whose on-screen aspect is exactly 4:3, matching the camera - so filling the panel crops nothing. They give 80x30, 64x24 and 64x20 respectively. 8 is the default.
-- The font size can be changed live with the l key, which rebuilds the glyph atlas on the LCD worker's own thread. Measured over eleven rebuilds: 168 ms for the first, then 13-24 ms. The first is an order of magnitude worse, most likely the font file being read from disk once and found in the page cache after - inferred from the shape of the numbers, not measured. Not a per-frame cost: it happens only on a ramp, invert or font-size change. The rebuild must zero the frame buffer, because a larger font gives a SMALLER picture and nothing ever writes to the margin it no longer reaches; tests/panel/lcd_font_size_test.py checks that on the real panel.
+- The font size can be changed live with the l key, which rebuilds the glyph atlas on the LCD worker's own thread. Measured over eleven rebuilds: 168 ms for the first, then 13-24 ms. The first is an order of magnitude worse, most likely the font file being read from disk once and found in the page cache after - inferred from the shape of the numbers, not measured. Not a per-frame cost: it happens only on a ramp, invert or font-size change. The rebuild must zero the frame buffer, because a larger font gives a SMALLER picture and nothing ever writes to the margin it no longer reaches; tests/lcd/lcd_font_size_test.py checks that on the real panel.
 
 A caution learned here: synthetic keypresses via piinput proved unreliable for toggling app settings during this work - the first keystroke after creating the device was dropped, and later ones were delivered twice, silently toggling a setting on and back off. Prefer launching the app with the command-line flag you want to test; it is deterministic. See also the piinput gotchas above.
 
@@ -266,7 +266,7 @@ Run a python file on the pi: Call the run_on_pi.sh script with the argument "pyt
 Move code between the Pi and the git repo: bash /Users/rodneybailey/PiProjects/AsciiArt/AsciiArt-Pi/sync.sh [pull|push|status]
 Launch the ASCII camera on the Pi's HDMI screen: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit
 Launch it on the HDMI screen and the ILI9341 panel together: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit --lcd
-Check the ILI9341 panel is alive (colour bars, needs a human to confirm): python3 /home/rod/Projects/AsciiArt/tests/panel/lcd_selftest.py
+Check the ILI9341 panel is alive (colour bars, needs a human to confirm): python3 /home/rod/Projects/AsciiArt/tests/lcd/lcd_selftest.py
 Launch it with the rotary encoder cycling the colour schemes: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit --lcd --encoder
 Find which GPIO pins the rotary encoder is on (needs a human to turn the knob): python3 /home/rod/Projects/AsciiArt/tools/hardware/probe_encoder.py
 Check the rotary encoder decode without any hardware: python3 /home/rod/Projects/AsciiArt/tests/control/encoder_test.py

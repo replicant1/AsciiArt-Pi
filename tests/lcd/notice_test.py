@@ -2,7 +2,7 @@
 """
 Tests for the panel's notice band and the stalled-camera detector.
 
-    python3 tests/panel/notice_test.py
+    python3 tests/lcd/notice_test.py
 
 No panel and no camera: a fake ILI9341 records what would have gone over SPI,
 and the frame buffer is a numpy array either way, so what reaches the glass can
@@ -69,12 +69,12 @@ class FakePanel:
         self.pushes.append(data)
 
 
-from panel import lcd_display                                   # noqa: E402
+from lcd import lcd_display                                   # noqa: E402
 
 lcd_display.ILI9341 = lambda **kw: FakePanel()
 
-from panel.lcd_display import LcdDisplay                    # noqa: E402
-from panel.lcd_worker import LcdWorker                      # noqa: E402
+from lcd.lcd_display import LcdDisplay                    # noqa: E402
+from lcd.lcd_worker import LcdWorker                      # noqa: E402
 
 RAMP = " .:-=+*#%@"
 
@@ -97,7 +97,7 @@ check("and actually marks some pixels", bool(mask.any()), True)
 check("an empty message marks none", bool(d.notice_mask("").any()), False)
 
 # Cached, because the panel redraws 27 times a second and a PIL text call per
-# frame is exactly what src/panel/lcd_display.py exists to keep off the hot path.
+# frame is exactly what src/lcd/lcd_display.py exists to keep off the hot path.
 first = d.notice_mask("same words")
 check("the same message is not rasterised twice",
       d.notice_mask("same words") is first, True)

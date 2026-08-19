@@ -36,8 +36,8 @@ SRC_FILES=(version.py
            art/__init__.py art/ascii_art.py art/palettes.py art/window_plan.py
            screen/__init__.py screen/display.py screen/headless.py
            screen/status_line.py
-           panel/__init__.py panel/lcd.py panel/lcd_display.py
-           panel/lcd_worker.py panel/lcd_splash.py
+           lcd/__init__.py lcd/lcd.py lcd/lcd_display.py
+           lcd/lcd_worker.py lcd/lcd_splash.py
            control/__init__.py control/render_config.py control/commands.py
            control/args.py
            control/command_server.py control/web_server.py control/encoder.py
@@ -49,10 +49,10 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             art/__init__.py art/palette_test.py
             screen/__init__.py screen/display_modes_test.py
             screen/status_line_test.py
-            panel/__init__.py panel/lcd_selftest.py panel/lcd_render_bench.py
-            panel/lcd_concurrency.py panel/lcd_splash_test.py
-            panel/lcd_font_size_test.py panel/lcd_worker_test.py
-            panel/notice_test.py
+            lcd/__init__.py lcd/lcd_selftest.py lcd/lcd_render_bench.py
+            lcd/lcd_concurrency.py lcd/lcd_splash_test.py
+            lcd/lcd_font_size_test.py lcd/lcd_worker_test.py
+            lcd/notice_test.py
             control/__init__.py control/render_config_test.py
             control/commands_test.py control/keymap_test.py
             control/encoder_test.py control/web_server_test.py

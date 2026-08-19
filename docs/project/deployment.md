@@ -59,7 +59,7 @@ See also [Why the panel lights at 13 s and not 27](deployment.md#why-the-panel-l
 gpio=18=op,dl
 ```
 
-Output, driven low. The pull-up never gets the chance, and `src/panel/lcd.py` turns
+Output, driven low. The pull-up never gets the chance, and `src/lcd/lcd.py` turns
 the backlight on only after blanking — so the panel goes straight from dark to
 the start-up screen with nothing ugly in between.
 
@@ -266,5 +266,5 @@ half does not.*
 The renders come from `tools/docs/enclosure_render.py`, which marches a signed distance field in
 numpy — no modelling package, no renderer, not even an image library, with the PNG written by
 hand. The panel is showing real ASCII: a 5x7 bitmap font over the app's own `" .:-=+*#%@"`
-ramp at the 64x24 grid `src/panel/lcd_display.py` produces at its default font size. The gallery
+ramp at the 64x24 grid `src/lcd/lcd_display.py` produces at its default font size. The gallery
 page lists which dimensions came from the guide and which were invented to make a picture.
