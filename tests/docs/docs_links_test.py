@@ -11,6 +11,10 @@ now a heading can be renamed in one file and silently orphan a link in another.
 
 Checks relative links only. External URLs are somebody else's uptime and would
 make this need a network, which a test that runs on the Pi should not.
+
+The second half checks docs/scenarios/, where a sequence diagram, a table of
+its steps and a set of links into the source all have to agree with each
+other and with the code. None of those disagreements are visible on the page.
 """
 
 import re
@@ -38,6 +42,20 @@ def anchor(heading):
     return re.sub(r"\s+", "-", text)
 
 
+def prose(body):
+    """
+    `body` with code removed, so examples are not mistaken for links.
+
+    A document that teaches a link format contains link *samples* - in fenced
+    blocks and in inline code - and GitHub renders none of them as links. The
+    check below would otherwise chase `[`take`](...#L258)` out of a table of
+    rules and report the placeholder as a broken path.
+    """
+    body = re.sub(r"```.*?```", "", body, flags=re.S)
+    body = re.sub(r"``[^`]*``", "", body)
+    return re.sub(r"`[^`]*`", "", body)
+
+
 def documents():
     """
     Every markdown file, skipping the mount's AppleDouble sidecars.
@@ -63,7 +81,7 @@ check("there are documents to check", len(docs) > 1, True)
 
 missing_files, missing_anchors = [], []
 for d in docs:
-    for _, target in re.findall(r"\[([^\]]*)\]\(([^)]+)\)", text[d]):
+    for _, target in re.findall(r"\[([^\]]*)\]\(([^)]+)\)", prose(text[d])):
         if target.startswith(("http://", "https://", "mailto:")):
             continue
         path, _, frag = target.partition("#")
@@ -145,6 +163,101 @@ for tool in sorted((ROOT / "tools").rglob("*.py")) + \
         if f"docs/{name}" in body:
             tooling.append(f"{tool.name} -> docs/{name}")
 check("and no tool opens one by its pre-move path", tooling, [])
+
+
+# --- scenario documents -----------------------------------------------------
+#
+# docs/scenarios/ pairs every mermaid sequence diagram with a table holding one
+# row per message, and links names in those rows to the line that defines them.
+# Three things can rot there without being visible to anyone reading the page:
+# a message added to a diagram with no row to match, a message reworded in one
+# of the two places and not the other, and a line anchor left pointing at
+# whatever moved into its line number.
+
+SCENARIOS = sorted(p for p in (ROOT / "docs" / "scenarios").glob("*.md")
+                   if not p.name.startswith("."))
+DEFINITION = re.compile(r"\s*(?:def|class)\s+(\w+)|^([A-Z_][A-Z0-9_]*)\s*=")
+
+
+def plain(text_):
+    """A cell or a diagram message reduced to comparable text."""
+    text_ = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text_)   # links -> their text
+    text_ = text_.replace("<br/>", "<br>").replace("`", "").replace("**", "")
+    return re.sub(r"\s+", " ", text_).strip()
+
+
+def step_table_faults(body):
+    """Every way a step table and the diagram above it disagree."""
+    faults = []
+    blocks = re.findall(r"```mermaid\n(.*?)```", body, re.S)
+    tails = re.split(r"```mermaid.*?```", body, flags=re.S)[1:]
+    for block, tail in zip(blocks, tails):
+        messages = [plain(line.split(":", 1)[1]) for line in block.splitlines()
+                    if re.search(r"-(-)?>>", line)]
+        rows = []
+        for line in tail.splitlines():
+            cells = [c.strip() for c in line.split("|")[1:-1]]
+            if len(cells) == 3 and cells[0].isdigit():
+                rows.append((int(cells[0]), plain(cells[1])))
+        numbering = [n for n, _ in rows]
+        if numbering != list(range(1, len(messages) + 1)):
+            faults.append(f"{len(messages)} messages, rows {numbering}")
+            continue
+        for (n, cell), message in zip(rows, messages):
+            if cell != message:
+                faults.append(f"step {n}: {cell!r} != {message!r}")
+    return faults
+
+
+print("\nscenarios: diagrams, their step tables, and the source they link to")
+print("-" * 66)
+check("there are scenarios to check", bool(SCENARIOS), True)
+
+drift = []
+for d in SCENARIOS:
+    drift += [f"{d.name} -> {fault}" for fault in step_table_faults(text[d])]
+check("every diagram message has a row saying the same thing", drift, [])
+
+# Link text in backticks claims to *be* the identifier, so it has to be the one
+# defined on the line linked to. Prose link text - "four KB", "the knob" - only
+# has to land on a definition, since there is no name in it to compare.
+not_a_definition, wrong_definition = [], []
+for d in SCENARIOS:
+    for label, target in re.findall(r"\[([^\]]+)\]\(([^)]+#L\d+)\)", text[d]):
+        path, _, number = target.partition("#L")
+        source = (d.parent / path).resolve()
+        lines = source.read_text(encoding="utf-8").splitlines() if source.is_file() else []
+        n = int(number)
+        found = DEFINITION.match(lines[n - 1] if 1 <= n <= len(lines) else "")
+        name = (found.group(1) or found.group(2)) if found else None
+        if name is None:
+            not_a_definition.append(f"{d.name} -> {target}")
+            continue
+        coded = re.fullmatch(r"`([\w.]+)`(?:\(\))?", label.strip())
+        if coded and coded.group(1).split(".")[-1] != name:
+            wrong_definition.append(f"{d.name} -> {label} lands on {name}")
+check("every source line anchor lands on a definition", not_a_definition, [])
+check("and a backticked label names the definition it lands on", wrong_definition, [])
+
+# and prove the step table check can fail, on a sample rather than on a real
+# document - a mutation of a real one stops mutating the moment it is edited.
+SAMPLE = """```mermaid
+sequenceDiagram
+    A->>B: do the thing
+```
+
+| Step | Message | What is going on |
+|---:|---|---|
+| 1 | do the thing | why |
+"""
+check("the step table check passes a table that agrees",
+      step_table_faults(SAMPLE), [])
+check("and fails one whose message was reworded",
+      bool(step_table_faults(SAMPLE.replace("do the thing", "do it", 1))), True)
+check("and fails one with a message that has no row",
+      bool(step_table_faults(
+          SAMPLE.replace("    A->>B: do the thing",
+                         "    A->>B: do the thing\n    B->>A: and reply", 1))), True)
 
 print(f"\n{'-' * 60}\n{PASSED} passed, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

@@ -86,6 +86,18 @@ was not.
    settings, natural language, the phone page, and what happens when any of it
    fails.
 
+**Or read one collaboration at a time.** `docs/scenarios/` describes the same
+machine by what its parts do *together*: one document per mind-sized chunk of
+behaviour, two to five classes each, with a sequence diagram, a table
+explaining every message in it, and links into the source. Three so far, and
+[how to write the rest](docs/how-to-write-scenario-docs.md).
+
+| Scenario | The collaboration |
+|---|---|
+| [A typed command updates the render configuration](docs/scenarios/a-typed-command-updates-the-render-configuration.md) | A line on the Unix socket crosses a thread boundary, is parsed into typed values, validated, and pushed to both displays |
+| [A render configuration change is refused](docs/scenarios/a-render-configuration-change-is-refused.md) | Why `rotation 45` is refused in the same words whoever asked, and the one check `RenderConfig` is not in a position to make |
+| [A spoken phrase is answered from the shortcut table, with no model call](docs/scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) | How `a bit more contrast` becomes a delta in microseconds, with no API key, no network and no model |
+
 **Then whatever you need:**
 
 | Document | What is in it |
@@ -102,6 +114,7 @@ was not.
 | [Running it at boot](docs/project/deployment.md) | The systemd services, boot timing, the enclosure |
 | [How this is built](docs/project/workflow.md) | Agent on the Mac, app on the Pi, and syncing between them |
 | [What the model is told](docs/subsystems/what-the-model-is-told.md) | The system prompt and tool schema, and the eval cases |
+| [How to write a scenario](docs/how-to-write-scenario-docs.md) | The format `docs/scenarios/` follows, and the ones still to write |
 
 `docs/` is arranged the same way as the code:
 
@@ -110,6 +123,10 @@ docs/using-it.md          the documents the front page sends you to first
 docs/architecture.md
 docs/module-map.md        generated
 docs/class-map.md         generated
+docs/scenarios/           one per collaboration between classes, with the
+                          diagram and a table of its steps
+docs/how-to-write-scenario-docs.md
+                          the format those follow
 docs/subsystems/          one per part of the machine: panel, encoder,
                           language, colour schemes, what the model is told
 docs/project/             performance, running it at boot, how this is built
