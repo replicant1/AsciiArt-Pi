@@ -89,13 +89,14 @@ was not.
 **Or read one collaboration at a time.** `docs/scenarios/` describes the same
 machine by what its parts do *together*: one document per mind-sized chunk of
 behaviour, two to five classes each, with a sequence diagram, a table
-explaining every message in it, and links into the source. Two so far, and
+explaining every message in it, and links into the source. Three so far, and
 [how to write the rest](docs/how-to-write-scenario-docs.md).
 
 | Scenario | The collaboration |
 |---|---|
 | [A typed command updates the render configuration](docs/scenarios/a-typed-command-updates-the-render-configuration.md) | A line on the Unix socket crosses a thread boundary, is parsed into typed values, validated, and pushed to both displays |
 | [A render configuration change is refused](docs/scenarios/a-render-configuration-change-is-refused.md) | Why `rotation 45` is refused in the same words whoever asked, and the one check `RenderConfig` is not in a position to make |
+| [A spoken phrase is answered from the shortcut table, with no model call](docs/scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) | How `a bit more contrast` becomes a delta in microseconds, with no API key, no network and no model |
 
 **Then whatever you need:**
 
