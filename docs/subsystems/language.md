@@ -13,12 +13,36 @@ python3 tools/app/asciicam_cli.py show       # or one command and out
 
 ```
 ascii> scheme green
-  scheme 'grey'->'green'
+changed: scheme 'grey'->'green'
 ascii> contrast 2.4 invert on freeze off
-  contrast 1.0->2.4, invert False->True
+changed: invert False->True, contrast 1.0->2.4
+ascii> scheme green
+unchanged: scheme is already 'green'
 ascii> rotation 45
-  rotation must be one of 0, 90, 180, 270, not 45
+refused: rotation must be one of 0, 90, 180, 270, not 45
 ```
+
+**Every reply about state opens with the word for what happened.** At a prompt
+the line you type and the line that comes back look alike, and they are nothing
+alike: one is a request, the other is a report of what became of it. Only the
+camera can say which of the three it was, so the word identifies the speaker as
+a side effect of being useful rather than as decoration.
+
+It earns most where the request and the result differ. A value outside a range
+is clamped rather than refused, and "changed" alone would leave you comparing
+the reply against what you typed to notice:
+
+```
+ascii> contrast 9
+changed: contrast 1.0->4.0
+         contrast 9.0 is outside 0.1-4.0, so 4.0 is the most this can do
+```
+
+The clamp note is read back off the config rather than predicted, so it reports
+what the setting became and cannot drift from the rule that decided it. The
+wording lives in `src/control/commands.py`, not in the CLI, so the phone page
+says exactly the same thing — two front ends describing one event differently
+would undo the property the whole design rests on.
 
 `help` lists every setting with its permitted values and current value, `show`
 prints the values alone, and `reset` returns to the start-up defaults. **The
@@ -35,14 +59,14 @@ words mean:
 
 ```
 ascii> ask make it warmer and blockier
-  scheme 'grey'->'amber'
-  (3.9s)
+changed: scheme 'grey'->'amber'
+         (3.9s)
 ascii> ask undo that
-  scheme 'amber'->'grey'
-  (3.7s)
+changed: scheme 'amber'->'grey'
+         (3.7s)
 ascii> ask green and turn the volume up
-  scheme 'grey'->'green'
-  (3.9s - There's no audio, so no volume to turn up.)
+changed: scheme 'grey'->'green'
+         (3.9s - There's no audio, so no volume to turn up.)
 ascii> ask make me a sandwich
   I can only adjust the camera's display settings - no sandwiches here.
 ```

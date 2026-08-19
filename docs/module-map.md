@@ -63,7 +63,7 @@ Every setting, and every way a human reaches one.
 | Module | Lines | What it is for |
 |---|---:|---|
 | `src/control/command_server.py` | 286 | A local command channel into the running app. |
-| `src/control/commands.py` | 340 | Typed commands to RenderConfig deltas. |
+| `src/control/commands.py` | 407 | Typed commands to RenderConfig deltas. |
 | `src/control/encoder.py` | 288 | Rotary encoder input: a KY-040 knob on two GPIO pins. |
 | `src/control/render_config.py` | 310 | Every setting that can change while the camera is running, in one typed object. |
 | `src/control/scheme_cycle.py` | 175 | Which colour scheme is showing, and the two ways of changing it. |
@@ -82,4 +82,4 @@ Words in, a validated settings change out.
 
 ---
 
-24 modules, 7,247 lines.
+24 modules, 7,314 lines.
