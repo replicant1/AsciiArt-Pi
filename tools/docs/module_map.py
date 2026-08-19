@@ -38,7 +38,7 @@ OUTPUT = ROOT / "docs" / "module-map.md"
 # is, and a statement the filesystem already makes should not be made twice
 # where the two can disagree. What is left is a presentation order and a check
 # that no package has appeared without being placed in it.
-ORDER = ("capture", "art", "screen", "lcd", "control", "language")
+ORDER = ("capture", "art", "hdmi", "lcd", "control", "language")
 
 ENTRY = ("ascii_camera.py", "src/version.py")
 ENTRY_BLURB = ("The process itself: argument parsing, the render loop, and the "
@@ -61,7 +61,7 @@ def summary(path):
 # capitalize() turns "lcd" into "Lcd", which is not how anyone writes it. The
 # package names are ordinary words apart from the initialisms, so the exceptions
 # are listed rather than guessed at.
-INITIALISMS = {"lcd": "LCD"}
+INITIALISMS = {"lcd": "LCD", "hdmi": "HDMI"}
 
 
 def heading(name):

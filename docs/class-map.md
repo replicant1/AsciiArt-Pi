@@ -33,7 +33,7 @@ only, so it reads as surface rather than size.
 | `AsciiArt` | `ascii_art.py` | — | 4 | Generates ASCII art from a greyscale array. |
 | `Scheme` | `palettes.py` | `NamedTuple` | 0 | One display look. |
 
-## Screen
+## HDMI
 
 | Class | In | Base | Methods | What it is for |
 |---|---|---|---:|---|
