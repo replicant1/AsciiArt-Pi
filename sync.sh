@@ -35,6 +35,7 @@ SRC_FILES=(version.py
            capture/__init__.py capture/camera.py capture/image_processor.py
            art/__init__.py art/ascii_art.py art/palettes.py art/window_plan.py
            screen/__init__.py screen/display.py screen/headless.py
+           screen/status_line.py
            panel/__init__.py panel/lcd.py panel/lcd_display.py
            panel/lcd_worker.py panel/lcd_splash.py
            control/__init__.py control/render_config.py control/commands.py
@@ -46,6 +47,7 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             capture/capture_reference.py capture/orientation_test.py
             art/__init__.py art/palette_test.py
             screen/__init__.py screen/display_modes_test.py
+            screen/status_line_test.py
             panel/__init__.py panel/lcd_selftest.py panel/lcd_render_bench.py
             panel/lcd_concurrency.py panel/lcd_splash_test.py
             panel/lcd_font_size_test.py panel/lcd_worker_test.py

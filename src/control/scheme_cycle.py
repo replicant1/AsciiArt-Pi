@@ -48,9 +48,10 @@ class SchemeCycle:
                 rather than the value because the scheme moves underneath this
                 - by key, by knob, by socket - and the walk has to start from
                 wherever it actually is.
-            apply: callable taking a delta and returning whether anything
-                changed. The single way settings change; this class never
-                touches one directly.
+            apply: callable taking a delta and returning (changed, refusal).
+                The single way settings change; this class never touches one
+                directly, and a refused scheme is not a case that arises here -
+                every name it offers came out of palettes.SCHEMES.
             colour_ok: callable saying whether this terminal can show colour.
                 Schemes it cannot show are skipped rather than offered, so the
                 knob never lands on a picture nobody can see.
@@ -125,7 +126,8 @@ class SchemeCycle:
                     if scheme.kind == "grey")
         # apply() is a no-op when the value is already there, so being home
         # already costs nothing and no repaint flashes.
-        if self._apply({"scheme": home.name}):
+        changed, _ = self._apply({"scheme": home.name})
+        if changed:
             logger.info("Scheme: %s (%s) - knob pressed", home.name, home.note)
 
     def step(self, step=1):
@@ -165,7 +167,8 @@ class SchemeCycle:
         # and log a line claiming a change that did not happen. _adopt knows
         # this - the scheme is not in the set that clears grid_key.
         scheme = palettes.SCHEMES[index]
-        if self._apply({"scheme": scheme.name}):
+        changed, _ = self._apply({"scheme": scheme.name})
+        if changed:
             logger.info("Scheme: %s (%s)", scheme.name, scheme.note)
 
 

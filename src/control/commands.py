@@ -22,8 +22,12 @@ setting becomes typeable, documented and listed by `help` without anything here
 being edited.
 """
 
+import logging
+
 from control import render_config
 from control.render_config import SPECS, RenderConfig
+
+logger = logging.getLogger(__name__)
 
 # What counts as true and false when a bool is being typed by hand. Deliberately
 # not "anything non-empty is true": `invert 0` meaning true would be a nasty
@@ -242,3 +246,95 @@ def defaults_delta(config):
     """
     fresh = RenderConfig()
     return {name: getattr(fresh, name) for name in fresh.changes_from(config)}
+
+def reset_delta(config, feasible_target):
+    """
+    The delta that puts back what this run is able to put back.
+
+    A delta is applied whole or not at all, so a single field this run cannot
+    honour would take the other eleven down with it. That is right for a delta
+    somebody typed - it says what they asked for, and they should be told no -
+    but wrong for "put everything back", which should restore what it can.
+    Headless, the default target of "both" is unreachable, and `reset` used to
+    refuse outright and report "nothing changed" over five non-default
+    settings.
+
+    Args:
+        config: the live RenderConfig.
+        feasible_target: callable mapping a target to the nearest one this run
+            can actually draw on. Whether a panel came up is a fact about how
+            the app was started, which is not something this module can know.
+
+    Returns:
+        Only the fields that are not already at their default, so an empty
+        delta means "already there" rather than "nothing worked".
+    """
+    delta = defaults_delta(config)
+    if "target" in delta:
+        delta["target"] = feasible_target(delta["target"])
+    return {name: value for name, value in delta.items()
+            if getattr(config, name) != value}
+
+
+def _applied(changed, refusal, before, config, note=None):
+    """The reply for one delta that has been through apply()."""
+    tail = f"\n  ({note})" if note else ""
+    if changed:
+        return f"  {config.describe_changes(before)}{tail}"
+    if refusal:
+        return "\n".join("  " + line for line in refusal.splitlines())
+    return f"  nothing changed{f' ({note})' if note else ''}"
+
+
+def run_command(request, settings, apply, feasible_target):
+    """
+    One request in, the text to print back out.
+
+    Usually a line somebody typed. Sometimes an `Ask`: a delta the resolver
+    already worked out on another thread, which from here is a delta like any
+    other and goes down the same path with the same validation.
+
+    This is a function of its arguments so that the whole typed-command
+    surface - parsing, help, show, reset, and the wording of every answer -
+    lives in one module. It changes no setting itself; `apply` does, and is the
+    single way anything does.
+
+    Args:
+        request: a typed line, or an `Ask`.
+        settings: callable returning the live RenderConfig. Called again after
+            applying, because the reply describes the change that happened.
+        apply: callable taking a delta and returning (changed, refusal).
+        feasible_target: callable mapping a target to one this run can honour.
+    """
+    from control.command_server import Ask
+
+    config = settings()
+
+    if isinstance(request, Ask):
+        logger.info("Command: ask %s", request.utterance)
+        changed, refusal = apply(request.delta)
+        return _applied(changed, refusal, config, settings(), request.note)
+
+    line = request
+    logger.info("Command: %s", line)
+    try:
+        kind, payload = parse(line)
+    except CommandError as e:
+        return str(e)
+
+    if kind == "none":
+        return ""
+    if kind == "help":
+        return help_text(payload, config)
+    if kind == "show":
+        return show_text(config)
+    if kind == "reset":
+        payload = reset_delta(config, feasible_target)
+        if not payload:
+            return "already at the defaults"
+
+    # From here it is an ordinary delta, applied down the same path a keypress
+    # uses - so a typed setting and a pressed key cannot diverge, and neither
+    # can get past the validation the other would have hit.
+    changed, refusal = apply(payload)
+    return _applied(changed, refusal, config, settings())

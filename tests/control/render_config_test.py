@@ -311,7 +311,6 @@ def make_app(lcd=None, draws=True):
     app.processor = ImageProcessor()
     app.config = RenderConfig()
     app.notice = None
-    app.refusal = None
     app.previous_config = None
     app.grid_key = None
     app.grid = (80, 30)
@@ -390,13 +389,17 @@ def test_one_path_in():
     app.apply({"scheme": "grey", "contrast": 1.0})
     check("setting a field to what it already is does not repaint",
           app.display.repaints == 0, f"{app.display.repaints} repaints")
-    check("...and reports that nothing happened",
-          app.apply({"contrast": 1.0}) is False)
+    changed, refusal = app.apply({"contrast": 1.0})
+    check("...and reports that nothing happened", changed is False)
+    check("...without calling it a refusal, which it is not",
+          refusal is None, str(refusal))
 
     print("\n17. A refused change reaches neither the config nor the hardware")
     app = make_app()
-    ok = app.apply({"scheme": "purple"})
-    check("apply reports the refusal", ok is False)
+    changed, refusal = app.apply({"scheme": "purple"})
+    check("apply reports the refusal", changed is False)
+    check("...and hands back why, rather than leaving it on the app",
+          refusal is not None and "scheme" in refusal, str(refusal))
     check("the config is unchanged", app.config.scheme == "grey",
           app.config.scheme)
     check("the display was not repainted", app.display.repaints == 0)
@@ -498,15 +501,15 @@ def test_target():
 
     print("\n24. A target that would show the picture to nobody is refused")
     app = make_app(lcd=None)
-    ok = app.apply({"target": "lcd"})
-    check("'lcd' with no panel is refused", ok is False)
+    changed, refusal = app.apply({"target": "lcd"})
+    check("'lcd' with no panel is refused", changed is False)
     check("the target is unchanged", app.config.target == "both",
           app.config.target)
     check("and the user is told why", app.notice is not None, str(app.notice))
 
     app = make_app(lcd=StubLcd(), draws=False)
-    ok = app.apply({"target": "terminal"})
-    check("'terminal' with no window is refused", ok is False)
+    changed, refusal = app.apply({"target": "terminal"})
+    check("'terminal' with no window is refused", changed is False)
     check("the target is unchanged", app.config.target == "both",
           app.config.target)
 
@@ -518,34 +521,34 @@ def test_target():
     # alone, which is not a sentence that means anything.
     app = make_app(lcd=None)                      # a terminal, no panel
     app.apply({"target": "terminal"})
-    ok = app.apply({"target": "both"})
+    changed, _ = app.apply({"target": "both"})
     check("'both' is accepted when there is no panel",
-          ok and app.config.target == "both", app.config.target)
+          changed and app.config.target == "both", app.config.target)
 
     app = make_app(lcd=StubLcd(), draws=False)    # a panel, no terminal
     app.apply({"target": "lcd"})
-    ok = app.apply({"target": "both"})
+    changed, _ = app.apply({"target": "both"})
     check("'both' is accepted when there is no terminal",
-          ok and app.config.target == "both", app.config.target)
+          changed and app.config.target == "both", app.config.target)
 
     print("\n24c. A refusal names the missing output, and never says 'alone'")
     app = make_app(lcd=None)
-    app.apply({"target": "lcd"})
+    _, no_panel = app.apply({"target": "lcd"})
     check("asking for the panel with none running says so",
-          app.refusal is not None and "LCD panel is not running"
-          in app.refusal, str(app.refusal))
-    check("...and suggests --lcd", "--lcd" in (app.refusal or ""),
-          str(app.refusal))
+          no_panel is not None and "LCD panel is not running" in no_panel,
+          str(no_panel))
+    check("...and suggests --lcd", "--lcd" in (no_panel or ""), str(no_panel))
 
     app = make_app(lcd=StubLcd(), draws=False)
-    app.apply({"target": "terminal"})
+    _, no_terminal = app.apply({"target": "terminal"})
     check("asking for a terminal with none says so",
-          app.refusal is not None and "no terminal" in app.refusal,
-          str(app.refusal))
-    check("...and blames --no-terminal", "--no-terminal" in (app.refusal or ""),
-          str(app.refusal))
+          no_terminal is not None and "no terminal" in no_terminal,
+          str(no_terminal))
+    check("...and blames --no-terminal",
+          "--no-terminal" in (no_terminal or ""), str(no_terminal))
     check("no refusal describes an output as being 'alone'",
-          "alone" not in (app.refusal or ""), str(app.refusal))
+          all("alone" not in (r or "") for r in (no_panel, no_terminal)),
+          str((no_panel, no_terminal)))
 
     print("\n25. t does not stop on a target this run cannot honour")
     # With no panel, "both" and "terminal" both mean the same thing and "lcd"
