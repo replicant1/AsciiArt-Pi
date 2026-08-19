@@ -2,7 +2,7 @@
 """
 Check the four ways the app can be started, with no camera and no panel.
 
-    python3 tests/screen/display_modes_test.py
+    python3 tests/hdmi/display_modes_test.py
 
 The app can run with the terminal, with the SPI panel, with both, or - the one
 combination that is refused - with neither. The refusal matters as much as the
@@ -26,8 +26,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                              # noqa: E402
 import ascii_camera                          # noqa: E402
-from screen.display import NcursesDisplay           # noqa: E402
-from screen.headless import HeadlessDisplay         # noqa: E402
+from hdmi.display import NcursesDisplay           # noqa: E402
+from hdmi.headless import HeadlessDisplay         # noqa: E402
 
 failures = []
 

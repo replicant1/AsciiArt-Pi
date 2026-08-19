@@ -41,8 +41,8 @@ from control import render_config  # noqa: E402
 from language import shortcuts  # noqa: E402
 from art.ascii_art import RAMPS, AsciiArt  # noqa: E402
 from capture.camera import CameraCapture  # noqa: E402
-from screen.display import NcursesDisplay  # noqa: E402
-from screen.headless import HeadlessDisplay  # noqa: E402
+from hdmi.display import NcursesDisplay  # noqa: E402
+from hdmi.headless import HeadlessDisplay  # noqa: E402
 from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 # Only the default, so --help can state it. Safe at module scope where
 # LcdDisplay is not: the lazy imports in _start_lcd are there for spidev and
@@ -50,7 +50,7 @@ from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 from control.render_config import ConfigError  # noqa: E402
 from control.args import parse_args  # noqa: E402
 from control.scheme_cycle import SchemeCycle  # noqa: E402
-from screen.status_line import status_line  # noqa: E402
+from hdmi.status_line import status_line  # noqa: E402
 from version import APP_NAME, __version__  # noqa: E402
 
 logger = logging.getLogger("ascii_camera")
@@ -574,7 +574,7 @@ class MainRenderLooper:
         Everything here is state the formatting cannot work out for itself: how
         fast frames are arriving, whether a notice has outlived its few seconds,
         and how wide the window is this frame. The line itself is built by
-        src/screen/status_line.py, which is a function of its arguments and can
+        src/hdmi/status_line.py, which is a function of its arguments and can
         be tested without any of this.
         """
         if self.config.freeze:

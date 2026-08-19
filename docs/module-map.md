@@ -35,15 +35,15 @@ Turning brightness into characters, and characters into colour.
 | `src/art/palettes.py` | 172 | Vintage display colour schemes. |
 | `src/art/window_plan.py` | 123 | Work out a terminal geometry in which the ASCII picture is not letterboxed. |
 
-## Screen
+## HDMI
 
 The HDMI terminal, and the stand-in for when there is none.
 
 | Module | Lines | What it is for |
 |---|---:|---|
-| `src/screen/display.py` | 287 | ncurses terminal rendering for the ASCII art frames. |
-| `src/screen/headless.py` | 168 | A stand-in display for when there is no terminal to draw on. |
-| `src/screen/status_line.py` | 104 | The bottom line of the terminal: every setting's state, and what fits. |
+| `src/hdmi/display.py` | 287 | ncurses terminal rendering for the ASCII art frames. |
+| `src/hdmi/headless.py` | 168 | A stand-in display for when there is no terminal to draw on. |
+| `src/hdmi/status_line.py` | 104 | The bottom line of the terminal: every setting's state, and what fits. |
 
 ## LCD
 

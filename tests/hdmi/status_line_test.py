@@ -2,7 +2,7 @@
 """
 Check the status line: what it says, and what it gives up when it cannot fit.
 
-    python3 tests/screen/status_line_test.py
+    python3 tests/hdmi/status_line_test.py
 
 This had no test at all while it lived on the app, because reaching it meant
 building a camera, a display and a config. As a function of its arguments the
@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from control.render_config import RenderConfig                # noqa: E402
-from screen.status_line import HINTS, readouts, status_line   # noqa: E402
+from hdmi.status_line import HINTS, readouts, status_line   # noqa: E402
 
 failures = []
 

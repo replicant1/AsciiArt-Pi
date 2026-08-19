@@ -34,8 +34,8 @@ ROOT_FILES=(ascii_camera.py run_ascii_camera.sh deploy/setup.sh requirements.txt
 SRC_FILES=(version.py
            capture/__init__.py capture/camera.py capture/image_processor.py
            art/__init__.py art/ascii_art.py art/palettes.py art/window_plan.py
-           screen/__init__.py screen/display.py screen/headless.py
-           screen/status_line.py
+           hdmi/__init__.py hdmi/display.py hdmi/headless.py
+           hdmi/status_line.py
            lcd/__init__.py lcd/lcd.py lcd/lcd_display.py
            lcd/lcd_worker.py lcd/lcd_splash.py
            control/__init__.py control/render_config.py control/commands.py
@@ -47,8 +47,8 @@ SRC_FILES=(version.py
 TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             capture/capture_reference.py capture/orientation_test.py
             art/__init__.py art/palette_test.py
-            screen/__init__.py screen/display_modes_test.py
-            screen/status_line_test.py
+            hdmi/__init__.py hdmi/display_modes_test.py
+            hdmi/status_line_test.py
             lcd/__init__.py lcd/lcd_selftest.py lcd/lcd_render_bench.py
             lcd/lcd_concurrency.py lcd/lcd_splash_test.py
             lcd/lcd_font_size_test.py lcd/lcd_worker_test.py
@@ -84,13 +84,15 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
-# have to live on both sides: scheme_montage.py needs the camera, and
-# probe_encoder.py needs the encoder's GPIO pins.
+# have to live on both sides: scheme_montage.py needs the camera,
+# probe_encoder.py needs the encoder's GPIO pins, and power_modes.sh times the
+# running app against the Pi's own /proc jiffies.
 TOOL_FILES=(app/asciicam_cli.py app/ask_parser.py app/utterances.txt
             hardware/probe_encoder.py hardware/watch_button.py
             hardware/notice_demo.py hardware/scheme_montage.py
             hardware/piinput.py hardware/lcd_blank.py
-            docs/module_map.py docs/class_map.py)
+            docs/module_map.py docs/class_map.py
+            power_modes.sh)
 
 changed=0
 
