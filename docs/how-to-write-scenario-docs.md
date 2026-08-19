@@ -321,6 +321,38 @@ simply never appears.
            scenarios/a-render-configuration-change-is-refused.md
 ```
 
+## When the code moves under a scenario
+
+Refactoring `src/` breaks these documents in two different ways, and only the
+first is loud.
+
+**Line anchors shift.** `docs_links_test.py` catches every one, which is what
+the check is for - moving the ask path out of `AsciiArtLiveCamera` broke ten
+anchors across three scenarios and the suite failed on it. Do not repoint them
+by hand from a list of new line numbers; resolve each one by the symbol it used
+to name:
+
+```bash
+git show HEAD:ascii_camera.py > /tmp/old.py
+```
+
+Then, for each stale `#L` anchor: read the `def`/`class` name at that line in
+the *old* file, find where that name lives now, and rewrite the anchor. A
+symbol that left the file entirely needs an explicit new target - `_poll_encoder`
+became `SchemeCycle.poll` in another module, and no amount of line arithmetic
+finds that.
+
+**The cast may be wrong, and nothing checks it.** This is the quiet half. When
+`_resolve_ask` became `AskResolver.resolve`, the shortcut-table scenario's cast
+table still named `AsciiArtLiveCamera` as the triage and its diagram still had
+a participant labelled `_resolve_ask, on that thread`. Both were now false, and
+both passed every check - the anchors resolved, the step table matched the
+diagram. Only reading it catches that.
+
+So after any refactor that touches a class named in a scenario, re-read the
+cast table and the participant labels. The mechanical checks protect the links,
+not the claims.
+
 ## Scenarios not yet written
 
 Headlines already worked out, at the right granularity:

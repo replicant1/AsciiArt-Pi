@@ -39,6 +39,7 @@ SRC_FILES=(version.py
            panel/lcd_worker.py panel/lcd_splash.py
            control/__init__.py control/render_config.py control/commands.py
            control/command_server.py control/web_server.py control/encoder.py
+           control/scheme_cycle.py
            language/__init__.py language/parser.py language/shortcuts.py
            language/asklog.py language/resolver.py)
 TEST_FILES=(capture/__init__.py capture/bench_pipeline.py

@@ -63,6 +63,7 @@ only, so it reads as surface rather than size.
 | `ConfigError` | `render_config.py` | `ValueError` | 0 | A delta that could not be applied, carrying every reason rather than one. |
 | `Spec` | `render_config.py` | `NamedTuple` | 0 | What one setting accepts, and what it is for. |
 | `RenderConfig` | `render_config.py` | `@dataclass` | 4 | The complete live render state. |
+| `SchemeCycle` | `scheme_cycle.py` | — | 5 | Steps the colour scheme, from a key or a knob. |
 | `Forwarder` | `web_server.py` | — | 2 | Sends one line to the app's command socket and returns its reply. |
 | `AskLimit` | `web_server.py` | — | 1 | A sliding window over the requests that cost money. |
 | `Handler` | `web_server.py` | `BaseHTTPRequestHandler` | 3 | One request. The server instance carries the forwarder and the limit. |
@@ -79,4 +80,4 @@ only, so it reads as surface rather than size.
 
 ---
 
-30 classes.
+31 classes.

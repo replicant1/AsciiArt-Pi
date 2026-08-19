@@ -50,6 +50,7 @@ from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 # RPi.GPIO, which live in lcd.py, and lcd_worker pulls in neither.
 from panel.lcd_worker import DEFAULT_SPLASH_HOLD  # noqa: E402
 from control.render_config import ConfigError  # noqa: E402
+from control.scheme_cycle import SchemeCycle  # noqa: E402
 from version import APP_NAME, __version__  # noqa: E402
 
 logger = logging.getLogger("ascii_camera")
@@ -151,7 +152,6 @@ class AsciiArtLiveCamera:
         # not exist yet. They are started below, once the settings they are
         # built from have been applied.
         self.lcd = None
-        self.encoder = None
 
         # Everything the config touches is pushed out from here, so start-up
         # and a later change go down exactly the same path. `previous=None`
@@ -160,8 +160,17 @@ class AsciiArtLiveCamera:
 
         if args.lcd:
             self.lcd = self._start_lcd()
+        # Always built, even with no knob: the `s` key cycles schemes too, and
+        # the walk that skips what this terminal cannot show is the same walk
+        # either way. --encoder only decides whether a second way in exists.
+        self.schemes = SchemeCycle(settings=lambda: self.config,
+                                   apply=self.apply,
+                                   colour_ok=lambda: self.display.colour_ok)
         if args.encoder:
-            self.encoder = self._start_encoder()
+            self.schemes.start_encoder(clk=args.encoder_clk,
+                                       dt=args.encoder_dt,
+                                       sw=args.encoder_sw,
+                                       reverse=args.encoder_reverse)
         self.commands = (self._start_commands() if args.command_socket
                          else None)
 
@@ -401,27 +410,6 @@ class AsciiArtLiveCamera:
                          exc_info=True)
             return None
 
-    def _start_encoder(self):
-        """
-        Bring the rotary encoder up, or carry on without it.
-
-        Not fatal on failure, for the same reason the LCD is not: the knob is a
-        convenience over a key that still works, so an unplugged or misconfigured
-        encoder should cost a log line rather than the whole app.  lgpio is
-        imported inside RotaryEncoder so this stays runnable off the Pi.
-        """
-        try:
-            from control.encoder import RotaryEncoder
-
-            return RotaryEncoder(clk=self.args.encoder_clk,
-                                 dt=self.args.encoder_dt,
-                                 sw=self.args.encoder_sw,
-                                 reverse=self.args.encoder_reverse).start()
-        except Exception as e:
-            logger.error("Rotary encoder unavailable, continuing without "
-                         "it: %s", e, exc_info=True)
-            return None
-
     def _start_commands(self):
         """
         Open the typed-command socket, or carry on without it.
@@ -552,94 +540,10 @@ class AsciiArtLiveCamera:
                              for line in self.refusal.splitlines())
         return "  nothing changed"
 
-    def _poll_encoder(self):
-        """Turn accumulated knob movement and presses into scheme changes."""
-        if self.encoder is None:
-            return
-        steps = self.encoder.take()
-        pressed = self.encoder.take_presses()
-
-        # A press wins over rotation banked in the same frame, and the rotation
-        # is dropped rather than applied on top. Only counts survive the wait
-        # between frames, not the order they happened in, so there is no way to
-        # tell "turn then press" from "press then turn" - and of the two
-        # answers available, going home is the one the user can see is right,
-        # since it is the same wherever the knob had got to. Applying both would
-        # also cost two repaints for one glance at the screen.
-        if pressed:
-            self._home_scheme()
-            return
-
-        # Handed over as one move, not one call per detent: everything banked
-        # since the last frame lands on a single repaint. See _cycle_scheme.
-        if steps:
-            self._cycle_scheme(steps)
-
-    def _home_scheme(self):
-        """
-        Jump straight back to greyscale, however far the knob has wandered.
-
-        Found by kind rather than by name, so renaming the scheme cannot turn
-        this into a lookup that raises. The greyscale scheme is also the one
-        scheme every terminal can show, so this is the one jump that is always
-        available - see the colour_ok test in _cycle_scheme.
-        """
-        home = next(scheme for scheme in palettes.SCHEMES
-                    if scheme.kind == "grey")
-        # apply() is a no-op when the value is already there, so being home
-        # already costs nothing and no repaint flashes.
-        if self.apply({"scheme": home.name}):
-            logger.info("Scheme: %s (%s) - knob pressed", home.name, home.note)
-
     @property
     def scheme(self):
         """The active colour scheme."""
         return palettes.by_name(self.config.scheme)
-
-    def _cycle_scheme(self, step=1):
-        """
-        Step to the next scheme, skipping any this terminal cannot show.
-
-        Args:
-            step: +1 for the next scheme, -1 for the previous one.  The
-                keyboard only ever goes forwards, but a knob that could not go
-                back would be a poor knob.
-        """
-        count = len(palettes.SCHEMES)
-        direction = 1 if step >= 0 else -1
-        start = palettes.SCHEME_NAMES.index(self.config.scheme)
-
-        # Walk to the destination first and change the display once, rather
-        # than changing it at every scheme on the way. set_scheme() repaints
-        # the whole window - it has to, since a light-screen scheme needs a
-        # different background on every cell - so a five-detent move applied
-        # one scheme at a time is five full repaints of pictures that are never
-        # on screen long enough to be seen. That is visible as a hard strobe,
-        # and the slower the scheme the worse it gets, because a slow frame
-        # gives the knob more time to bank detents before anything is drawn.
-        #
-        # A whole lap is the identity, so the count reduces modulo the list
-        # length; clamping to it instead lands a lap off.
-        index = start
-        for _ in range(abs(step) % count):
-            for offset in range(1, count + 1):
-                candidate = (index + direction * offset) % count
-                if (palettes.SCHEMES[candidate].kind == "grey"
-                        or self.display.colour_ok):
-                    index = candidate
-                    break
-            else:
-                return
-
-        if index == start:
-            return
-        # No grid invalidation on purpose: the grid does not depend on the
-        # scheme any more, so recomputing it would only produce the same answer
-        # and log a line claiming a change that did not happen. _adopt knows
-        # this - the scheme is not in the set that clears grid_key.
-        scheme = palettes.SCHEMES[index]
-        if self.apply({"scheme": scheme.name}):
-            logger.info("Scheme: %s (%s)", scheme.name, scheme.note)
 
     def _colours_for(self, frame, processed, cols, rows):
         """
@@ -793,7 +697,7 @@ class AsciiArtLiveCamera:
         elif key in ("r", "R"):
             self.apply({"rotation": (self.config.rotation + 90) % 360})
         elif key in ("s", "S"):
-            self._cycle_scheme()
+            self.schemes.step()
         elif key in ("f", "F"):
             self.apply({"fill": not self.config.fill})
         elif key in ("i", "I"):
@@ -958,10 +862,7 @@ class AsciiArtLiveCamera:
             self.camera.stop()
             if self.lcd is not None:
                 self.lcd.stop()
-            if self.encoder is not None:
-                # Releasing the pins matters as much as it does for the panel:
-                # a claim left behind makes the next run's start() fail.
-                self.encoder.stop()
+            self.schemes.stop()
             if self.commands is not None:
                 # Same reasoning again, for the socket file: one left behind
                 # makes the next run's bind fail with the address still in use.
@@ -980,7 +881,7 @@ class AsciiArtLiveCamera:
         by the same route, from the socket thread - and later, a phone's HTTP
         handler will deliver into the same queue.
         """
-        self._poll_encoder()
+        self.schemes.poll()
         self._poll_commands()
         while True:
             key = self.display.get_key()
