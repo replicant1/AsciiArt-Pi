@@ -72,7 +72,8 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            using-it.md architecture.md module-map.md class-map.md
            subsystems/panel.md subsystems/encoder.md subsystems/language.md
            subsystems/colour-schemes.md subsystems/what-the-model-is-told.md
-           project/performance.md project/workflow.md project/deployment.md)
+           project/performance.md project/workflow.md project/deployment.md
+           scenarios/typed-line-becomes-a-config-change.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera, and
