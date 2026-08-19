@@ -96,7 +96,8 @@ purpose — `sync.sh` copies an explicit file list, and a key inside the tree is
 one careless `git add -A` from a public commit.
 
 The tool schema the model is given is **generated from `SPECS`**, the same
-source as the `help` text and the validator's own rules. Add a setting and it
+source as the `help` text, the command line's own `--help`, and the validator's
+rules. Add a setting and it
 becomes typeable, documented, and askable at once — see
 [One config, one way in](../architecture.md#one-config-one-way-in). `tools/app/ask_parser.py` runs
 utterances against the parser without involving the camera, which is where the
@@ -148,7 +149,7 @@ rejected, listing the names that do work.
 of a US cent to work out `{"scheme": "green"}` — which is the scheme's own name,
 said out loud. `src/language/shortcuts.py` answers that class of phrase from a table
 before any model call or key check happens. (Not "before the parser is
-imported" — `_warm_parser()` imports it at start-up when a key is present,
+imported" — `AskResolver.warm()` imports it at start-up when a key is present,
 so the first ask of a run does not pay an 11-second import.)
 
 Measured end to end through the phone page, against the running service:

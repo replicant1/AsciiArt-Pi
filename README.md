@@ -154,6 +154,7 @@ src/art/                 ascii_art.py         brightness -> characters
                          window_plan.py       a terminal geometry that fits
 src/screen/              display.py           ncurses on the HDMI monitor
                          headless.py          the stand-in when there is none
+                         status_line.py       the bottom line, and what fits
 src/panel/               lcd.py               ILI9341 over SPI, RGB565
                          lcd_display.py       the character grid, as pixels
                          lcd_worker.py        its own thread, so SPI never stalls
@@ -162,9 +163,12 @@ src/control/             render_config.py     every live setting, one typed obje
                          commands.py          typed lines -> settings deltas
                          command_server.py    the Unix socket the CLI talks to
                          web_server.py        the phone page, LAN only
+                         args.py              the command line, from the same SPECS
                          encoder.py           the knob
+                         scheme_cycle.py      the s key and the knob, one walk
 src/language/            parser.py            words -> a validated delta, via a model
                          shortcuts.py         the words that need no model
+                         resolver.py          "ask ..." in, a delta out, off the loop
                          asklog.py            every request written down
 ```
 

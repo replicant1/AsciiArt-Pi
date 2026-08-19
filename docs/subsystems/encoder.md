@@ -59,7 +59,7 @@ to be seen. It reads as a hard strobe, and it feeds back on itself — a slower
 frame gives the knob longer to bank, so the burst grows exactly when it hurts
 most.
 
-`_cycle_scheme` therefore takes the whole move at once, walks to the destination
+`SchemeCycle.step` therefore takes the whole move at once, walks to the destination
 internally, and tells the display once. The intermediate schemes are invisible by
 definition, so nothing is lost. The log makes this visible: a two-detent move
 writes one `Scheme:` line, not two.
