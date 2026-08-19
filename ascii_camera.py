@@ -12,7 +12,7 @@ terminal on the HDMI screen.
 Press 'q' to quit; other live controls are listed in the status line.
 
 Every live setting lives in one RenderConfig (src/control/render_config.py) and every
-change to one is a validated delta applied through AsciiArtLiveCamera.apply().
+change to one is a validated delta applied through MainRenderLooper.apply().
 Nothing here assigns a setting directly - not the keyboard, not the knob - so
 there is a single place that knows what each change costs to make.
 """
@@ -95,7 +95,7 @@ STALL_REPEAT = 30.0
 FROZEN_TICK = 0.05
 
 
-class AsciiArtLiveCamera:
+class MainRenderLooper:
     """Capture -> process -> ASCII -> terminal, once per frame."""
 
     def __init__(self, display, args):
@@ -891,7 +891,7 @@ def main(argv=None):
 
     def bootstrap(stdscr):
         display = NcursesDisplay(stdscr)
-        AsciiArtLiveCamera(display, args).run()
+        MainRenderLooper(display, args).run()
 
     try:
         if args.no_terminal:
@@ -899,7 +899,7 @@ def main(argv=None):
             # mode and restore afterwards. HeadlessDisplay still has stdin to
             # give back, which is what the context manager is for.
             with HeadlessDisplay() as display:
-                AsciiArtLiveCamera(display, args).run()
+                MainRenderLooper(display, args).run()
         else:
             curses.wrapper(bootstrap)
     except Exception as e:

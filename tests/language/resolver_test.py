@@ -5,7 +5,7 @@ Check AskResolver: what "ask <words>" turns into, and on whose thread.
     python3 tests/language/resolver_test.py
 
 No camera, no panel, no terminal, no network. These tests were written against
-AsciiArtLiveCamera, because that is where the code used to live, and they had
+MainRenderLooper, because that is where the code used to live, and they had
 to build a whole app to ask a question about a sentence. AskResolver takes a
 callable for the settings, a callable for saying things, and an optional log,
 so the fakes below are four lines each and the subject under test is the

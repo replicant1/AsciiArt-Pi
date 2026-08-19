@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                                   # noqa: E402
-from ascii_camera import AsciiArtLiveCamera       # noqa: E402
+from ascii_camera import MainRenderLooper       # noqa: E402
 from control.scheme_cycle import SchemeCycle      # noqa: E402
 from capture.image_processor import ImageProcessor        # noqa: E402
 from control.render_config import RenderConfig            # noqa: E402
@@ -62,8 +62,8 @@ class StubDisplay:
 
 
 def make_app():
-    """An AsciiArtLiveCamera with only what _handle_key touches."""
-    app = object.__new__(AsciiArtLiveCamera)
+    """An MainRenderLooper with only what _handle_key touches."""
+    app = object.__new__(MainRenderLooper)
     app.display = StubDisplay()
     app.processor = ImageProcessor()
     # One object now, instead of six attributes that had to agree with each

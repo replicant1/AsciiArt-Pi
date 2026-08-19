@@ -8,7 +8,7 @@ and that it gets there without the render loop ever waiting on whoever typed it.
 The collaboration turns on one division. `CommandServer` runs on its own thread
 and owns the socket, but it does not understand a single setting: it splits
 lines, hands each to the render loop, and blocks its own client for the answer.
-`AsciiArtLiveCamera` understands the line but never touches the socket. Between
+`MainRenderLooper` understands the line but never touches the socket. Between
 them is a queue, drained once per frame in the same place keys and the knob are
 read — so a typed setting lands exactly where a keypress would, and cannot
 arrive halfway through a frame.
@@ -25,7 +25,7 @@ validated path would let a phrase work by hand and fail through the parser.
 |---|---|
 | [`CommandServer`](../../src/control/command_server.py#L80) | A `threading.Thread` owning the Unix socket, with a thread per connected client. Here it is the **courier**: it splits lines, offers each to the resolver, puts it on the inbox and blocks its own client for the answer. It understands not one setting, which is exactly what keeps the socket's concerns out of the render loop |
 | [`commands`](../../src/control/commands.py) | A module of functions rather than a class — its only class is [`CommandError`](../../src/control/commands.py#L49), the exception. Here it is the **translator and the dispatcher**: [`parse`](../../src/control/commands.py#L53) turns a line into typed values and stops, holding no opinion about what is allowed so that exactly one place does, while [`run_command`](../../src/control/commands.py#L352) decides what each kind of line means and words every answer |
-| [`AsciiArtLiveCamera`](../../ascii_camera.py#L98) | The render loop, and the one object the whole process is hung off. Here it is the **applier**: it [drains the inbox once per frame](../../ascii_camera.py#L455), binds this run's own state to the dispatcher, and is the only thing that pushes an adopted config out to the terminal and the panel worker |
+| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the whole process is hung off, and the only thread a setting may be changed on. Here it is the **applier**: it [drains the inbox once per frame](../../ascii_camera.py#L455), binds this run's own state to the dispatcher, and is the only thing that pushes an adopted config out to the terminal and the panel worker |
 | [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen so that it is replaced rather than mutated. Here it is both **validator and diff**: [`with_changes`](../../src/control/render_config.py#L141) returns the new config, and [`describe_changes`](../../src/control/render_config.py#L191) produces the text the person gets back |
 
 ## From the command socket to the render loop
@@ -36,7 +36,7 @@ sequenceDiagram
     actor Person
     participant CLI as asciicam_cli.py<br/>the client
     participant CS as CommandServer<br/>one thread per client
-    participant App as AsciiArtLiveCamera<br/>render loop thread
+    participant App as MainRenderLooper<br/>the main thread
     participant Cmds as commands<br/>module of functions
     participant Cfg as RenderConfig<br/>frozen, replaced not mutated
 

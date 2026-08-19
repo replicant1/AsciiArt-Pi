@@ -98,7 +98,7 @@ the table is.
 - Link method names in column two to their definitions.
 
 The role is what keeps this from duplicating the generated
-[class map](class-map.md). `AsciiArtLiveCamera` is the *applier* in one
+[class map](class-map.md). `MainRenderLooper` is the *applier* in one
 scenario and the *caller* in another. **If a cast row would read the same in
 every scenario, it is not pulling its weight.**
 
@@ -112,7 +112,7 @@ house diagram language — `docs/architecture.md` has five blocks.
 sequenceDiagram
     autonumber
     participant Asker as whoever asked<br/>key, knob, socket or model
-    participant App as AsciiArtLiveCamera
+    participant App as MainRenderLooper
     participant Cfg as RenderConfig<br/>frozen, replaced not mutated
 ```
 
@@ -327,7 +327,7 @@ Refactoring `src/` breaks these documents in two different ways, and only the
 first is loud.
 
 **Line anchors shift.** `docs_links_test.py` catches every one, which is what
-the check is for - moving the ask path out of `AsciiArtLiveCamera` broke ten
+the check is for - moving the ask path out of `MainRenderLooper` broke ten
 anchors across three scenarios and the suite failed on it. Do not repoint them
 by hand from a list of new line numbers; resolve each one by the symbol it used
 to name:
@@ -344,7 +344,7 @@ finds that.
 
 **The cast may be wrong, and nothing checks it.** This is the quiet half. When
 `_resolve_ask` became `AskResolver.resolve`, the shortcut-table scenario's cast
-table still named `AsciiArtLiveCamera` as the triage and its diagram still had
+table still named `MainRenderLooper` as the triage and its diagram still had
 a participant labelled `_resolve_ask, on that thread`. Both were now false, and
 both passed every check - the anchors resolved, the step table matched the
 diagram. Only reading it catches that.
@@ -359,25 +359,25 @@ Headlines already worked out, at the right granularity:
 
 | Headline | Cast |
 |---|---|
-| `CameraCapture` hands the render loop a frame through a one-slot queue | `CameraCapture`, `YuvFrame`, `AsciiArtLiveCamera` |
+| `CameraCapture` hands the render loop a frame through a one-slot queue | `CameraCapture`, `YuvFrame`, `MainRenderLooper` |
 | One YUV420 capture carries greyscale and colour without converting either | `YuvFrame`, `CameraCapture` |
-| `ImageProcessor` rotates, crops and resizes a frame to the character grid | `AsciiArtLiveCamera`, `ImageProcessor` |
+| `ImageProcessor` rotates, crops and resizes a frame to the character grid | `MainRenderLooper`, `ImageProcessor` |
 | Pixel brightness is mapped to ramp characters | `ImageProcessor`, `AsciiArt` |
 | The chroma planes give each character cell its colour | `YuvFrame`, `ImageProcessor`, `AsciiArt` |
 | A colour scheme is compiled into a per-cell lookup table | `Scheme`, `palettes`, `NcursesDisplay`, `LcdDisplay` |
-| The character grid is drawn on the HDMI terminal by `NcursesDisplay` | `AsciiArtLiveCamera`, `NcursesDisplay` |
-| `LcdWorker` renders to the SPI panel without stalling the render loop | `AsciiArtLiveCamera`, `LcdWorker`, `LcdDisplay` |
+| The character grid is drawn on the HDMI terminal by `NcursesDisplay` | `MainRenderLooper`, `NcursesDisplay` |
+| `LcdWorker` renders to the SPI panel without stalling the render loop | `MainRenderLooper`, `LcdWorker`, `LcdDisplay` |
 | The character grid is packed into RGB565 pixels for the ILI9341 | `LcdDisplay`, `GlyphAtlas`, `ILI9341` |
 | The SPI panel shows a start-up screen before the first camera frame | `LcdWorker`, `SplashScreen`, `ILI9341` |
 | A failure notice is painted over the picture on the SPI panel | `LcdWorker`, `LcdDisplay`, `ILI9341` |
 | A spoken phrase is answered from the shortcut table, with no model call | `shortcuts`, `RenderConfig` |
 | A spoken phrase is turned into a config delta by the language model | `parser`, `Parsed`, `RenderConfig` |
 | Text typed on a phone reaches the render loop over the LAN | `Handler`, `AskLimit`, `Forwarder`, `CommandServer` |
-| A keypress updates the render configuration | `NcursesDisplay`, `AsciiArtLiveCamera`, `RenderConfig` |
-| A rotary encoder detent changes the colour scheme | `RotaryEncoder`, `QuadratureDecoder`, `AsciiArtLiveCamera` |
-| One configuration change is pushed to both displays | `AsciiArtLiveCamera`, `NcursesDisplay`, `LcdWorker` |
-| A camera that stopped delivering frames is detected and announced | `AsciiArtLiveCamera`, `LcdWorker`, `LcdDisplay` |
-| A frozen picture is held without redrawing or SPI traffic | `AsciiArtLiveCamera`, `RenderConfig` |
+| A keypress updates the render configuration | `NcursesDisplay`, `MainRenderLooper`, `RenderConfig` |
+| A rotary encoder detent changes the colour scheme | `RotaryEncoder`, `QuadratureDecoder`, `MainRenderLooper` |
+| One configuration change is pushed to both displays | `MainRenderLooper`, `NcursesDisplay`, `LcdWorker` |
+| A camera that stopped delivering frames is detected and announced | `MainRenderLooper`, `LcdWorker`, `LcdDisplay` |
+| A frozen picture is held without redrawing or SPI traffic | `MainRenderLooper`, `RenderConfig` |
 | The camera, panel, encoder and socket are released on shutdown | `CameraCapture`, `LcdWorker`, `RotaryEncoder`, `CommandServer` |
 
 The no-`alt` rule splits some of these further once drawn: a camera that
