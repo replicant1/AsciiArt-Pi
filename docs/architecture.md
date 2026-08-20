@@ -742,7 +742,7 @@ The files inside those directories are not listed here on purpose. That list
 existed, drifted, and was still describing `src/camera.py` and a flat `tests/`
 long after both had moved — a hand-copied inventory of something the code
 already states. The **[module map](module-map.md)** and the **[class
-map](class-map.md)** are generated from the source and guarded by tests that
+overview](class-overview.md)** are generated from the source and guarded by tests that
 fail when they go stale; they are where to look.
 
 The three `lcd_*` modules are a deliberate stack rather than one file:
