@@ -191,7 +191,8 @@ most that has to agree.
   the config it is handed with the next frame.
 - `LOW` · [A model parse fails and the panel says which kind of failure it was](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md)
   — four infrastructure failures told apart because they call for different
-  actions, and three answer failures deliberately not.
+  actions, a safety refusal told apart because retrying it cannot work, and
+  two answer failures deliberately not.
 - `LOW` · [The language model declines a request it cannot satisfy](the-language-model-declines-a-request-it-cannot-satisfy.md)
   — a refusal is an answer with its own tool, and the one string on the panel
   this codebase did not write.

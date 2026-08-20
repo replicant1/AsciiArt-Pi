@@ -185,8 +185,24 @@ class AskResolver:
         sentence. The panel gets the kind of failure, because "the network is
         down" and "the key was refused" call for different actions and the
         difference between them is worth the two words it costs.
+
+        The split is by what to do next, not by exception class. Two answer
+        failures - the model calling neither tool, and the model asking to
+        change nothing - are deliberately left in the fallback, because the
+        only move for either is to try again and neither is the asker's
+        doing. A safety refusal is not like them: the request itself is what
+        was rejected, so retrying it verbatim cannot work, and saying so is
+        the difference between somebody rewording the request and somebody
+        deciding the camera is broken.
         """
         text = str(error).lower()
+        # First, and matching a phrase this codebase writes rather than one
+        # the SDK does - src/language/parser.py raises "the model declined
+        # this request (category)". Matching the bare word "declined" would
+        # be shorter and would also catch a declined card, which is a billing
+        # problem wearing the same word and calls for the opposite advice.
+        if "declined this request" in text:
+            return "the model would not answer - rephrase it"
         if "timeout" in text or "timed out" in text:
             return "the model took too long - try again"
         if "connection" in text or "network" in text or "resolve" in text:

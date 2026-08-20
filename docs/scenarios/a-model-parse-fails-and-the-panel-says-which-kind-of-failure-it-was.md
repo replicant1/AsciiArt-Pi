@@ -16,10 +16,9 @@ socket reply, where whoever typed the command can read a whole error.
 
 **It sorts by what the person should do next, not by exception class.** "The
 network is down" and "the key was refused" call for different actions, and that
-difference is worth the two words it costs. Below that line it stops splitting:
-three structurally different failures all come out as `could not ask the model`,
-because the answer to all three is the same — rephrase it, or accept that this
-one is not going to work.
+difference is worth the two words it costs. It stops splitting exactly where the
+advice stops differing: two answer failures come out as `could not ask the
+model`, because for both of them the move is to try again.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
@@ -61,7 +60,7 @@ sequenceDiagram
 | 5 | the connection fails | Or the key is rejected, or it times out at [twenty seconds](../../src/language/parser.py#L95), or the rate limit is hit. From here they are the same event |
 | 6 | every SDK exception widened into one `ParseError` | [Deliberately broad](../../src/language/parser.py#L401). The class name is in the log either way, and the caller has a 320-pixel band to fill rather than a decision to make |
 | 7 | `ParseError("Connection error.")` | The full text, unshortened. This is what the socket reply will carry |
-| 8 | [`record`](../../src/language/resolver.py#L200)`(error="Connection error.")` | Written before anything is said, so a failure that also fails to display is still on disk. The outcome is `error`, which is what separates it from a decline in the log |
+| 8 | [`record`](../../src/language/resolver.py#L216)`(error="Connection error.")` | Written before anything is said, so a failure that also fails to display is still on disk. The outcome is `error`, which is what separates it from a decline in the log |
 | 9 | [`short_failure`](../../src/language/resolver.py#L180) picks the sentence for this kind | Substring matching on the lowercased text rather than exception types, because what arrives here is already a string and the SDK's class names are not a stable interface |
 | 10 | `no network - words need one, settings do not` | The second half is the useful half. It tells somebody whose network is down that the camera is not broken and every other command still works |
 | 11 | `could not reach the model: Connection error.` | The long form, back down the socket. Whoever typed it gets the real error; the panel gets the summary |
@@ -78,20 +77,31 @@ whole ask path on the socket thread in the first place.
 | The request timed out at 20 s | `the model took too long - try again` |
 | The key was missing, wrong or rejected | `the API key was refused` |
 | Too many requests too quickly | `asking too fast - wait a moment` |
-| The model's safety classifiers [refused](../../src/language/parser.py#L401) | `could not ask the model` |
+| The model's safety classifiers [refused](../../src/language/parser.py#L401) | `the model would not answer - rephrase it` |
 | The model [called neither tool](../../src/language/parser.py#L401) | `could not ask the model` |
 | The model asked to [change nothing, with no reason](../../src/language/parser.py#L401) | `could not ask the model` |
 
-Every one of those sentences fits on a single 44-character line, which is a
-constraint the wording was written to and not a coincidence.
+Every one of those sentences fits on a single 44-character line — the longest is
+44 exactly — which is a constraint the wording was written to and not a
+coincidence.
 
-**The last three are worth being honest about.** They are genuinely different
-events — a safety refusal, a malformed answer, and an answer that changed
-nothing — and the panel cannot tell them apart. The defence is that the person's
-next move is the same for all three, and the log keeps the full text for anyone
-asking a different question later. The defence is weaker for the refusal than
-for the other two, since rephrasing is the fix and the message does not hint at
-it. It is a fair place to want a sixth branch.
+**The last two share a sentence, and that is the deliberate part.** A malformed
+answer and an answer that changed nothing are different events, and the panel
+cannot tell them apart. It does not need to: neither is the asker's doing and
+the move for both is to try again, which is what `could not ask the model`
+already implies. The log keeps the full text for anyone asking a sharper
+question later.
+
+**The refusal used to share it too, and should not have.** Retrying a request
+the model's own classifiers rejected cannot work, so advice that amounts to
+"try again" is advice guaranteed to fail — and the likeliest reading of a
+camera that says nothing useful twice is that the camera is broken. It now says
+`the model would not answer - rephrase it`, which is the one action that can
+succeed. That branch is [matched
+first](../../src/language/resolver.py#L180) and on the whole phrase
+`parser.py` writes rather than on the bare word *declined*, which would also
+catch a declined card — a billing problem wearing the same word and calling for
+the opposite advice.
 
 ## Related scenarios
 
