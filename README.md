@@ -91,7 +91,7 @@ machine by what its parts do *together*: one document per mind-sized chunk of
 behaviour, two to five classes each, with a sequence diagram, a table
 explaining every message in it, and links into the source. They are grouped
 into five categories following the shape of the machine, and each carries a
-priority — twenty written so far, and the
+priority — all twenty-five are written, and the
 [index](docs/scenarios/SCENARIO_INDEX.md) ranks every one and shows where the
 gaps are.
 
@@ -153,6 +153,11 @@ not, and lists what still belongs in each category.
 | [How this is built](docs/project/workflow.md) | Agent on the Mac, app on the Pi, and syncing between them |
 | [What the model is told](docs/subsystems/what-the-model-is-told.md) | The system prompt and tool schema, and the eval cases |
 | [How to write a scenario](docs/how-to-write-scenario-docs.md) | The format `docs/scenarios/` follows, and the ones still to write |
+| [A failure notice is painted over the picture on the SPI panel](docs/scenarios/a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md) | 36 pixels of the 240, in fixed ink over whatever is underneath, pushed with or without a frame to carry it |
+| [A frozen picture is held without redrawing or SPI traffic](docs/scenarios/a-frozen-picture-is-held-without-redrawing-or-spi-traffic.md) | The loop stops making frames rather than making repeats — and the camera stays on, because restarting it costs 15–20 seconds |
+| [A model parse fails and the panel says which kind of failure it was](docs/scenarios/a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md) | Four infrastructure failures told apart because they call for different actions, and three answer failures deliberately not |
+| [The language model declines a request it cannot satisfy](docs/scenarios/the-language-model-declines-a-request-it-cannot-satisfy.md) | A refusal is an answer with its own tool, and the one string on the panel this codebase did not write |
+| [Every ask is recorded with its source, its cost and its elapsed time](docs/scenarios/every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md) | The only part of the app whose behaviour cannot be asserted in a test, so what really happened is kept instead |
 
 `docs/` is arranged the same way as the code:
 

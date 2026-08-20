@@ -81,6 +81,11 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            subsystems/colour-schemes.md subsystems/what-the-model-is-told.md
            project/performance.md project/workflow.md project/deployment.md
            scenarios/SCENARIO_INDEX.md
+           scenarios/a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md
+           scenarios/a-frozen-picture-is-held-without-redrawing-or-spi-traffic.md
+           scenarios/a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md
+           scenarios/the-language-model-declines-a-request-it-cannot-satisfy.md
+           scenarios/every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md
            scenarios/a-typed-command-updates-the-render-configuration.md
            scenarios/a-render-configuration-change-is-refused.md
            scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md

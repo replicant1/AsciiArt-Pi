@@ -90,7 +90,5 @@ seconds to answer.
   rather than start.
 - [The character grid is packed into RGB565 pixels for the ILI9341](the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md)
   — how a picture reaches the same panel once there is one.
-- **A failure notice is painted over the picture on the SPI panel** — the band,
+- [A failure notice is painted over the picture on the SPI panel](a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md) — the band,
   which shares the frame buffer this screen writes to.
-
-*(The unlinked entries above are documents not written yet.)*

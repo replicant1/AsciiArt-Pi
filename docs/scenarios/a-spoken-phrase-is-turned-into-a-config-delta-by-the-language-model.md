@@ -115,11 +115,9 @@ their own documents rather than an `alt` in this one.
 - [A render configuration change is refused](a-render-configuration-change-is-refused.md)
   — what judges the delta this produces. The model's output earns no special
   treatment, which is the point of letting it through unstrict.
-- **A model parse fails and the panel says which kind of failure it was** — the
+- [A model parse fails and the panel says which kind of failure it was](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md) — the
   `ParseError` outcome, where `short_failure` shortens a sentence to something
   that fits a 320-pixel band.
-- **The language model declines a request it cannot satisfy** — the `declined`
+- [The language model declines a request it cannot satisfy](the-language-model-declines-a-request-it-cannot-satisfy.md) — the `declined`
   outcome, which is an answer rather than a failure and still has to reach the
   panel rather than only the socket.
-
-*(The unlinked entries above are documents not written yet.)*

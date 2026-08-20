@@ -12,9 +12,10 @@ is listed rather than omitted: saying where the gaps are is most of the point.
 category.** [Where to start](#where-to-start) puts the same twenty documents in
 the order that gets the whole machine into your head fastest, in six.
 
-**Twenty written, five still to write.** Unwritten entries are in bold
-rather than linked, because a link to a file that does not exist fails
-`tests/docs/docs_links_test.py`.
+**All twenty-five are written.** No bold entries are left, so the check in
+`tests/docs/docs_links_test.py` that catches a scenario still advertised as
+unwritten now has nothing to find — which is the state it was built to protect,
+not a reason to delete it.
 
 ## Where to start
 
@@ -63,7 +64,8 @@ in this order they answer questions the first lap raises and leaves open.
 
 Document 5 showed one route to a changed setting. These are the rest, ordered
 by how much machinery stands between a person and the configuration — a knob is
-almost none, a language model is a great deal.
+almost none, a language model is a great deal — and then the two ways the last
+of them can end without changing anything.
 
 | | Scenario | What it adds |
 |---:|---|---|
@@ -73,17 +75,22 @@ almost none, a language model is a great deal.
 | 15 | [Text typed on a phone reaches the render loop over the LAN](text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md) | A second process, sharing no memory with the camera, reaching it down the socket a shell would use |
 | 16 | [A spoken phrase is answered from the shortcut table, with no model call](a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) | Words becoming a setting with no key, no network and no model — and why the table declines rather than guesses |
 | 17 | [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) | What the phrases the table declines cost instead, and the only path here that can be switched off entirely |
+| 18 | [A model parse fails and the panel says which kind of failure it was](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md) | The first ending document 17 can have that is not a change, and how a failure becomes a sentence that fits |
+| 19 | [The language model declines a request it cannot satisfy](the-language-model-declines-a-request-it-cannot-satisfy.md) | The second, and the harder one: a refusal is an answer, and must not be filed with the failures |
 
 ### When it is not simply running
 
-In the order a run meets them: before the first frame, during, and on the way
-out.
+In the order a run meets them: before the first frame, during, on the way out —
+and last, the one thing the app keeps after the process is gone.
 
 | | Scenario | What it adds |
 |---:|---|---|
-| 18 | [The SPI panel shows a start-up screen before the first camera frame](the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md) | The twenty seconds before there is anything to show, and why unlit glass is the one thing the panel must not do |
-| 19 | [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md) | Why a working camera and a frozen picture look identical, and what a sealed box can do about it |
-| 20 | [The camera, panel, encoder and socket are released on shutdown](the-camera-panel-encoder-and-socket-are-released-on-shutdown.md) | Four claims given back in a fixed order, because a leak on the way out breaks the *next* start rather than this one |
+| 20 | [The SPI panel shows a start-up screen before the first camera frame](the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md) | The twenty seconds before there is anything to show, and why unlit glass is the one thing the panel must not do |
+| 21 | [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md) | Why a working camera and a frozen picture look identical, and what a sealed box can do about it |
+| 22 | [A failure notice is painted over the picture on the SPI panel](a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md) | The mechanism the two above both depend on: a band pushed with or without a frame to carry it |
+| 23 | [A frozen picture is held without redrawing or SPI traffic](a-frozen-picture-is-held-without-redrawing-or-spi-traffic.md) | The deliberate still picture, and what a loop with nothing to draw ought to cost |
+| 24 | [The camera, panel, encoder and socket are released on shutdown](the-camera-panel-encoder-and-socket-are-released-on-shutdown.md) | Four claims given back in a fixed order, because a leak on the way out breaks the *next* start rather than this one |
+| 25 | [Every ask is recorded with its source, its cost and its elapsed time](every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md) | What outlives the run, and the field that decides whether a record is evidence of anything |
 
 ## What the priorities mean
 
@@ -146,15 +153,16 @@ different rates.
 - `MEDIUM` · [The SPI panel shows a start-up screen before the first camera frame](the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md)
   — twenty seconds of unlit glass is what broken hardware looks like, so the
   panel says what is happening, and keeps saying something true.
-- `LOW` · **A failure notice is painted over the picture on the SPI panel**
-  Cast: `LcdWorker`, `LcdDisplay`, `ILI9341`
+- `LOW` · [A failure notice is painted over the picture on the SPI panel](a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md)
+  — 36 pixels of the 240, in fixed ink over whatever is underneath, pushed
+  with or without a frame to carry it.
 
 ## Getting a change in
 
 Every route by which a setting changes — a typed line, a key, the knob, a
-phone, or words — and the one validator they all meet. All four written
-scenarios are here, because this is where the app has the most ways in and
-therefore the most that has to agree.
+phone, or words — and the one validator they all meet. This is the largest
+category, because it is where the app has the most ways in and therefore the
+most that has to agree.
 
 - `HIGH` · [A typed command updates the render configuration](a-typed-command-updates-the-render-configuration.md)
   — a line on the Unix socket crosses a thread boundary, is parsed into typed
@@ -181,10 +189,12 @@ therefore the most that has to agree.
 - `HIGH` · [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md)
   — where every route above ends. The terminal is pushed to; the panel reads
   the config it is handed with the next frame.
-- `LOW` · **A model parse fails and the panel says which kind of failure it was**
-  Cast: `AskResolver`, `parser`, `ParseError`
-- `LOW` · **The language model declines a request it cannot satisfy**
-  Cast: `AskResolver`, `parser`, `Parsed`
+- `LOW` · [A model parse fails and the panel says which kind of failure it was](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md)
+  — four infrastructure failures told apart because they call for different
+  actions, and three answer failures deliberately not.
+- `LOW` · [The language model declines a request it cannot satisfy](the-language-model-declines-a-request-it-cannot-satisfy.md)
+  — a refusal is an answer with its own tool, and the one string on the panel
+  this codebase did not write.
 
 ## Lifecycle
 
@@ -194,13 +204,15 @@ it is not simply running.
 - `MEDIUM` · [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md)
   — a frozen picture and a working camera are indistinguishable by eye, so the
   only output a sealed box has must be able to admit it has nothing new.
-- `LOW` · **A frozen picture is held without redrawing or SPI traffic**
-  Cast: `MainRenderLooper`, `RenderConfig`
+- `LOW` · [A frozen picture is held without redrawing or SPI traffic](a-frozen-picture-is-held-without-redrawing-or-spi-traffic.md)
+  — the loop stops making frames rather than making repeats, and the camera is
+  left running because restarting it costs 15-20 seconds.
 - `MEDIUM` · [The camera, panel, encoder and socket are released on shutdown](the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
   — four claims given back in a fixed order, because a leak on the way out
   breaks the next start rather than this one.
-- `LOW` · **Every ask is recorded with its source, its cost and its elapsed time**
-  Cast: `AskResolver`, `AskLog`
+- `LOW` · [Every ask is recorded with its source, its cost and its elapsed time](every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md)
+  — the only part of the app whose behaviour cannot be asserted in a test, so
+  what really happened is kept instead.
 
 ---
 
@@ -209,7 +221,7 @@ happens in `run_ascii_camera.sh` calling `window_plan.plan()` before any object
 exists, so it cannot be drawn as a collaboration between classes. Draw it with
 the module named as a module, or leave it to [using it](../using-it.md).
 
-The last two entries under *Getting a change in* are the outcomes the language
+The last two scenarios under *Getting a change in* are the outcomes the language
 model scenario deliberately does not draw: one document per outcome, rather
 than one diagram with a branch in it. They inherit its `LOW`, since a failure
 of an optional path is not more urgent than the path.

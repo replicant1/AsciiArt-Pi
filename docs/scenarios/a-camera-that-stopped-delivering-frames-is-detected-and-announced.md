@@ -98,10 +98,8 @@ the same route it painted it.
   from.
 - [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
   — the ordinary way something reaches the glass, with a frame to carry it.
-- **A failure notice is painted over the picture on the SPI panel** — the band
+- [A failure notice is painted over the picture on the SPI panel](a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md) — the band
   itself, its wrapping and its geometry, drawn in full.
-- **A frozen picture is held without redrawing or SPI traffic** — the *deliberate*
+- [A frozen picture is held without redrawing or SPI traffic](a-frozen-picture-is-held-without-redrawing-or-spi-traffic.md) — the *deliberate*
   version of a picture that does not change, and why the two must not look
   alike.
-
-*(The unlinked entries above are documents not written yet.)*
