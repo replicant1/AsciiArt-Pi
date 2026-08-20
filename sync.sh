@@ -74,7 +74,7 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            guides/enclosure-build-guide.html
            guides/panel-connectors-guide.html
            guides/enclosure-renders.html index.html
-           using-it.md architecture.md module-map.md class-map.md
+           using-it.md architecture.md module-map.md class-overview.md
            how-to-write-scenario-docs.md
            subsystems/panel.md subsystems/encoder.md subsystems/language.md
            subsystems/threads.md
@@ -104,7 +104,7 @@ TOOL_FILES=(app/asciicam_cli.py app/ask_parser.py app/utterances.txt
             hardware/probe_encoder.py hardware/watch_button.py
             hardware/notice_demo.py hardware/scheme_montage.py
             hardware/piinput.py hardware/lcd_blank.py
-            docs/module_map.py docs/class_map.py
+            docs/module_map.py docs/class_map.py docs/class_synopses.py
             power_modes.sh)
 
 changed=0

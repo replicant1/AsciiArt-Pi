@@ -100,7 +100,7 @@ the table is.
 - Link method names in column two to their definitions.
 
 The role is what keeps this from duplicating the generated
-[class map](class-map.md). `MainRenderLooper` is the *applier* in one
+[class overview](class-overview.md). `MainRenderLooper` is the *applier* in one
 scenario and the *caller* in another. **If a cast row would read the same in
 every scenario, it is not pulling its weight.**
 
@@ -289,9 +289,9 @@ That produced the exact two lines the diagram quotes. It also settles claims
 worth checking before writing them down — `SPECS` really is twelve entries;
 `contrast 99` clamps to `4.0` rather than being refused.
 
-Other sources of truth: [`docs/class-map.md`](class-map.md) is generated from
-each class's own first docstring line, so cast descriptions can lean on it
-without drifting; `SPECS` in `render_config.py` is the single source the
+Other sources of truth: [`docs/class-overview.md`](class-overview.md) gives each
+class a synopsis of what it is for, which is where a cast row's *role* should
+differ from rather than repeat; `SPECS` in `render_config.py` is the single source the
 validator, the `help` text, the command-line arguments and the model's tool
 schema are all built from.
 
