@@ -93,7 +93,5 @@ first failure is precisely the shutdown that breaks the next boot.
 - [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md)
   — the other lifecycle scenario, and the one whose last log line this one
   writes.
-- **A rotary encoder detent changes the colour scheme** — what claimed the three
+- [A rotary encoder detent changes the colour scheme](a-rotary-encoder-detent-changes-the-colour-scheme.md) — what claimed the three
   GPIO pins released here.
-
-*(The unlinked entries above are documents not written yet.)*

@@ -83,7 +83,5 @@ that is a separate collaboration, not a boundary crossed here.
   — what happens to the array this produces.
 - [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
   — the thread that repeats all of this at a different size.
-- **One configuration change is pushed to both displays** — where `rotation` and
+- [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md) — where `rotation` and
   `fill` invalidate the cached grid, and why only those two do.
-
-*(The unlinked entries above are documents not written yet.)*
