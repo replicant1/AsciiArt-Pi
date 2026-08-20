@@ -130,6 +130,7 @@ and in the gaps of the four categories above.
 | [Colour schemes](docs/subsystems/colour-schemes.md) | The nine schemes, how one is drawn, what it costs |
 | [The SPI panel](docs/subsystems/panel.md) | The ILI9341, wiring, why it cannot be verified in software, rotation |
 | [The rotary encoder](docs/subsystems/encoder.md) | The KY-040 knob, quadrature decoding, the button |
+| [Threads and processes](docs/subsystems/threads.md) | The two services, every thread in them, what each owns, and the four ways anything crosses between them |
 | [Performance](docs/project/performance.md) | Measured frame rates, where the time goes, window sizing |
 | [Running it at boot](docs/project/deployment.md) | The systemd services, boot timing, the enclosure |
 | [How this is built](docs/project/workflow.md) | Agent on the Mac, app on the Pi, and syncing between them |

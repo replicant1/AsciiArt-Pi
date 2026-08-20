@@ -156,6 +156,7 @@ gates are not alternatives, and may be two diagrams in one document.
 | `;` inside a message | Mermaid treats it as a statement separator, truncates the message, loses the arrow, and the whole diagram fails to parse | Use a dash or a comma |
 | `rect rgb(245, 245, 245)` | Opaque light grey puts light text on a light ground in GitHub's dark theme | `rect rgba(…, 0.12)` tints instead of painting, and works in both |
 | `\|` in a table cell | Ends the cell | Reword |
+| `gantt` with `dateFormat X` | An absolute start date is ignored and the bar is drawn from zero, silently - a thread that starts at six seconds claims to start at boot | Position with `after <id>`, which is honoured, or draw the timeline as characters |
 | A participant aliased with a keyword - `Loop`, `Box`, `Alt`, `Par`, `Opt`, `End`, `Rect`, `Note`, `Critical`, `Break` | The alias is read as the keyword, `Expecting 'ACTOR', got 'loop'`, and the whole diagram fails to parse. Matching is case-insensitive, so `Loop` and `Box` both collide | Alias it anything else. `Looper`, `Inbox` |
 
 **Render before committing.** `mermaid-cli` is installed on the Mac:
