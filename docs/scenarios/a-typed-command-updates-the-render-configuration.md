@@ -1,5 +1,7 @@
 # A typed command updates the render configuration
 
+**Priority: `HIGH`** — every route by which a setting changes converges on this one, so it runs on every change the app ever makes. [What the priorities mean](../how-to-write-scenario-docs.md).
+
 Somebody types `contrast 2.4 invert on` at a shell and the picture changes on
 both displays. The value is that this works against a process with no terminal
 of its own — the boot service, in the enclosure — where no key can be pressed;

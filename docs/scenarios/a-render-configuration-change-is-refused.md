@@ -1,5 +1,7 @@
 # A render configuration change is refused
 
+**Priority: `MEDIUM`** — the guard every route meets, but only on input that is wrong - the picture is never at risk while it runs. [What the priorities mean](../how-to-write-scenario-docs.md).
+
 Somebody asks for `rotation 45`, and is told `rotation must be one of 0, 90,
 180, 270, not 45`. The value is that they are told *that*, in those words,
 whoever they are — a key, the knob, a typed line, a phone, or a language model

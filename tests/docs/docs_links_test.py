@@ -247,6 +247,48 @@ for d in SCENARIOS:
 check("every source line anchor lands on a definition", not_a_definition, [])
 check("and a backticked label names the definition it lands on", wrong_definition, [])
 
+# --- priority, which is written down twice -----------------------------------
+#
+# Every scenario states its priority under its own headline, and the index
+# states it again beside the link. Two copies, and a disagreement is invisible:
+# both pages render perfectly while telling a reader different things.
+#
+# The index is the authority, because it is the one page that can be read as a
+# ranking. This checks the documents against it, and that none of them forgot.
+
+PRIORITY_IN_DOC = re.compile(r"^\*\*Priority: `(HIGH|MEDIUM|LOW)`\*\*", re.M)
+PRIORITY_IN_INDEX = re.compile(r"^- `(HIGH|MEDIUM|LOW)` \u00b7 \[[^\]]+\]\(([^)]+\.md)\)", re.M)
+
+INDEX = ROOT / "docs" / "scenarios" / "SCENARIO_INDEX.md"
+
+
+def priority_faults():
+    """Where a scenario's stated priority and the index's disagree."""
+    faults = []
+    if not INDEX.is_file():
+        return ["no SCENARIO_INDEX.md"]
+    ranked = {name: pri for pri, name in PRIORITY_IN_INDEX.findall(
+        INDEX.read_text(encoding="utf-8"))}
+    for d in SCENARIOS:
+        if d.name == INDEX.name:
+            continue
+        found = PRIORITY_IN_DOC.search(text[d])
+        if found is None:
+            faults.append(f"{d.name} states no priority")
+        elif d.name not in ranked:
+            faults.append(f"{d.name} is not ranked in the index")
+        elif found.group(1) != ranked[d.name]:
+            faults.append(f"{d.name} says {found.group(1)}, "
+                          f"the index says {ranked[d.name]}")
+    return faults
+
+
+check("every scenario's priority matches the index", priority_faults(), [])
+check("and the index ranks every written scenario",
+      sorted(n for _, n in PRIORITY_IN_INDEX.findall(
+          INDEX.read_text(encoding="utf-8"))),
+      sorted(d.name for d in SCENARIOS if d.name != INDEX.name))
+
 # and prove the step table check can fail, on a sample rather than on a real
 # document - a mutation of a real one stops mutating the moment it is edited.
 SAMPLE = """```mermaid
