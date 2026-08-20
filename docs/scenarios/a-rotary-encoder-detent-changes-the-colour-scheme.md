@@ -103,7 +103,5 @@ knob, and `--encoder-reverse` exists for the other answer.
 - [A render configuration change is refused](a-render-configuration-change-is-refused.md)
   — the same validator, in the case where a value is not allowed. A scheme the
   knob walks to is always legal, because the walk only visits real ones.
-- **A keypress updates the render configuration** — the `s` key, which reaches
+- [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md) — the `s` key, which reaches
   `SchemeCycle.step` by the other route and never banks anything.
-
-*(The unlinked entries above are documents not written yet.)*

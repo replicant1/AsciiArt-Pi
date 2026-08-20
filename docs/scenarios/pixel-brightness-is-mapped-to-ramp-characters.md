@@ -88,10 +88,8 @@ The boundary that does exist is drawn in its own scenario.
   nothing to read.
 - [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
   — the last two messages above, from the other side of the thread boundary.
-- **The chroma planes give each character cell its colour** — the parallel path
+- [The chroma planes give each character cell its colour](the-chroma-planes-give-each-character-cell-its-colour.md) — the parallel path
   through the same `ImageProcessor`, kept in register with this one so that
   colour cannot fringe against the glyphs.
-- **A colour scheme is compiled into a per-cell lookup table** — what happens to
+- [A colour scheme is compiled into a per-cell lookup table](a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md) — what happens to
   the ramp positions produced here when the scheme is a tint.
-
-*(The unlinked entries above are documents not written yet.)*

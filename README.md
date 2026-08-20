@@ -91,7 +91,7 @@ machine by what its parts do *together*: one document per mind-sized chunk of
 behaviour, two to five classes each, with a sequence diagram, a table
 explaining every message in it, and links into the source. They are grouped
 into five categories following the shape of the machine, and each carries a
-priority — fourteen written so far, and the
+priority — twenty written so far, and the
 [index](docs/scenarios/SCENARIO_INDEX.md) ranks every one and shows where the
 gaps are.
 
@@ -106,6 +106,10 @@ one of these runs on every frame the app draws.
 | [Pixel brightness is mapped to ramp characters](docs/scenarios/pixel-brightness-is-mapped-to-ramp-characters.md) | A 256-entry table built once and applied to the whole grid at a stroke, feeding both displays from one calculation |
 | [A frame reaches the SPI panel without stalling the render loop](docs/scenarios/a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md) | 153,600 bytes and 33 ms of SPI, on a thread the render loop never waits on |
 | [The character grid is packed into RGB565 pixels for the ILI9341](docs/scenarios/the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md) | 3.7 ms of CPU against 33 ms of transfer, because glyphs are gathered from an atlas rather than drawn per cell |
+| [The character grid is drawn on the HDMI terminal](docs/scenarios/the-character-grid-is-drawn-on-the-hdmi-terminal.md) | Centred, padded rather than cleared, and written as coloured runs — every frame, but never in the enclosure |
+| [The SPI panel shows a start-up screen before the first camera frame](docs/scenarios/the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md) | Twenty seconds of unlit glass is what broken hardware looks like, so the panel says what is happening — and keeps saying something true |
+| [The chroma planes give each character cell its colour](docs/scenarios/the-chroma-planes-give-each-character-cell-its-colour.md) | The conversion runs after the downscale, so colour costs about 6,650 sums a frame rather than 76,800 |
+| [A colour scheme is compiled into a per-cell lookup table](docs/scenarios/a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md) | One blend compiled twice, because the panel takes RGB and the terminal has only 240 palette entries to snap to |
 
 **Getting a change in** — every route by which a setting changes, and the one
 validator they all meet.
@@ -118,6 +122,8 @@ validator they all meet.
 | [A spoken phrase is turned into a config delta by the language model](docs/scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) | What `something calmer` costs instead — a key, a network and two and a half seconds — for a delta nothing downstream can tell from a typed one |
 | [A rotary encoder detent changes the colour scheme](docs/scenarios/a-rotary-encoder-detent-changes-the-colour-scheme.md) | The only control a sealed box has that needs no second device — bounce rejected by construction, a banked spin costing one repaint |
 | [One configuration change is pushed to both displays](docs/scenarios/one-configuration-change-is-pushed-to-both-displays.md) | Where every route above ends. The terminal is pushed to; the panel reads the config handed to it with the next frame |
+| [A keypress updates the render configuration](docs/scenarios/a-keypress-updates-the-render-configuration.md) | The shortest route in, and only short — every branch builds a delta and none assigns a setting |
+| [Text typed on a phone reaches the render loop over the LAN](docs/scenarios/text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md) | A second process sharing no memory with the camera, reaching it only down the socket a shell would use |
 
 **Lifecycle** — the states the machine is in when it is not simply running.
 

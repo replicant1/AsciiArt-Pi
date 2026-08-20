@@ -85,7 +85,7 @@ of it may be slow. Nothing to the left of it ever waits.
   displays share.
 - [The character grid is packed into RGB565 pixels for the ILI9341](the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md) — the two
   numpy operations behind one message here, drawn in full.
-- **The SPI panel shows a start-up screen before the first camera frame** — what
+- [The SPI panel shows a start-up screen before the first camera frame](the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md) — what
   the idle timeout above is doing before any frame has ever arrived.
 - **A failure notice is painted over the picture on the SPI panel** — the other
   thing that timeout exists for.

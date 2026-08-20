@@ -107,7 +107,7 @@ see below.
   `_prepare`'s resolver returning an `Ask` instead of `None`, so the delta is
   worked out on the client's thread and the render loop still only ever applies
   a dict.
-- **A keypress updates the render configuration** — joins this one at `apply()`, which is
+- [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md) — joins this one at `apply()`, which is
   the point of routing both through it.
 - [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md) — takes over at `_adopt`, where this
   scenario stops.
@@ -115,5 +115,3 @@ see below.
   — what happens in place of the `_adopt` and `describe_changes` exchange when a
   name or value is rejected. Same cast, same reply channel, different outcome,
   which is why it is drawn separately rather than as a branch here.
-
-*(The unlinked entries above are documents not written yet.)*

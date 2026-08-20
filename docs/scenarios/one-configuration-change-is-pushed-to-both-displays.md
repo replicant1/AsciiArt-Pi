@@ -91,7 +91,5 @@ nothing, which is exactly the design.
   costs here.
 - [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
   — the next frame, which is how the panel actually learns about all of this.
-- **A keypress updates the render configuration** — the shortest route to
+- [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md) — the shortest route to
   `apply`, and the one that passes `note=True`.
-
-*(The unlinked entries above are documents not written yet.)*
