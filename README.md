@@ -91,7 +91,7 @@ machine by what its parts do *together*: one document per mind-sized chunk of
 behaviour, two to five classes each, with a sequence diagram, a table
 explaining every message in it, and links into the source. They are grouped
 into five categories following the shape of the machine, and each carries a
-priority — nine written so far, and the
+priority — fourteen written so far, and the
 [index](docs/scenarios/SCENARIO_INDEX.md) ranks every one and shows where the
 gaps are.
 
@@ -101,8 +101,11 @@ one of these runs on every frame the app draws.
 | Scenario | The collaboration |
 |---|---|
 | [A capture thread hands the render loop its newest frame through a one-slot queue](docs/scenarios/a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md) | Why the loop loses frames rather than currency when it falls behind, and why exactly one copy is made per frame |
+| [One YUV420 capture carries greyscale and colour without converting either](docs/scenarios/one-yuv420-capture-carries-greyscale-and-colour-without-converting-either.md) | The Y plane already *is* the greyscale image, and 38 KB more buys the colour path with no conversion anywhere |
+| [ImageProcessor rotates, crops and resizes a frame to the character grid](docs/scenarios/imageprocessor-rotates-crops-and-resizes-a-frame-to-the-character-grid.md) | The step that makes everything downstream grid-sized, and keeps the three planes in register |
 | [Pixel brightness is mapped to ramp characters](docs/scenarios/pixel-brightness-is-mapped-to-ramp-characters.md) | A 256-entry table built once and applied to the whole grid at a stroke, feeding both displays from one calculation |
 | [A frame reaches the SPI panel without stalling the render loop](docs/scenarios/a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md) | 153,600 bytes and 33 ms of SPI, on a thread the render loop never waits on |
+| [The character grid is packed into RGB565 pixels for the ILI9341](docs/scenarios/the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md) | 3.7 ms of CPU against 33 ms of transfer, because glyphs are gathered from an atlas rather than drawn per cell |
 
 **Getting a change in** — every route by which a setting changes, and the one
 validator they all meet.
@@ -113,6 +116,8 @@ validator they all meet.
 | [A render configuration change is refused](docs/scenarios/a-render-configuration-change-is-refused.md) | Why `rotation 45` is refused in the same words whoever asked, and the one check `RenderConfig` is not in a position to make |
 | [A spoken phrase is answered from the shortcut table, with no model call](docs/scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) | How `a bit more contrast` becomes a delta in microseconds, with no API key, no network and no model |
 | [A spoken phrase is turned into a config delta by the language model](docs/scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) | What `something calmer` costs instead — a key, a network and two and a half seconds — for a delta nothing downstream can tell from a typed one |
+| [A rotary encoder detent changes the colour scheme](docs/scenarios/a-rotary-encoder-detent-changes-the-colour-scheme.md) | The only control a sealed box has that needs no second device — bounce rejected by construction, a banked spin costing one repaint |
+| [One configuration change is pushed to both displays](docs/scenarios/one-configuration-change-is-pushed-to-both-displays.md) | Where every route above ends. The terminal is pushed to; the panel reads the config handed to it with the next frame |
 
 **Lifecycle** — the states the machine is in when it is not simply running.
 
