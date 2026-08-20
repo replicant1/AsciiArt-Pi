@@ -37,8 +37,8 @@ only, so it reads as surface rather than size.
 
 | Class | In | Base | Methods | What it is for |
 |---|---|---|---:|---|
-| `NcursesDisplay` | `display.py` | — | 9 | Renders ASCII art frames to the terminal. |
-| `HeadlessDisplay` | `headless.py` | — | 9 | Draws nothing, but still carries the settings and reads the keyboard. |
+| `HeadlessDisplay` | `headless_display.py` | — | 9 | Draws nothing, but still carries the settings and reads the keyboard. |
+| `NcursesDisplay` | `ncurses_display.py` | — | 9 | Renders ASCII art frames to the terminal. |
 
 ## LCD
 

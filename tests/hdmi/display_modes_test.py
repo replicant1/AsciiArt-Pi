@@ -26,8 +26,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from art import palettes                              # noqa: E402
 import ascii_camera                          # noqa: E402
-from hdmi.display import NcursesDisplay           # noqa: E402
-from hdmi.headless import HeadlessDisplay         # noqa: E402
+from hdmi.ncurses_display import NcursesDisplay           # noqa: E402
+from hdmi.headless_display import HeadlessDisplay         # noqa: E402
 
 failures = []
 

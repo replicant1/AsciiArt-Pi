@@ -174,8 +174,8 @@ src/capture/             camera.py            frames off the Pi Camera Module 2
 src/art/                 ascii_art.py         brightness -> characters
                          palettes.py          the nine colour schemes
                          window_plan.py       a terminal geometry that fits
-src/hdmi/                display.py           ncurses on the HDMI monitor
-                         headless.py          the stand-in when there is none
+src/hdmi/                ncurses_display.py   ncurses on the HDMI monitor
+                         headless_display.py  the stand-in when there is none
                          status_line.py       the bottom line, and what fits
 src/lcd/               lcd.py               ILI9341 over SPI, RGB565
                          lcd_display.py       the character grid, as pixels

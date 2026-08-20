@@ -41,8 +41,8 @@ from control import render_config  # noqa: E402
 from language import shortcuts  # noqa: E402
 from art.ascii_art import RAMPS, AsciiArt  # noqa: E402
 from capture.camera import CameraCapture  # noqa: E402
-from hdmi.display import NcursesDisplay  # noqa: E402
-from hdmi.headless import HeadlessDisplay  # noqa: E402
+from hdmi.ncurses_display import NcursesDisplay  # noqa: E402
+from hdmi.headless_display import HeadlessDisplay  # noqa: E402
 from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 # Only the default, so --help can state it. Safe at module scope where
 # LcdDisplay is not: the lazy imports in _start_lcd are there for spidev and

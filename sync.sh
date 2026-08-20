@@ -34,7 +34,7 @@ ROOT_FILES=(ascii_camera.py run_ascii_camera.sh deploy/setup.sh requirements.txt
 SRC_FILES=(version.py
            capture/__init__.py capture/camera.py capture/image_processor.py
            art/__init__.py art/ascii_art.py art/palettes.py art/window_plan.py
-           hdmi/__init__.py hdmi/display.py hdmi/headless.py
+           hdmi/__init__.py hdmi/ncurses_display.py hdmi/headless_display.py
            hdmi/status_line.py
            lcd/__init__.py lcd/lcd.py lcd/lcd_display.py
            lcd/lcd_worker.py lcd/lcd_splash.py
