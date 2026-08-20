@@ -118,6 +118,62 @@ TOOL_FILES=(app/asciicam_cli.py app/ask_parser.py app/utterances.txt
             docs/module_map.py docs/class_map.py docs/class_synopses.py
             power_modes.sh)
 
+# Tools that deliberately never reach the Pi. Every one of them builds or
+# checks the documentation - they read docs/guides/*.html and write into
+# docs/images/ - and none has anything to do with the running app. They are
+# listed rather than simply left out, because "absent from TOOL_FILES" and
+# "forgotten" look identical, and this project has already had the second one.
+REPO_ONLY_TOOLS=(app/README.md docs/README.md hardware/README.md
+                 docs/check_glossary.py docs/enclosure_render.py
+                 docs/number_figures.py docs/optimise_png.py
+                 docs/render_region.js)
+
+# Every tool belongs to exactly one of those two lists. A tool in neither is
+# silently never deployed - no error, nothing missing from any output, it
+# simply never appears on the Pi - which is how seven files sat in the repo
+# unsynced until a checksum sweep went looking for them.
+check_tools_accounted_for() {
+    local path name entry known unlisted=0
+    while IFS= read -r path; do
+        name="${path#tools/}"
+        known=0
+        for entry in "${TOOL_FILES[@]}" "${REPO_ONLY_TOOLS[@]}"; do
+            if [ "$entry" = "$name" ]; then known=1; break; fi
+        done
+        if [ "$known" -eq 0 ]; then
+            echo "  UNLISTED  tools/$name" >&2
+            unlisted=1
+        fi
+    done < <(cd "$REPO" && find tools -type f \
+                 \( -name '*.py' -o -name '*.md' -o -name '*.sh' \
+                    -o -name '*.txt' -o -name '*.js' \) | sort)
+    if [ "$unlisted" -ne 0 ]; then
+        echo "ERROR: a tool is in neither TOOL_FILES nor REPO_ONLY_TOOLS." >&2
+        echo "       Add it to TOOL_FILES to deploy it, or to REPO_ONLY_TOOLS" >&2
+        echo "       if it only ever runs on the Mac." >&2
+        exit 1
+    fi
+
+    # And the other direction: a name in either list with no file behind it.
+    # A stale entry is quieter than a missing one - TOOL_FILES reports "MISS"
+    # on every run and REPO_ONLY_TOOLS says nothing at all - but it means the
+    # lists have stopped describing the directory, and a wrong name here was
+    # how the .js tool above came to be listed under a filename that never
+    # existed while the real one went unlisted.
+    local ghost=0
+    for entry in "${TOOL_FILES[@]}" "${REPO_ONLY_TOOLS[@]}"; do
+        if [ ! -f "$REPO/tools/$entry" ]; then
+            echo "  NO SUCH FILE  tools/$entry" >&2
+            ghost=1
+        fi
+    done
+    if [ "$ghost" -ne 0 ]; then
+        echo "ERROR: a listed tool does not exist. Remove it from the list," >&2
+        echo "       or correct the name." >&2
+        exit 1
+    fi
+}
+
 changed=0
 
 # --- safety: is the Pi actually mounted? ------------------------------------
@@ -236,6 +292,8 @@ sweep() {
         fi
     done
 }
+
+check_tools_accounted_for
 
 case "$MODE" in
     pull|status)
