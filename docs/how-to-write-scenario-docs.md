@@ -154,6 +154,7 @@ gates are not alternatives, and may be two diagrams in one document.
 | `;` inside a message | Mermaid treats it as a statement separator, truncates the message, loses the arrow, and the whole diagram fails to parse | Use a dash or a comma |
 | `rect rgb(245, 245, 245)` | Opaque light grey puts light text on a light ground in GitHub's dark theme | `rect rgba(…, 0.12)` tints instead of painting, and works in both |
 | `\|` in a table cell | Ends the cell | Reword |
+| A participant aliased `Loop` | `note over Loop:` is read as the `loop` keyword - `Expecting 'ACTOR', got 'loop'` - and the whole diagram fails to parse | Alias it anything else. `Looper` |
 
 **Render before committing.** `mermaid-cli` is installed on the Mac:
 
@@ -370,8 +371,6 @@ Headlines already worked out, at the right granularity:
 | The character grid is packed into RGB565 pixels for the ILI9341 | `LcdDisplay`, `GlyphAtlas`, `ILI9341` |
 | The SPI panel shows a start-up screen before the first camera frame | `LcdWorker`, `SplashScreen`, `ILI9341` |
 | A failure notice is painted over the picture on the SPI panel | `LcdWorker`, `LcdDisplay`, `ILI9341` |
-| A spoken phrase is answered from the shortcut table, with no model call | `shortcuts`, `RenderConfig` |
-| A spoken phrase is turned into a config delta by the language model | `parser`, `Parsed`, `RenderConfig` |
 | Text typed on a phone reaches the render loop over the LAN | `Handler`, `AskLimit`, `Forwarder`, `CommandServer` |
 | A keypress updates the render configuration | `NcursesDisplay`, `MainRenderLooper`, `RenderConfig` |
 | A rotary encoder detent changes the colour scheme | `RotaryEncoder`, `QuadratureDecoder`, `MainRenderLooper` |

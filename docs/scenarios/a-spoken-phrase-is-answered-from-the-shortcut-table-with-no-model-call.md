@@ -125,7 +125,7 @@ courtesy is checked rather than assumed, so `pleasant` is not read as `please`.
 
 ## Related scenarios
 
-- **A spoken phrase is turned into a config delta by the language model** — what
+- [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) — what
   happens instead when `look_up` returns `None`: the key check, the `asking:`
   notice on the panel, and the four-second round trip this scenario avoids.
 - [A typed command updates the render configuration](a-typed-command-updates-the-render-configuration.md)
@@ -135,5 +135,3 @@ courtesy is checked rather than assumed, so `pleasant` is not read as `please`.
 - [A render configuration change is refused](a-render-configuration-change-is-refused.md)
   — the delta produced here is judged by exactly the same validator, which is
   why the table is checked against it at import.
-
-*(The unlinked entries above are documents not written yet.)*
