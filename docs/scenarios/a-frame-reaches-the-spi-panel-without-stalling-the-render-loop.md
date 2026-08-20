@@ -87,7 +87,5 @@ of it may be slow. Nothing to the left of it ever waits.
   numpy operations behind one message here, drawn in full.
 - [The SPI panel shows a start-up screen before the first camera frame](the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md) — what
   the idle timeout above is doing before any frame has ever arrived.
-- **A failure notice is painted over the picture on the SPI panel** — the other
+- [A failure notice is painted over the picture on the SPI panel](a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md) — the other
   thing that timeout exists for.
-
-*(The unlinked entries above are documents not written yet.)*
