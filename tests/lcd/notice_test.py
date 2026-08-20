@@ -273,16 +273,32 @@ check("a bad key is not a network problem",
       "the API key was refused")
 check("a rate limit says to wait",
       short(Exception("rate limit exceeded")), "asking too fast - wait a moment")
+check("a safety refusal says retrying will not help",
+      short(Exception("the model declined this request (violence)")),
+      "the model would not answer - rephrase it")
 check("and anything else still says something",
       short(Exception("\U0001f4a5")), "could not ask the model")
+
+SENTENCES = ("the model took too long - try again",
+             "no network - words need one, settings do not",
+             "the API key was refused", "asking too fast - wait a moment",
+             "the model would not answer - rephrase it",
+             "could not ask the model")
+
 # Every one of them has to fit the band it will be drawn in.
 d = make_display()
-for message in ("the model took too long - try again",
-                "no network - words need one, settings do not",
-                "the API key was refused", "asking too fast - wait a moment",
-                "could not ask the model"):
+for message in SENTENCES:
     check(f"{message[:28]!r} fits the band",
           d.notice_mask(message).shape, (d.band_height, d.lcd.width))
+
+# ...and the check above cannot tell whether it *fitted*, only that a band-sized
+# array came back - which it does for any string, truncated or not. This is the
+# one that can fail: _wrap marks a message it had to cut with an ellipsis, so a
+# sentence written too long for the panel shows up here rather than on the glass
+# with its last words missing.
+for message in SENTENCES:
+    check(f"{message[:28]!r} is not cut short",
+          "\u2026" in "".join(d._wrap(message, d.lcd.width)), False)
 
 # --- 8. what the review found -----------------------------------------------
 section("8. what the review found")

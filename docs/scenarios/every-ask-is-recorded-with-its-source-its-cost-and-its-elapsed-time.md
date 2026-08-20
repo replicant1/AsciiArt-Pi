@@ -26,7 +26,7 @@ record of it.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`AskResolver`](../../src/language/resolver.py#L33) | The whole of the ask path. Here it is the **single caller**: [`record`](../../src/language/resolver.py#L200) is invoked from five places and nowhere else, so every ending — table hit, answer, decline, failure — passes through one function |
+| [`AskResolver`](../../src/language/resolver.py#L33) | The whole of the ask path. Here it is the **single caller**: [`record`](../../src/language/resolver.py#L216) is invoked from five places and nowhere else, so every ending — table hit, answer, decline, failure — passes through one function |
 | [`AskLog`](../../src/language/asklog.py#L75) | An append-only record of every ask. Here it is the **archivist**: it decides the outcome, prunes the fields that mean nothing for it, rotates the file, and swallows everything that can go wrong doing so |
 
 ## One ask, written down

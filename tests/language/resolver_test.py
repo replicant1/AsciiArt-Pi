@@ -235,6 +235,26 @@ def test_a_decline_is_an_answer():
           notices.last().startswith("cannot do that:"), notices.last())
 
 
+def test_a_refusal_reaches_the_panel_as_advice():
+    print("\n9b. A safety refusal says the one thing that can work")
+    # The whole path, not short_failure on its own: parser.py raises, the
+    # resolver catches, shortens, and says it. A branch that never reached
+    # _note would pass the sorting test above and change nothing on the glass.
+    stub = StubParser(raises=StubParser.ParseError(
+        "the model declined this request (violence)"))
+    resolver, notices, _ = make_resolver(stub)
+
+    resolved = resolver.resolve("ask something unrepeatable")
+    check("the socket still gets the whole error",
+          "declined this request" in resolved.text, resolved.text)
+    check("but the panel is told to try other words",
+          notices.last() == "the model would not answer - rephrase it",
+          notices.last())
+    check("which is not what it says for an unreachable model",
+          AskResolver.short_failure(RuntimeError("Connection error.")) !=
+          notices.last(), notices.last())
+
+
 def test_failures_are_sorted_into_kinds():
     print("\n10. Each kind of failure gets its own short sentence")
     for message, expected in (
@@ -243,10 +263,35 @@ def test_failures_are_sorted_into_kinds():
              "no network - words need one, settings do not"),
             ("401 authentication_error", "the API key was refused"),
             ("rate limit exceeded", "asking too fast - wait a moment"),
+            # A safety refusal is the one answer failure worth its own
+            # sentence: retrying the same words cannot work, so "try again"
+            # would be advice that is certain to fail.
+            ("the model declined this request (violence)",
+             "the model would not answer - rephrase it"),
+            # ...and the two that stay in the fallback, because for both of
+            # them trying again is exactly the right move.
+            ("the model replied without calling either tool",
+             "could not ask the model"),
+            ("the model asked to change nothing, and gave no reason",
+             "could not ask the model"),
+            # A billing decline is a different problem wearing the same word,
+            # and "rephrase it" is the opposite of what would help. This is
+            # why the branch matches the whole phrase parser.py writes.
+            ("Your card was declined", "could not ask the model"),
             ("something else entirely", "could not ask the model")):
         check(f"{message!r} -> {expected!r}",
               AskResolver.short_failure(RuntimeError(message)) == expected,
               AskResolver.short_failure(RuntimeError(message)))
+
+    # The refusal branch matches a string this project writes, not one the
+    # SDK does, so it is only correct while parser.py still writes it. If the
+    # wording there changes, the branch stops matching and a refusal quietly
+    # becomes "could not ask the model" again - with nothing to notice it.
+    parser_source = (ROOT / "src" / "language" / "parser.py").read_text(
+        encoding="utf-8")
+    check("parser.py still raises the wording that branch matches",
+          "declined this request" in parser_source,
+          "src/language/parser.py no longer contains 'declined this request'")
 
 
 def test_asks_are_written_down():
@@ -284,6 +329,7 @@ def main():
     test_the_table_path()
     test_the_table_needs_neither_key_nor_network()
     test_a_decline_is_an_answer()
+    test_a_refusal_reaches_the_panel_as_advice()
     test_failures_are_sorted_into_kinds()
     test_asks_are_written_down()
 

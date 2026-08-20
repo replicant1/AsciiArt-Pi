@@ -57,7 +57,7 @@ sequenceDiagram
 | 4 | `decline(reason="I can change how the picture looks...")` | The reason is the model's, in its own words. Nothing rewrites it, which is why this is the one string on the panel that this codebase did not author |
 | 5 | `stop_reason` checked before the content is read at all | A [refused](../../src/language/parser.py#L401) request returns a perfectly good HTTP 200 whose content is empty or partial, so anything indexing `content[0]` first crashes here instead of reporting. Vanishingly unlikely for camera settings; one comparison to be safe |
 | 6 | `Parsed(declined=reason)`, `delta` still None | [Exactly one of the two is set](../../src/language/parser.py#L274). `ok` is defined as `delta is not None`, so a decline can never be mistaken for an empty change |
-| 7 | [`record`](../../src/language/resolver.py#L200)`(parsed)` with outcome `declined` | Not an error. The [outcome field](../../src/language/asklog.py#L90) is what lets anyone reading the log later separate "the model said no" from "the model could not be reached" |
+| 7 | [`record`](../../src/language/resolver.py#L216)`(parsed)` with outcome `declined` | Not an error. The [outcome field](../../src/language/asklog.py#L90) is what lets anyone reading the log later separate "the model said no" from "the model could not be reached" |
 | 8 | `cannot do that: I can change how the picture...` | Prefixed, because the reason alone reads as a statement about the camera rather than an answer to a question. Wrapped to two lines and cut with an ellipsis if it runs long |
 | 9 | the model's own words, indented | Two leading spaces, which is how the command server marks a line as an answer rather than an acknowledgement |
 
