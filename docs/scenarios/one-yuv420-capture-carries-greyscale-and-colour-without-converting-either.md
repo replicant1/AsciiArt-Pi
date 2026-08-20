@@ -89,9 +89,7 @@ out as arrays somebody might modify.
   — how the frame described here reaches the loop, and why one copy is made.
 - [Pixel brightness is mapped to ramp characters](pixel-brightness-is-mapped-to-ramp-characters.md)
   — what the luma plane becomes.
-- **The chroma planes give each character cell its colour** — the arithmetic of
+- [The chroma planes give each character cell its colour](the-chroma-planes-give-each-character-cell-its-colour.md) — the arithmetic of
   the last message here, drawn in full.
-- **A colour scheme is compiled into a per-cell lookup table** — the other
+- [A colour scheme is compiled into a per-cell lookup table](a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md) — the other
   colour path, which never reads the chroma at all.
-
-*(The unlinked entries above are documents not written yet.)*

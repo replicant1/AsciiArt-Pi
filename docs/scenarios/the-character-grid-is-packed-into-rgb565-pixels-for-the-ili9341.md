@@ -89,7 +89,5 @@ longer reaches, so the buffer must be zeroed rather than left.
   characters.
 - [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md)
   — what the persistent frame buffer is for when there is no picture to draw.
-- **A colour scheme is compiled into a per-cell lookup table** — where the
+- [A colour scheme is compiled into a per-cell lookup table](a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md) — where the
   `colours` argument comes from in a tinted scheme.
-
-*(The unlinked entries above are documents not written yet.)*

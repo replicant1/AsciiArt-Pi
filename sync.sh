@@ -94,7 +94,13 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            scenarios/imageprocessor-rotates-crops-and-resizes-a-frame-to-the-character-grid.md
            scenarios/the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md
            scenarios/a-rotary-encoder-detent-changes-the-colour-scheme.md
-           scenarios/one-configuration-change-is-pushed-to-both-displays.md)
+           scenarios/one-configuration-change-is-pushed-to-both-displays.md
+           scenarios/the-chroma-planes-give-each-character-cell-its-colour.md
+           scenarios/a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md
+           scenarios/the-character-grid-is-drawn-on-the-hdmi-terminal.md
+           scenarios/the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md
+           scenarios/text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md
+           scenarios/a-keypress-updates-the-render-configuration.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera,

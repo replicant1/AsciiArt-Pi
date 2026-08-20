@@ -8,7 +8,7 @@ The five categories follow the shape of the machine — light in at the top,
 pixels out, and the ways a person changes what happens last. An empty category
 is listed rather than omitted: saying where the gaps are is most of the point.
 
-**Fourteen written, eleven still to write.** Unwritten entries are in bold
+**Twenty written, five still to write.** Unwritten entries are in bold
 rather than linked, because a link to a file that does not exist fails
 `tests/docs/docs_links_test.py`.
 
@@ -49,30 +49,30 @@ Turning brightness into characters, and characters into colour.
 - `HIGH` · [Pixel brightness is mapped to ramp characters](pixel-brightness-is-mapped-to-ramp-characters.md)
   — a 256-entry table built once and applied to the whole grid at a stroke,
   feeding both displays from one calculation.
-- `MEDIUM` · **The chroma planes give each character cell its colour** — only in
-  the colour schemes, and the default is `grey`
-  Cast: `YuvFrame`, `ImageProcessor`, `AsciiArt`
-- `MEDIUM` · **A colour scheme is compiled into a per-cell lookup table** — on a
-  scheme change, not per frame; the table is what stops it being per frame
-  Cast: `Scheme`, `palettes`, `NcursesDisplay`, `LcdDisplay`
+- `MEDIUM` · [The chroma planes give each character cell its colour](the-chroma-planes-give-each-character-cell-its-colour.md)
+  — the conversion runs after the downscale, so colour costs about 6,650 sums a
+  frame rather than 76,800.
+- `MEDIUM` · [A colour scheme is compiled into a per-cell lookup table](a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md)
+  — one blend, compiled twice, because the panel takes RGB and the terminal has
+  only 240 palette entries to snap to.
 
 ## The two displays
 
 The HDMI terminal and the ILI9341 panel, which run at the same time and at
 different rates.
 
-- `MEDIUM` · **The character grid is drawn on the HDMI terminal by `NcursesDisplay`**
-  — every frame, but `--no-terminal` in the enclosure
-  Cast: `MainRenderLooper`, `NcursesDisplay`
+- `MEDIUM` · [The character grid is drawn on the HDMI terminal](the-character-grid-is-drawn-on-the-hdmi-terminal.md)
+  — centred, padded rather than cleared, and written as coloured runs. Every
+  frame, but `--no-terminal` in the enclosure.
 - `HIGH` · [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
   — 153,600 bytes and 33 ms of SPI, on a thread the render loop never waits
   on.
 - `HIGH` · [The character grid is packed into RGB565 pixels for the ILI9341](the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md)
   — 3.7 ms of CPU against 33 ms of SPI, because glyphs are gathered from an
   atlas rather than drawn per cell.
-- `MEDIUM` · **The SPI panel shows a start-up screen before the first camera frame**
-  — once per run, and for twenty-three seconds it is the only sign the machine is alive
-  Cast: `LcdWorker`, `SplashScreen`, `ILI9341`
+- `MEDIUM` · [The SPI panel shows a start-up screen before the first camera frame](the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md)
+  — twenty seconds of unlit glass is what broken hardware looks like, so the
+  panel says what is happening, and keeps saying something true.
 - `LOW` · **A failure notice is painted over the picture on the SPI panel**
   Cast: `LcdWorker`, `LcdDisplay`, `ILI9341`
 
@@ -96,12 +96,12 @@ therefore the most that has to agree.
 - `LOW` · [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md)
   — what `something calmer` costs instead: a key, a network, and two and a half
   seconds. Off entirely without a key.
-- `MEDIUM` · **Text typed on a phone reaches the render loop over the LAN**
-  — its own service, and the richest way in for a box with no keyboard
-  Cast: `Handler`, `AskLimit`, `Forwarder`, `CommandServer`
-- `MEDIUM` · **A keypress updates the render configuration** — terminal
-  sessions only, so never in the enclosure
-  Cast: `NcursesDisplay`, `MainRenderLooper`, `RenderConfig`
+- `MEDIUM` · [Text typed on a phone reaches the render loop over the LAN](text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md)
+  — a second process that shares no memory with the camera and reaches it only
+  down the socket a shell would use.
+- `MEDIUM` · [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md)
+  — the shortest route in, and only short: every branch builds a delta and none
+  assigns a setting.
 - `HIGH` · [A rotary encoder detent changes the colour scheme](a-rotary-encoder-detent-changes-the-colour-scheme.md)
   — the only control on a sealed box that needs no second device. Bounce is
   rejected by construction, and a banked move costs one repaint.
