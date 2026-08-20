@@ -96,13 +96,11 @@ from the driver's buffers in the copy, and every reader only ever reads.
   scenario delivers.
 - [Pixel brightness is mapped to ramp characters](pixel-brightness-is-mapped-to-ramp-characters.md)
   — what the render loop does with the frame once it has one.
-- **One YUV420 capture carries greyscale and colour without converting either**
+- [One YUV420 capture carries greyscale and colour without converting either](one-yuv420-capture-carries-greyscale-and-colour-without-converting-either.md)
   — the plane arithmetic behind `luma` and `chroma`, and how the order of the
   two chroma planes was settled by measurement rather than assumption.
-- **A camera that stopped delivering frames is detected and announced** — what
+- [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md) — what
   happens when the answer at the queue is `None` for long enough to mean
   something.
-- **The camera, panel, encoder and socket are released on shutdown** — where
+- [The camera, panel, encoder and socket are released on shutdown](the-camera-panel-encoder-and-socket-are-released-on-shutdown.md) — where
   the capture thread is stopped and joined.
-
-*(The unlinked entries above are documents not written yet.)*

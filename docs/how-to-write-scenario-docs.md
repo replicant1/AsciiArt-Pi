@@ -303,7 +303,7 @@ makes "every reason, not the first" demonstrable rather than asserted.
 ## Before committing
 
 ```bash
-python3 tests/docs/docs_links_test.py     # 20 checks
+python3 tests/docs/docs_links_test.py     # 25 checks
 ```
 
 Its second half exists for these documents and covers what reading cannot see:

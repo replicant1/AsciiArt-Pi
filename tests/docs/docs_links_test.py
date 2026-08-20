@@ -247,6 +247,70 @@ for d in SCENARIOS:
 check("every source line anchor lands on a definition", not_a_definition, [])
 check("and a backticked label names the definition it lands on", wrong_definition, [])
 
+# --- "not written yet", which stops being true ---------------------------------
+#
+# A scenario names its neighbours, and the ones that do not exist yet are bold
+# rather than linked - a link to a missing file fails the check above. The rule
+# is that writing a document turns every bold mention of it into a link in the
+# same change, and the rule was broken seven times before this check existed:
+# five documents still advertised as unwritten scenarios that had been written,
+# in one case months earlier. Nothing rendered wrong, which is why nobody saw it.
+#
+# The closing footnote is checked with it, because it makes a claim about the
+# list above it: it is true exactly when something in that list is still bold.
+
+FOOTNOTE = "(The unlinked entries above are documents not written yet.)"
+BOLD_ENTRY = re.compile(r"^- \*\*(.+?)\*\*", re.M)
+
+
+def unwritten_faults(pages):
+    """
+    Bold entries that exist, and footnotes that disagree with their list.
+
+    Takes (name, text) pairs rather than paths so the samples below can be
+    written out in full - a check whose failure mode cannot be demonstrated
+    is not worth the lines it takes up.
+    """
+    faults = []
+    written = {text.split("\n")[0][2:].strip()
+               for name, text in pages if name != "SCENARIO_INDEX.md"}
+    for name, text in pages:
+        if "## Related scenarios" not in text:
+            continue
+        rel = text.split("## Related scenarios")[-1]
+        for headline in BOLD_ENTRY.findall(rel):
+            if headline in written:
+                faults.append(f'{name}: "{headline}" is bold but written')
+        has_bold = "- **" in rel
+        if has_bold != (FOOTNOTE in rel):
+            faults.append(f"{name}: bold entries {has_bold}, "
+                          f"footnote {FOOTNOTE in rel}")
+    return faults
+
+
+def _pages(paths):
+    return [(p.name, p.read_text(encoding="utf-8")) for p in paths]
+
+
+check("no scenario is advertised as unwritten once it exists",
+      unwritten_faults(_pages(SCENARIOS)), [])
+
+# and prove both halves can fail
+_A = ("a.md", "# A thing that exists\n\n## Related scenarios\n\n- [B](b.md)\n")
+_B = ("b.md", "# B\n\n## Related scenarios\n\n- [A thing that exists](a.md)\n")
+_STALE = ("b.md", "# B\n\n## Related scenarios\n\n- **A thing that exists**\n\n"
+                  f"*{FOOTNOTE}*\n")
+check("the unwritten check passes a pair that agree",
+      unwritten_faults([_A, _B]), [])
+check("and fails one still bold after it was written",
+      bool(unwritten_faults([_A, _STALE])), True)
+check("and fails a footnote with nothing left unlinked",
+      bool(unwritten_faults([("c.md", "# C\n\n## Related scenarios\n\n- [A](a.md)\n\n"
+                                      f"*{FOOTNOTE}*\n")])), True)
+check("and fails an unlinked entry with no footnote",
+      bool(unwritten_faults([("d.md", "# D\n\n## Related scenarios\n\n- **Not written**\n")])),
+      True)
+
 # --- priority, which is written down twice -----------------------------------
 #
 # Every scenario states its priority under its own headline, and the index

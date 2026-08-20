@@ -109,7 +109,7 @@ see below.
   a dict.
 - **A keypress updates the render configuration** — joins this one at `apply()`, which is
   the point of routing both through it.
-- **One configuration change is pushed to both displays** — takes over at `_adopt`, where this
+- [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md) — takes over at `_adopt`, where this
   scenario stops.
 - [A render configuration change is refused](a-render-configuration-change-is-refused.md)
   — what happens in place of the `_adopt` and `describe_changes` exchange when a

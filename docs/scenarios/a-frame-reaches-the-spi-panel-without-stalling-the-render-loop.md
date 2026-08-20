@@ -83,7 +83,7 @@ of it may be slow. Nothing to the left of it ever waits.
 - [Pixel brightness is mapped to ramp characters](pixel-brightness-is-mapped-to-ramp-characters.md)
   — the mapping this worker repeats at its own size, and the table both
   displays share.
-- **The character grid is packed into RGB565 pixels for the ILI9341** — the two
+- [The character grid is packed into RGB565 pixels for the ILI9341](the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md) — the two
   numpy operations behind one message here, drawn in full.
 - **The SPI panel shows a start-up screen before the first camera frame** — what
   the idle timeout above is doing before any frame has ever arrived.
