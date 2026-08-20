@@ -36,7 +36,9 @@ Frames off the camera, and into a shape the rest can use.
   — the camera runs at its own pace and the loop at its own, and the single
   slot is what makes the loop lose frames rather than currency.
 - `HIGH` · **One YUV420 capture carries greyscale and colour without converting either**
+  Cast: `YuvFrame`, `CameraCapture`
 - `HIGH` · **`ImageProcessor` rotates, crops and resizes a frame to the character grid**
+  Cast: `MainRenderLooper`, `ImageProcessor`
 
 ## Art
 
@@ -47,8 +49,10 @@ Turning brightness into characters, and characters into colour.
   feeding both displays from one calculation.
 - `MEDIUM` · **The chroma planes give each character cell its colour** — only in
   the colour schemes, and the default is `grey`
+  Cast: `YuvFrame`, `ImageProcessor`, `AsciiArt`
 - `MEDIUM` · **A colour scheme is compiled into a per-cell lookup table** — on a
   scheme change, not per frame; the table is what stops it being per frame
+  Cast: `Scheme`, `palettes`, `NcursesDisplay`, `LcdDisplay`
 
 ## The two displays
 
@@ -57,13 +61,17 @@ different rates.
 
 - `MEDIUM` · **The character grid is drawn on the HDMI terminal by `NcursesDisplay`**
   — every frame, but `--no-terminal` in the enclosure
+  Cast: `MainRenderLooper`, `NcursesDisplay`
 - `HIGH` · [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
   — 153,600 bytes and 33 ms of SPI, on a thread the render loop never waits
   on.
 - `HIGH` · **The character grid is packed into RGB565 pixels for the ILI9341**
+  Cast: `LcdDisplay`, `GlyphAtlas`, `ILI9341`
 - `MEDIUM` · **The SPI panel shows a start-up screen before the first camera frame**
   — once per run, and for twenty-three seconds it is the only sign the machine is alive
+  Cast: `LcdWorker`, `SplashScreen`, `ILI9341`
 - `LOW` · **A failure notice is painted over the picture on the SPI panel**
+  Cast: `LcdWorker`, `LcdDisplay`, `ILI9341`
 
 ## Getting a change in
 
@@ -87,14 +95,20 @@ therefore the most that has to agree.
   seconds. Off entirely without a key.
 - `MEDIUM` · **Text typed on a phone reaches the render loop over the LAN**
   — its own service, and the richest way in for a box with no keyboard
+  Cast: `Handler`, `AskLimit`, `Forwarder`, `CommandServer`
 - `MEDIUM` · **A keypress updates the render configuration** — terminal
   sessions only, so never in the enclosure
+  Cast: `NcursesDisplay`, `MainRenderLooper`, `RenderConfig`
 - `HIGH` · **A rotary encoder detent changes the colour scheme** — the only
   control on a sealed box that needs no second device
+  Cast: `RotaryEncoder`, `QuadratureDecoder`, `SchemeCycle`, `MainRenderLooper`
 - `HIGH` · **One configuration change is pushed to both displays** — where every
   route above ends, on every change
+  Cast: `MainRenderLooper`, `NcursesDisplay`, `LcdWorker`
 - `LOW` · **A model parse fails and the panel says which kind of failure it was**
+  Cast: `AskResolver`, `parser`, `ParseError`
 - `LOW` · **The language model declines a request it cannot satisfy**
+  Cast: `AskResolver`, `parser`, `Parsed`
 
 ## Lifecycle
 
@@ -103,10 +117,14 @@ it is not simply running. *None written yet.*
 
 - `MEDIUM` · **A camera that stopped delivering frames is detected and announced**
   — rare, and the difference between a frozen picture and a dead one
+  Cast: `MainRenderLooper`, `LcdWorker`, `LcdDisplay`
 - `LOW` · **A frozen picture is held without redrawing or SPI traffic**
+  Cast: `MainRenderLooper`, `RenderConfig`
 - `MEDIUM` · **The camera, panel, encoder and socket are released on shutdown**
   — once per run, and a panel left lit is the visible failure
+  Cast: `CameraCapture`, `LcdWorker`, `RotaryEncoder`, `CommandServer`
 - `LOW` · **Every ask is recorded with its source, its cost and its elapsed time**
+  Cast: `AskResolver`, `AskLog`
 
 ---
 

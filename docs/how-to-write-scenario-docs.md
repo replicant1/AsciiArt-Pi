@@ -396,30 +396,19 @@ wrong or been switched on".
 
 ## Scenarios not yet written
 
-Headlines already worked out, at the right granularity:
+They are listed in the **[index](scenarios/SCENARIO_INDEX.md)**, grouped by
+category, each with its priority and the cast already worked out.
 
-| Headline | Cast |
-|---|---|
-| One YUV420 capture carries greyscale and colour without converting either | `YuvFrame`, `CameraCapture` |
-| `ImageProcessor` rotates, crops and resizes a frame to the character grid | `MainRenderLooper`, `ImageProcessor` |
-| The chroma planes give each character cell its colour | `YuvFrame`, `ImageProcessor`, `AsciiArt` |
-| A colour scheme is compiled into a per-cell lookup table | `Scheme`, `palettes`, `NcursesDisplay`, `LcdDisplay` |
-| The character grid is drawn on the HDMI terminal by `NcursesDisplay` | `MainRenderLooper`, `NcursesDisplay` |
-| The character grid is packed into RGB565 pixels for the ILI9341 | `LcdDisplay`, `GlyphAtlas`, `ILI9341` |
-| The SPI panel shows a start-up screen before the first camera frame | `LcdWorker`, `SplashScreen`, `ILI9341` |
-| A failure notice is painted over the picture on the SPI panel | `LcdWorker`, `LcdDisplay`, `ILI9341` |
-| Text typed on a phone reaches the render loop over the LAN | `Handler`, `AskLimit`, `Forwarder`, `CommandServer` |
-| A keypress updates the render configuration | `NcursesDisplay`, `MainRenderLooper`, `RenderConfig` |
-| A rotary encoder detent changes the colour scheme | `RotaryEncoder`, `QuadratureDecoder`, `MainRenderLooper` |
-| One configuration change is pushed to both displays | `MainRenderLooper`, `NcursesDisplay`, `LcdWorker` |
-| A camera that stopped delivering frames is detected and announced | `MainRenderLooper`, `LcdWorker`, `LcdDisplay` |
-| A frozen picture is held without redrawing or SPI traffic | `MainRenderLooper`, `RenderConfig` |
-| The camera, panel, encoder and socket are released on shutdown | `CameraCapture`, `LcdWorker`, `RotaryEncoder`, `CommandServer` |
+The list used to be a table here as well, which meant two inventories of one
+thing: they drifted apart three times before this paragraph replaced the
+second copy - fifteen entries here against eighteen there, and only one of
+them carrying priorities. The index is the authority now, and adding a
+document means striking it off exactly one list.
 
-The no-`alt` rule splits some of these further once drawn: a camera that
+Two things about that list are worth knowing before picking from it. The
+no-`alt` rule splits some of its entries further once drawn: a camera that
 returns a frame and one that times out are two outcomes, not one diagram with
-a branch.
-
-One of them cannot be drawn from classes at all — window planning happens in
-`run_ascii_camera.sh` calling `window_plan.plan()` before any object exists.
-Draw it with the module named as a module, or leave it to `docs/using-it.md`.
+a branch. And one entry cannot be drawn from classes at all - window planning
+happens in `run_ascii_camera.sh` calling `window_plan.plan()` before any
+object exists. Draw that one with the module named as a module, or leave it to
+`docs/using-it.md`.
