@@ -353,6 +353,57 @@ check("and the index ranks every written scenario",
           INDEX.read_text(encoding="utf-8"))),
       sorted(d.name for d in SCENARIOS if d.name != INDEX.name))
 
+# The reading order is a second ordering of the same twenty documents, and a
+# second thing to forget. Writing a scenario and leaving it out of the order is
+# invisible: the index still lists it under its category, every link still
+# resolves, and the page renders exactly as intended. The only symptom is a
+# reader following the order to the end and never being told the scenario
+# exists. The numbering has the same problem in a smaller way - a document
+# inserted mid-list without renumbering gives two 13s, which reads as a typo
+# rather than as the missing entry it usually is.
+
+ORDER_ROW = re.compile(r"^\| (\d+) \| \[[^\]]+\]\(([a-z0-9-]+\.md)\) \|", re.M)
+
+
+def reading_order_faults(index_text, written):
+    """Scenarios the reading order omits, repeats, or misnumbers."""
+    rows = ORDER_ROW.findall(index_text)
+    if not rows:
+        return ["the index has no reading order at all"]
+    numbers = [int(n) for n, _ in rows]
+    listed = [name for _, name in rows]
+    faults = []
+    if numbers != list(range(1, len(numbers) + 1)):
+        faults.append(f"numbered {numbers}, not 1..{len(numbers)}")
+    for name in sorted(set(written) - set(listed)):
+        faults.append(f"{name} is written but not in the reading order")
+    for name in sorted(set(listed) - set(written)):
+        faults.append(f"{name} is in the reading order but is not a scenario")
+    for name in sorted({n for n in listed if listed.count(n) > 1}):
+        faults.append(f"{name} appears in the reading order twice")
+    return faults
+
+
+WRITTEN = [d.name for d in SCENARIOS if d.name != INDEX.name]
+check("the reading order covers every scenario, once, in sequence",
+      reading_order_faults(INDEX.read_text(encoding="utf-8"), WRITTEN), [])
+
+# and prove each way it can fail, on samples rather than on the real index
+_ORDER = ("| 1 | [One](a.md) | adds a |\n"
+          "| 2 | [Two](b.md) | adds b |\n")
+check("the reading order check passes a complete order",
+      reading_order_faults(_ORDER, ["a.md", "b.md"]), [])
+check("and catches a scenario left out of it",
+      bool(reading_order_faults(_ORDER, ["a.md", "b.md", "c.md"])), True)
+check("and catches a gap in the numbering",
+      bool(reading_order_faults(_ORDER.replace("| 2 |", "| 3 |"),
+                                ["a.md", "b.md"])), True)
+check("and catches the same scenario listed twice",
+      bool(reading_order_faults(_ORDER + "| 3 | [One again](a.md) | adds a |\n",
+                                ["a.md", "b.md"])), True)
+check("and catches a reading order that vanished entirely",
+      bool(reading_order_faults("# no order here\n", ["a.md"])), True)
+
 # and prove the step table check can fail, on a sample rather than on a real
 # document - a mutation of a real one stops mutating the moment it is edited.
 SAMPLE = """```mermaid
