@@ -89,7 +89,12 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            scenarios/pixel-brightness-is-mapped-to-ramp-characters.md
            scenarios/a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md
            scenarios/a-camera-that-stopped-delivering-frames-is-detected-and-announced.md
-           scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
+           scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md
+           scenarios/one-yuv420-capture-carries-greyscale-and-colour-without-converting-either.md
+           scenarios/imageprocessor-rotates-crops-and-resizes-a-frame-to-the-character-grid.md
+           scenarios/the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md
+           scenarios/a-rotary-encoder-detent-changes-the-colour-scheme.md
+           scenarios/one-configuration-change-is-pushed-to-both-displays.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera,

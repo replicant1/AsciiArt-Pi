@@ -8,7 +8,7 @@ The five categories follow the shape of the machine — light in at the top,
 pixels out, and the ways a person changes what happens last. An empty category
 is listed rather than omitted: saying where the gaps are is most of the point.
 
-**Nine written, sixteen still to write.** Unwritten entries are in bold
+**Fourteen written, eleven still to write.** Unwritten entries are in bold
 rather than linked, because a link to a file that does not exist fails
 `tests/docs/docs_links_test.py`.
 
@@ -35,10 +35,12 @@ Frames off the camera, and into a shape the rest can use.
 - `HIGH` · [A capture thread hands the render loop its newest frame through a one-slot queue](a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md)
   — the camera runs at its own pace and the loop at its own, and the single
   slot is what makes the loop lose frames rather than currency.
-- `HIGH` · **One YUV420 capture carries greyscale and colour without converting either**
-  Cast: `YuvFrame`, `CameraCapture`
-- `HIGH` · **`ImageProcessor` rotates, crops and resizes a frame to the character grid**
-  Cast: `MainRenderLooper`, `ImageProcessor`
+- `HIGH` · [One YUV420 capture carries greyscale and colour without converting either](one-yuv420-capture-carries-greyscale-and-colour-without-converting-either.md)
+  — the Y plane already is the greyscale image, and 38 KB more buys the colour
+  path without a conversion anywhere.
+- `HIGH` · [ImageProcessor rotates, crops and resizes a frame to the character grid](imageprocessor-rotates-crops-and-resizes-a-frame-to-the-character-grid.md)
+  — the step that makes everything downstream grid-sized, and the shared path
+  that keeps the three planes in register.
 
 ## Art
 
@@ -65,8 +67,9 @@ different rates.
 - `HIGH` · [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
   — 153,600 bytes and 33 ms of SPI, on a thread the render loop never waits
   on.
-- `HIGH` · **The character grid is packed into RGB565 pixels for the ILI9341**
-  Cast: `LcdDisplay`, `GlyphAtlas`, `ILI9341`
+- `HIGH` · [The character grid is packed into RGB565 pixels for the ILI9341](the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md)
+  — 3.7 ms of CPU against 33 ms of SPI, because glyphs are gathered from an
+  atlas rather than drawn per cell.
 - `MEDIUM` · **The SPI panel shows a start-up screen before the first camera frame**
   — once per run, and for twenty-three seconds it is the only sign the machine is alive
   Cast: `LcdWorker`, `SplashScreen`, `ILI9341`
@@ -99,12 +102,12 @@ therefore the most that has to agree.
 - `MEDIUM` · **A keypress updates the render configuration** — terminal
   sessions only, so never in the enclosure
   Cast: `NcursesDisplay`, `MainRenderLooper`, `RenderConfig`
-- `HIGH` · **A rotary encoder detent changes the colour scheme** — the only
-  control on a sealed box that needs no second device
-  Cast: `RotaryEncoder`, `QuadratureDecoder`, `SchemeCycle`, `MainRenderLooper`
-- `HIGH` · **One configuration change is pushed to both displays** — where every
-  route above ends, on every change
-  Cast: `MainRenderLooper`, `NcursesDisplay`, `LcdWorker`
+- `HIGH` · [A rotary encoder detent changes the colour scheme](a-rotary-encoder-detent-changes-the-colour-scheme.md)
+  — the only control on a sealed box that needs no second device. Bounce is
+  rejected by construction, and a banked move costs one repaint.
+- `HIGH` · [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md)
+  — where every route above ends. The terminal is pushed to; the panel reads
+  the config it is handed with the next frame.
 - `LOW` · **A model parse fails and the panel says which kind of failure it was**
   Cast: `AskResolver`, `parser`, `ParseError`
 - `LOW` · **The language model declines a request it cannot satisfy**
