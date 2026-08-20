@@ -8,9 +8,82 @@ The five categories follow the shape of the machine — light in at the top,
 pixels out, and the ways a person changes what happens last. An empty category
 is listed rather than omitted: saying where the gaps are is most of the point.
 
+**If you are reading these for the first time, do not start at the first
+category.** [Where to start](#where-to-start) puts the same twenty documents in
+the order that gets the whole machine into your head fastest, in six.
+
 **Twenty written, five still to write.** Unwritten entries are in bold
 rather than linked, because a link to a file that does not exist fails
 `tests/docs/docs_links_test.py`.
+
+## Where to start
+
+The categories below answer *where does this live*. This section answers *what
+do I read first*, which is a different question with a different answer. Read in
+this order and each document leans on one already read; read in category order
+and the first thing you meet is a camera thread explaining itself to a render
+loop you have not been introduced to.
+
+It is not priority order either. Priority describes the running machine — what
+executes every frame, what only when somebody interacts. Reading order
+describes a person, who needs the shape of the whole thing before the detail of
+any part. The two disagree usefully: **the first five documents below introduce
+every class that appears in four or more scenarios**, which taking them in
+priority order does not manage until the sixth, and alphabetically not until
+the eleventh.
+
+### First lap — one frame in, one picture out, one change applied
+
+Six documents that between them cross the entire machine. Stopping here leaves
+you able to follow any of the others out of order.
+
+| | Scenario | What it adds |
+|---:|---|---|
+| 1 | [A capture thread hands the render loop its newest frame through a one-slot queue](a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md) | The render loop itself, and the two independent rates that meet at a single slot. Everything below is one turn of this loop |
+| 2 | [ImageProcessor rotates, crops and resizes a frame to the character grid](imageprocessor-rotates-crops-and-resizes-a-frame-to-the-character-grid.md) | Where a camera-shaped frame becomes a grid-shaped one, and where orientation and proportion are settled for everything downstream |
+| 3 | [Pixel brightness is mapped to ramp characters](pixel-brightness-is-mapped-to-ramp-characters.md) | The conversion the app is named for — and the fact that one table serves both displays, so the two are never computed apart |
+| 4 | [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md) | A picture, at last, and the second thread that carries it. Why 33 ms of SPI does not cost the loop 33 ms |
+| 5 | [A typed command updates the render configuration](a-typed-command-updates-the-render-configuration.md) | The first change arriving from outside, and the crossing into the loop's thread. Introduces the configuration itself, and the one validator every route meets |
+| 6 | [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md) | Closes the lap. The terminal is pushed to and the panel reads what it is handed, which is why the two displays never disagree |
+
+### Second lap — the same path, closer
+
+Nothing new in shape; the same five stops with the arithmetic filled in. Read
+in this order they answer questions the first lap raises and leaves open.
+
+| | Scenario | What it adds |
+|---:|---|---|
+| 7 | [One YUV420 capture carries greyscale and colour without converting either](one-yuv420-capture-carries-greyscale-and-colour-without-converting-either.md) | What a frame actually is, and why the greyscale image costs nothing to obtain |
+| 8 | [The chroma planes give each character cell its colour](the-chroma-planes-give-each-character-cell-its-colour.md) | Where a cell's colour comes from, and why doing it after the downscale is the whole trick |
+| 9 | [A colour scheme is compiled into a per-cell lookup table](a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md) | Why one blend is compiled twice — the panel takes RGB, the terminal must snap to 240 entries and sometimes cannot tell two steps apart |
+| 10 | [The character grid is packed into RGB565 pixels for the ILI9341](the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md) | How the panel's pixels are really made, and why the glyphs are gathered rather than drawn |
+| 11 | [The character grid is drawn on the HDMI terminal](the-character-grid-is-drawn-on-the-hdmi-terminal.md) | The other display — the one you will be watching while you work, though the sealed box runs without it |
+
+### The other ways in
+
+Document 5 showed one route to a changed setting. These are the rest, ordered
+by how much machinery stands between a person and the configuration — a knob is
+almost none, a language model is a great deal.
+
+| | Scenario | What it adds |
+|---:|---|---|
+| 12 | [A rotary encoder detent changes the colour scheme](a-rotary-encoder-detent-changes-the-colour-scheme.md) | The only control a sealed box has that needs no second device, and how contact bounce is rejected by construction rather than by filtering |
+| 13 | [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md) | The shortest route in, and the discipline that keeps it short: every branch builds a delta, none assigns a setting |
+| 14 | [A render configuration change is refused](a-render-configuration-change-is-refused.md) | What happens when a change is not allowed, in the same words whoever asked — and the one check the configuration is not in a position to make |
+| 15 | [Text typed on a phone reaches the render loop over the LAN](text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md) | A second process, sharing no memory with the camera, reaching it down the socket a shell would use |
+| 16 | [A spoken phrase is answered from the shortcut table, with no model call](a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) | Words becoming a setting with no key, no network and no model — and why the table declines rather than guesses |
+| 17 | [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) | What the phrases the table declines cost instead, and the only path here that can be switched off entirely |
+
+### When it is not simply running
+
+In the order a run meets them: before the first frame, during, and on the way
+out.
+
+| | Scenario | What it adds |
+|---:|---|---|
+| 18 | [The SPI panel shows a start-up screen before the first camera frame](the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md) | The twenty seconds before there is anything to show, and why unlit glass is the one thing the panel must not do |
+| 19 | [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md) | Why a working camera and a frozen picture look identical, and what a sealed box can do about it |
+| 20 | [The camera, panel, encoder and socket are released on shutdown](the-camera-panel-encoder-and-socket-are-released-on-shutdown.md) | Four claims given back in a fixed order, because a leak on the way out breaks the *next* start rather than this one |
 
 ## What the priorities mean
 
