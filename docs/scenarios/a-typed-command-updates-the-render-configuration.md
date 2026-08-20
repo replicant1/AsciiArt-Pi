@@ -101,7 +101,7 @@ see below.
 
 ## Related scenarios
 
-- **A spoken phrase is turned into a config delta by the language model** — the same diagram with
+- [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) — the same diagram with
   `_prepare`'s resolver returning an `Ask` instead of `None`, so the delta is
   worked out on the client's thread and the render loop still only ever applies
   a dict.

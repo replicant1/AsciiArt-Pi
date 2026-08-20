@@ -116,6 +116,8 @@ ceiling rather than an error.
   gets settled before it arrives here.
 - **A keypress updates the render configuration** — the route that passes `note=True`,
   so the refusal is drawn on the picture rather than returned to a caller.
-- **A spoken phrase is turned into a config delta by the language model** — the case this validator exists
+- [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) — the case this validator exists
   to make safe: a delta from a language model is judged by exactly this code,
   in exactly these words.
+
+*(The unlinked entries above are documents not written yet.)*

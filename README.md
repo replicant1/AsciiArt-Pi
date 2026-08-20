@@ -89,14 +89,23 @@ was not.
 **Or read one collaboration at a time.** `docs/scenarios/` describes the same
 machine by what its parts do *together*: one document per mind-sized chunk of
 behaviour, two to five classes each, with a sequence diagram, a table
-explaining every message in it, and links into the source. Three so far, and
-[how to write the rest](docs/how-to-write-scenario-docs.md).
+explaining every message in it, and links into the source. They are grouped
+into five categories following the shape of the machine — four written so far,
+all of them in one category, and the
+[index](docs/scenarios/SCENARIO_INDEX.md) shows where the gaps are.
+
+**Getting a change in** — every route by which a setting changes, and the one
+validator they all meet.
 
 | Scenario | The collaboration |
 |---|---|
 | [A typed command updates the render configuration](docs/scenarios/a-typed-command-updates-the-render-configuration.md) | A line on the Unix socket crosses a thread boundary, is parsed into typed values, validated, and pushed to both displays |
 | [A render configuration change is refused](docs/scenarios/a-render-configuration-change-is-refused.md) | Why `rotation 45` is refused in the same words whoever asked, and the one check `RenderConfig` is not in a position to make |
 | [A spoken phrase is answered from the shortcut table, with no model call](docs/scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) | How `a bit more contrast` becomes a delta in microseconds, with no API key, no network and no model |
+| [A spoken phrase is turned into a config delta by the language model](docs/scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) | What `something calmer` costs instead — a key, a network and two and a half seconds — for a delta nothing downstream can tell from a typed one |
+
+**Capture**, **Art**, **The two displays** and **Lifecycle** have none written
+yet; the [index](docs/scenarios/SCENARIO_INDEX.md) lists what belongs in each.
 
 **Then whatever you need:**
 
@@ -125,6 +134,8 @@ docs/module-map.md        generated
 docs/class-map.md         generated
 docs/scenarios/           one per collaboration between classes, with the
                           diagram and a table of its steps
+docs/scenarios/SCENARIO_INDEX.md
+                          those scenarios grouped into five categories
 docs/how-to-write-scenario-docs.md
                           the format those follow
 docs/subsystems/          one per part of the machine: panel, encoder,

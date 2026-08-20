@@ -79,9 +79,11 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            subsystems/panel.md subsystems/encoder.md subsystems/language.md
            subsystems/colour-schemes.md subsystems/what-the-model-is-told.md
            project/performance.md project/workflow.md project/deployment.md
+           scenarios/SCENARIO_INDEX.md
            scenarios/a-typed-command-updates-the-render-configuration.md
            scenarios/a-render-configuration-change-is-refused.md
-           scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md)
+           scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md
+           scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera,
