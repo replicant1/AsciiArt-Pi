@@ -41,8 +41,8 @@ The HDMI terminal, and the stand-in for when there is none.
 
 | Module | Lines | What it is for |
 |---|---:|---|
-| `src/hdmi/display.py` | 287 | ncurses terminal rendering for the ASCII art frames. |
-| `src/hdmi/headless.py` | 168 | A stand-in display for when there is no terminal to draw on. |
+| `src/hdmi/headless_display.py` | 168 | A stand-in display for when there is no terminal to draw on. |
+| `src/hdmi/ncurses_display.py` | 287 | ncurses terminal rendering for the ASCII art frames. |
 | `src/hdmi/status_line.py` | 104 | The bottom line of the terminal: every setting's state, and what fits. |
 
 ## LCD
