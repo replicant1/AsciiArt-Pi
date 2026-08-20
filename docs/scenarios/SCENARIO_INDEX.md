@@ -8,7 +8,7 @@ The five categories follow the shape of the machine — light in at the top,
 pixels out, and the ways a person changes what happens last. An empty category
 is listed rather than omitted: saying where the gaps are is most of the point.
 
-**Four written, twenty-one still to write.** Unwritten entries are in bold
+**Seven written, eighteen still to write.** Unwritten entries are in bold
 rather than linked, because a link to a file that does not exist fails
 `tests/docs/docs_links_test.py`.
 
@@ -30,18 +30,21 @@ disagree.
 
 ## Capture
 
-Frames off the camera, and into a shape the rest can use. *None written yet.*
+Frames off the camera, and into a shape the rest can use.
 
-- `HIGH` · **`CameraCapture` hands the render loop a frame through a one-slot queue**
+- `HIGH` · [A capture thread hands the render loop its newest frame through a one-slot queue](a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md)
+  — the camera runs at its own pace and the loop at its own, and the single
+  slot is what makes the loop lose frames rather than currency.
 - `HIGH` · **One YUV420 capture carries greyscale and colour without converting either**
 - `HIGH` · **`ImageProcessor` rotates, crops and resizes a frame to the character grid**
 
 ## Art
 
-Turning brightness into characters, and characters into colour. *None written
-yet.*
+Turning brightness into characters, and characters into colour.
 
-- `HIGH` · **Pixel brightness is mapped to ramp characters**
+- `HIGH` · [Pixel brightness is mapped to ramp characters](pixel-brightness-is-mapped-to-ramp-characters.md)
+  — a 256-entry table built once and applied to the whole grid at a stroke,
+  feeding both displays from one calculation.
 - `MEDIUM` · **The chroma planes give each character cell its colour** — only in
   the colour schemes, and the default is `grey`
 - `MEDIUM` · **A colour scheme is compiled into a per-cell lookup table** — on a
@@ -50,11 +53,13 @@ yet.*
 ## The two displays
 
 The HDMI terminal and the ILI9341 panel, which run at the same time and at
-different rates. *None written yet.*
+different rates.
 
 - `MEDIUM` · **The character grid is drawn on the HDMI terminal by `NcursesDisplay`**
   — every frame, but `--no-terminal` in the enclosure
-- `HIGH` · **`LcdWorker` renders to the SPI panel without stalling the render loop**
+- `HIGH` · [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
+  — 153,600 bytes and 33 ms of SPI, on a thread the render loop never waits
+  on.
 - `HIGH` · **The character grid is packed into RGB565 pixels for the ILI9341**
 - `MEDIUM` · **The SPI panel shows a start-up screen before the first camera frame**
   — once per run, and for twenty-three seconds it is the only sign the machine is alive

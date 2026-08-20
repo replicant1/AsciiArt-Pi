@@ -90,9 +90,19 @@ was not.
 machine by what its parts do *together*: one document per mind-sized chunk of
 behaviour, two to five classes each, with a sequence diagram, a table
 explaining every message in it, and links into the source. They are grouped
-into five categories following the shape of the machine — four written so far,
-all of them in one category, and the
-[index](docs/scenarios/SCENARIO_INDEX.md) shows where the gaps are.
+into five categories following the shape of the machine, and each carries a
+priority — seven written so far, and the
+[index](docs/scenarios/SCENARIO_INDEX.md) ranks every one and shows where the
+gaps are.
+
+**The frame's own path** — capture, mapping, and the panel, each `HIGH`: every
+one of these runs on every frame the app draws.
+
+| Scenario | The collaboration |
+|---|---|
+| [A capture thread hands the render loop its newest frame through a one-slot queue](docs/scenarios/a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md) | Why the loop loses frames rather than currency when it falls behind, and why exactly one copy is made per frame |
+| [Pixel brightness is mapped to ramp characters](docs/scenarios/pixel-brightness-is-mapped-to-ramp-characters.md) | A 256-entry table built once and applied to the whole grid at a stroke, feeding both displays from one calculation |
+| [A frame reaches the SPI panel without stalling the render loop](docs/scenarios/a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md) | 153,600 bytes and 33 ms of SPI, on a thread the render loop never waits on |
 
 **Getting a change in** — every route by which a setting changes, and the one
 validator they all meet.
@@ -104,8 +114,9 @@ validator they all meet.
 | [A spoken phrase is answered from the shortcut table, with no model call](docs/scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) | How `a bit more contrast` becomes a delta in microseconds, with no API key, no network and no model |
 | [A spoken phrase is turned into a config delta by the language model](docs/scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) | What `something calmer` costs instead — a key, a network and two and a half seconds — for a delta nothing downstream can tell from a typed one |
 
-**Capture**, **Art**, **The two displays** and **Lifecycle** have none written
-yet; the [index](docs/scenarios/SCENARIO_INDEX.md) lists what belongs in each.
+**Lifecycle** — starting, stalling, freezing and stopping — has none written
+yet; the [index](docs/scenarios/SCENARIO_INDEX.md) lists what belongs there,
+and in the gaps of the four categories above.
 
 **Then whatever you need:**
 

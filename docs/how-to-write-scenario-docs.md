@@ -156,7 +156,7 @@ gates are not alternatives, and may be two diagrams in one document.
 | `;` inside a message | Mermaid treats it as a statement separator, truncates the message, loses the arrow, and the whole diagram fails to parse | Use a dash or a comma |
 | `rect rgb(245, 245, 245)` | Opaque light grey puts light text on a light ground in GitHub's dark theme | `rect rgba(…, 0.12)` tints instead of painting, and works in both |
 | `\|` in a table cell | Ends the cell | Reword |
-| A participant aliased `Loop` | `note over Loop:` is read as the `loop` keyword - `Expecting 'ACTOR', got 'loop'` - and the whole diagram fails to parse | Alias it anything else. `Looper` |
+| A participant aliased with a keyword - `Loop`, `Box`, `Alt`, `Par`, `Opt`, `End`, `Rect`, `Note`, `Critical`, `Break` | The alias is read as the keyword, `Expecting 'ACTOR', got 'loop'`, and the whole diagram fails to parse. Matching is case-insensitive, so `Loop` and `Box` both collide | Alias it anything else. `Looper`, `Inbox` |
 
 **Render before committing.** `mermaid-cli` is installed on the Mac:
 
@@ -400,14 +400,11 @@ Headlines already worked out, at the right granularity:
 
 | Headline | Cast |
 |---|---|
-| `CameraCapture` hands the render loop a frame through a one-slot queue | `CameraCapture`, `YuvFrame`, `MainRenderLooper` |
 | One YUV420 capture carries greyscale and colour without converting either | `YuvFrame`, `CameraCapture` |
 | `ImageProcessor` rotates, crops and resizes a frame to the character grid | `MainRenderLooper`, `ImageProcessor` |
-| Pixel brightness is mapped to ramp characters | `ImageProcessor`, `AsciiArt` |
 | The chroma planes give each character cell its colour | `YuvFrame`, `ImageProcessor`, `AsciiArt` |
 | A colour scheme is compiled into a per-cell lookup table | `Scheme`, `palettes`, `NcursesDisplay`, `LcdDisplay` |
 | The character grid is drawn on the HDMI terminal by `NcursesDisplay` | `MainRenderLooper`, `NcursesDisplay` |
-| `LcdWorker` renders to the SPI panel without stalling the render loop | `MainRenderLooper`, `LcdWorker`, `LcdDisplay` |
 | The character grid is packed into RGB565 pixels for the ILI9341 | `LcdDisplay`, `GlyphAtlas`, `ILI9341` |
 | The SPI panel shows a start-up screen before the first camera frame | `LcdWorker`, `SplashScreen`, `ILI9341` |
 | A failure notice is painted over the picture on the SPI panel | `LcdWorker`, `LcdDisplay`, `ILI9341` |
