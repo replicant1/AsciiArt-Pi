@@ -91,7 +91,7 @@ machine by what its parts do *together*: one document per mind-sized chunk of
 behaviour, two to five classes each, with a sequence diagram, a table
 explaining every message in it, and links into the source. They are grouped
 into five categories following the shape of the machine, and each carries a
-priority — seven written so far, and the
+priority — nine written so far, and the
 [index](docs/scenarios/SCENARIO_INDEX.md) ranks every one and shows where the
 gaps are.
 
@@ -114,9 +114,15 @@ validator they all meet.
 | [A spoken phrase is answered from the shortcut table, with no model call](docs/scenarios/a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) | How `a bit more contrast` becomes a delta in microseconds, with no API key, no network and no model |
 | [A spoken phrase is turned into a config delta by the language model](docs/scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) | What `something calmer` costs instead — a key, a network and two and a half seconds — for a delta nothing downstream can tell from a typed one |
 
-**Lifecycle** — starting, stalling, freezing and stopping — has none written
-yet; the [index](docs/scenarios/SCENARIO_INDEX.md) lists what belongs there,
-and in the gaps of the four categories above.
+**Lifecycle** — the states the machine is in when it is not simply running.
+
+| Scenario | The collaboration |
+|---|---|
+| [A camera that stopped delivering frames is detected and announced](docs/scenarios/a-camera-that-stopped-delivering-frames-is-detected-and-announced.md) | A frozen picture and a working camera look identical, so the only output a sealed box has must be able to admit it has nothing new to show |
+| [The camera, panel, encoder and socket are released on shutdown](docs/scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md) | Four claims given back in a fixed order, because a leak on the way out breaks the *next* start rather than this one |
+
+The [index](docs/scenarios/SCENARIO_INDEX.md) ranks every scenario, written and
+not, and lists what still belongs in each category.
 
 **Then whatever you need:**
 

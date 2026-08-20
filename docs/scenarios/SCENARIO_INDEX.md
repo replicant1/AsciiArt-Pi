@@ -8,7 +8,7 @@ The five categories follow the shape of the machine — light in at the top,
 pixels out, and the ways a person changes what happens last. An empty category
 is listed rather than omitted: saying where the gaps are is most of the point.
 
-**Seven written, eighteen still to write.** Unwritten entries are in bold
+**Nine written, sixteen still to write.** Unwritten entries are in bold
 rather than linked, because a link to a file that does not exist fails
 `tests/docs/docs_links_test.py`.
 
@@ -113,16 +113,16 @@ therefore the most that has to agree.
 ## Lifecycle
 
 Starting, stalling, freezing and stopping — the states the machine is in when
-it is not simply running. *None written yet.*
+it is not simply running.
 
-- `MEDIUM` · **A camera that stopped delivering frames is detected and announced**
-  — rare, and the difference between a frozen picture and a dead one
-  Cast: `MainRenderLooper`, `LcdWorker`, `LcdDisplay`
+- `MEDIUM` · [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md)
+  — a frozen picture and a working camera are indistinguishable by eye, so the
+  only output a sealed box has must be able to admit it has nothing new.
 - `LOW` · **A frozen picture is held without redrawing or SPI traffic**
   Cast: `MainRenderLooper`, `RenderConfig`
-- `MEDIUM` · **The camera, panel, encoder and socket are released on shutdown**
-  — once per run, and a panel left lit is the visible failure
-  Cast: `CameraCapture`, `LcdWorker`, `RotaryEncoder`, `CommandServer`
+- `MEDIUM` · [The camera, panel, encoder and socket are released on shutdown](the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
+  — four claims given back in a fixed order, because a leak on the way out
+  breaks the next start rather than this one.
 - `LOW` · **Every ask is recorded with its source, its cost and its elapsed time**
   Cast: `AskResolver`, `AskLog`
 

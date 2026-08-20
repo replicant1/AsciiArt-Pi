@@ -87,7 +87,9 @@ DOC_FILES=(images/screenshot.png images/screenshot-colour.png
            scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md
            scenarios/a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md
            scenarios/pixel-brightness-is-mapped-to-ramp-characters.md
-           scenarios/a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
+           scenarios/a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md
+           scenarios/a-camera-that-stopped-delivering-frames-is-detected-and-announced.md
+           scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
 # Most of tools/ is documentation maintenance that runs on the Mac and has no
 # business on the Pi. The exceptions are the ones that need the hardware, and so
 # have to live on both sides: scheme_montage.py needs the camera,
