@@ -248,10 +248,21 @@ Code moves between the two with AsciiArt-Pi/sync.sh:
 
 The normal workflow is therefore: edit code on the Pi through remote/ so the running deployment stays the source of truth, test it there, then "bash sync.sh pull" and commit in AsciiArt-Pi.
 
-Two traps in sync.sh:
+Three traps in sync.sh:
 
-- It copies ONLY files named in its explicit ROOT_FILES / SRC_FILES / TEST_FILES / DOC_FILES arrays. A newly added module must be added to the right array or it is silently never synced - no error, it simply never appears in the repo. Adding a file to the project means editing sync.sh in the same change.
+- It copies ONLY files named in its explicit ROOT_FILES / SRC_FILES / TEST_FILES / DOC_FILES / TOOL_FILES arrays. A newly added module must be added to the right array or it is silently never synced - no error, it simply never appears. Adding a file to the project means editing sync.sh in the same change. This is no longer silent for tools/: every run now checks that each file under tools/ is in exactly one of TOOL_FILES (deployed) or REPO_ONLY_TOOLS (Mac-side only), and refuses to run naming the unlisted file. The other four arrays are still unguarded. The trap was not hypothetical - eight tools sat in the repo unsynced until a checksum sweep went looking, and the guard immediately caught a ninth.
+- "sync.sh status" only reports differences in the Pi -> repo direction, as its own heading says. It is NOT a two-way consistency check: a repo file that has never reached the Pi does not appear in it, and "already in sync" does not mean the two directories match. To actually compare, checksum both sides:
+
+      find src tests tools docs -type f \( -name '*.py' -o -name '*.md' -o -name '*.sh' \) -not -path '*/__pycache__/*' | sort
+
+  and md5 each side, then diff the two lists.
 - "sync.sh pull" regenerates the repo's CLAUDE.md from local/CLAUDE.md with the Pi's IP address masked. Always edit local/CLAUDE.md, never the repo's copy, and never push CLAUDE.md back to the Pi.
+
+macOS writes AppleDouble sidecars (._filename, 4096 bytes each, magic 00 05 16 07) into the mount as a side effect of copying through it. They accumulate on the Pi, are read by nothing, and outlive the files they describe - two of the 45 found here were sidecars for documents renamed months earlier. tests/docs/docs_links_test.py already skips them by name. Clear them with:
+
+    run_on_pi.sh "cd /home/rod/Projects/AsciiArt && find . -name '._*' -not -path './.git/*' -type f -delete"
+
+Check the real file count before and after; it should not change.
 
 ## Script Summary
 
