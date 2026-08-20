@@ -1,5 +1,7 @@
 # A spoken phrase is answered from the shortcut table, with no model call
 
+**Priority: `MEDIUM`** — asking is opt-in, but this is the half of it that still works with the network down and no key present. [What the priorities mean](../how-to-write-scenario-docs.md).
+
 `ask make it green` used to cross a network, wait 2.6 seconds and cost a third
 of a US cent to work out `{"scheme": "green"}` — which is the scheme's own name,
 said out loud. A table of 137 phrasings answers that class of phrase before any

@@ -1,5 +1,7 @@
 # A spoken phrase is turned into a config delta by the language model
 
+**Priority: `LOW`** — off entirely without an API key and a network, and the one path here that costs seconds and money. [What the priorities mean](../how-to-write-scenario-docs.md).
+
 Somebody says `ask something calmer`. No table can answer that — there is no
 list of phrasings on which "calmer" is a colour scheme — so it costs a network
 round trip, about two and a half seconds, and roughly four hundred tokens, and

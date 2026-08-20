@@ -59,16 +59,18 @@ The filename is the headline in kebab-case:
 In this order, with no heading before the first diagram section:
 
 1. `# Headline`
-2. **Description** — two or three paragraphs
-3. **Cast table** — one row per class, no heading above it
-4. `## A heading naming what this diagram shows`
-5. **The diagram**
-6. **The step table**
-7. Any closing prose about the diagram
-8. Repeat 4–7 if the scenario has a second diagram
-9. `## Related scenarios`
+2. **Priority line** — one line, ``**Priority: `HIGH`** — why``, linking to the
+   criteria. The reason is this scenario's own, not the category's
+3. **Description** — two or three paragraphs
+4. **Cast table** — one row per class, no heading above it
+5. `## A heading naming what this diagram shows`
+6. **The diagram**
+7. **The step table**
+8. Any closing prose about the diagram
+9. Repeat 5–8 if the scenario has a second diagram
+10. `## Related scenarios`
 
-### 2. The description
+### 3. The description
 
 What happens, in whose words, and **why it is worth having**. Say what the
 value is — "this works against a process with no terminal of its own, where no
@@ -80,7 +82,7 @@ when they explain a decision: *"The first version of the parser did refuse bad
 choices itself, which put 'must be one of' in two modules and meant
 `rotation 45` never reached the validator at all."*
 
-### 3. The cast table
+### 4. The cast table
 
 Two columns. No lead-in line and no heading — the header row already says what
 the table is.
@@ -102,7 +104,7 @@ The role is what keeps this from duplicating the generated
 scenario and the *caller* in another. **If a cast row would read the same in
 every scenario, it is not pulling its weight.**
 
-### 5. The diagram
+### 6. The diagram
 
 Mermaid, in a ` ```mermaid ` fence. GitHub renders it natively and
 `tools/docs/render_region.js` already depends on mermaid-cli, so it is the
@@ -172,7 +174,7 @@ mmdc -i /tmp/d0.mmd -o /tmp/d0.png -t dark -b '#0d1117'      # dark
 Then look at both. A diagram that parses is not the same as a diagram that
 reads.
 
-### 6. The step table
+### 7. The step table
 
 Three columns, directly under its diagram, one row per message.
 
@@ -300,7 +302,7 @@ makes "every reason, not the first" demonstrable rather than asserted.
 ## Before committing
 
 ```bash
-python3 tests/docs/docs_links_test.py     # 18 checks
+python3 tests/docs/docs_links_test.py     # 20 checks
 ```
 
 Its second half exists for these documents and covers what reading cannot see:
@@ -353,6 +355,44 @@ diagram. Only reading it catches that.
 So after any refactor that touches a class named in a scenario, re-read the
 cast table and the participant labels. The mechanical checks protect the links,
 not the claims.
+
+## Priority
+
+Every scenario carries a priority — `HIGH`, `MEDIUM` or `LOW` — recorded
+against it in the [index](scenarios/SCENARIO_INDEX.md) and stated in a line
+under the document's own headline. A new document gets its priority in the same change that adds it.
+
+Priority is not "how interesting". It is **what breaks, and how often, if this
+collaboration is wrong**. Two facts decide almost every call, and both are
+properties of the *deployed* app rather than of the source:
+
+- The boot service runs `ascii_camera.py --lcd --encoder --no-terminal`. In the
+  sealed enclosure the SPI panel is the only output and the knob is the only
+  input needing no second device. The HDMI terminal, and every key pressed on
+  it, are switched off in the shipped product — real code on a real path, but
+  not the one the appliance takes.
+- The default scheme is `grey`, so the colour path is opt-in rather than
+  ordinary.
+
+| Priority | What earns it |
+|---|---|
+| `HIGH` | On the path **every frame** takes, or the only route by which the shipped device can be seen or driven at all. If it is wrong there is no picture, or no way to change one |
+| `MEDIUM` | Runs whenever a person interacts, or once per run, or every frame but only in a configuration the appliance does not boot into. The picture survives without it; the product is diminished |
+| `LOW` | Exceptional or optional: failure handling, record-keeping, and the paths that need an API key and a network to run at all |
+
+**Where the `HIGH`/`MEDIUM` line is drawn is the whole of the design.** Drawn at
+*per-frame* — the obvious reading — the HDMI terminal renderer outranks the
+knob, which is backwards for a box with no monitor attached, and nearly
+everything lands in one bucket. A ranking that puts most of its entries at one
+level has measured nothing. Drawing it at *the deployed configuration* instead
+gives 9 `HIGH`, 10 `MEDIUM`, 6 `LOW`, and each level then answers a different
+question: what must never break, what a person notices, and what only matters
+on a bad day.
+
+So when a new scenario resists classification, the question to ask is not "is
+this important" — everything in the app is — but "does the appliance execute
+this on every frame, only when somebody acts, or only when something has gone
+wrong or been switched on".
 
 ## Scenarios not yet written
 
