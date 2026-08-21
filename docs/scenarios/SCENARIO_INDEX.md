@@ -9,8 +9,9 @@ pixels out, and the ways a person changes what happens last. An empty category
 is listed rather than omitted: saying where the gaps are is most of the point.
 
 **If you are reading these for the first time, do not start at the first
-category.** [Where to start](#where-to-start) puts the same twenty documents in
-the order that gets the whole machine into your head fastest, in six.
+category.** [Where to start](#where-to-start) puts the same twenty-five
+documents in the order that gets the whole machine into your head fastest —
+the whole of it in the first six.
 
 **All twenty-five are written.** No bold entries are left, so the check in
 `tests/docs/docs_links_test.py` that catches a scenario still advertised as
@@ -33,10 +34,10 @@ every class that appears in four or more scenarios**, which taking them in
 priority order does not manage until the sixth, and alphabetically not until
 the eleventh.
 
-### First lap — one frame in, one picture out, one change applied
+### First lap — one frame in, one picture out
 
-Six documents that between them cross the entire machine. Stopping here leaves
-you able to follow any of the others out of order.
+Four documents that carry a single frame from the sensor to the glass. Nothing
+here changes a setting: this is the machine left alone to run.
 
 | | Scenario | What it adds |
 |---:|---|---|
@@ -44,13 +45,23 @@ you able to follow any of the others out of order.
 | 2 | [ImageProcessor rotates, crops and resizes a frame to the character grid](imageprocessor-rotates-crops-and-resizes-a-frame-to-the-character-grid.md) | Where a camera-shaped frame becomes a grid-shaped one, and where orientation and proportion are settled for everything downstream |
 | 3 | [Pixel brightness is mapped to ramp characters](pixel-brightness-is-mapped-to-ramp-characters.md) | The conversion the app is named for — and the fact that one table serves both displays, so the two are never computed apart |
 | 4 | [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md) | A picture, at last, and the second thread that carries it. Why 33 ms of SPI does not cost the loop 33 ms |
+
+### Second lap — one change applied
+
+Two documents for the half the first lap leaves out: a change arriving from
+outside the loop, and both displays ending up agreeing about it. Stopping after
+these six leaves you able to follow any of the others out of order.
+
+| | Scenario | What it adds |
+|---:|---|---|
 | 5 | [A typed command updates the render configuration](a-typed-command-updates-the-render-configuration.md) | The first change arriving from outside, and the crossing into the loop's thread. Introduces the configuration itself, and the one validator every route meets |
 | 6 | [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md) | Closes the lap. The terminal is pushed to and the panel reads what it is handed, which is why the two displays never disagree |
 
-### Second lap — the same path, closer
+### Third lap — the same path, closer
 
-Nothing new in shape; the same five stops with the arithmetic filled in. Read
-in this order they answer questions the first lap raises and leaves open.
+Nothing new in shape; the picture path again, five stops with the arithmetic
+filled in. Read in this order they answer questions the first lap raises and
+leaves open.
 
 | | Scenario | What it adds |
 |---:|---|---|
@@ -62,10 +73,10 @@ in this order they answer questions the first lap raises and leaves open.
 
 ### The other ways in
 
-Document 5 showed one route to a changed setting. These are the rest, ordered
-by how much machinery stands between a person and the configuration — a knob is
-almost none, a language model is a great deal — and then the two ways the last
-of them can end without changing anything.
+The second lap showed one route to a changed setting. These are the rest,
+ordered by how much machinery stands between a person and the configuration —
+a knob is almost none, a language model is a great deal — and then the two ways
+the last of them can end without changing anything.
 
 | | Scenario | What it adds |
 |---:|---|---|
