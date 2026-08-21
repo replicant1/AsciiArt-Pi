@@ -113,11 +113,11 @@ two that have to agree.
     deserves.
 
 [^fill]: **fill** and **fit** are the two ways a 4:3 frame can be put into a
-    grid of another shape. `fit` keeps all of the picture and leaves blank
-    margins — letterboxing. `fill` crops the frame to the grid's on-screen
-    shape so no margin remains, at the price of the edges. It is a setting like
-    any other, and one of the two that change the grid's shape rather than its
-    appearance.
+    window that is not its shape. `fit` keeps the whole frame and shrinks the
+    grid to match it, so the window is left with blank cells around the
+    picture. `fill` makes the grid the whole window and crops the frame to
+    suit, so no cell is wasted and the frame's edges are lost. It is one of the
+    two settings that change the grid's shape rather than its appearance.
 
 [^grid]: The **character grid** is the picture as this app holds it: `rows` by
     `cols` character **cells** rather than pixels, each cell one character
