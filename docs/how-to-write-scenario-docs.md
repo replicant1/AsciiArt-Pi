@@ -63,7 +63,8 @@ In this order, with no heading before the first diagram section:
    criteria. The reason is this scenario's own, not the category's
 3. **Description** — two or three paragraphs
 4. **An illustration**, if the scenario has geometry worth showing. Optional,
-   and most scenarios do not
+   and most scenarios do not. A second one is allowed where a document has two
+   separate things with a shape - see below
 5. **Cast table** — one row per class, no heading above it
 6. `## A heading naming what this diagram shows`
 7. **The diagram**
@@ -114,6 +115,15 @@ Anything with no symmetry will do; a letter is easiest to draw.
 where `fill` throws rows away, and that band is the whole point of the stage —
 a picture of the surviving strip alone would say nothing about what the setting
 costs.
+
+**One is usually enough, but two is allowed.** Where a document holds two
+distinct geometric facts, one figure trying to carry both ends up carrying
+neither: `pixel-brightness-is-mapped-to-ramp-characters.md` has the brightness
+table, which is a bar and two rows, and separately what the panel *does* with a
+position, which is a grid, an atlas and a copy. Those are different pictures.
+Give each its own file, its own alt text and its own caption, and put them one
+after the other. What is not allowed is one figure repeated across documents,
+or a figure whose subject is really the next scenario's.
 
 **Every number in it is a claim.** Take the dimensions and counts from the
 document's own prose, which has already been checked, rather than working them

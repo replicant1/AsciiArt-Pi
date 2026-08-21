@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 566" width="1180" height="566"
+     font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>What the panel does with a ramp position</title>
+  <desc>A grid of ramp positions, the glyph atlas holding one pre-drawn tile per
+        ramp character, and the picture those positions assemble, with three
+        cells highlighted in amber across all three. Beneath, those three cells
+        are followed one at a time: the position, an arrow to the tile it
+        selects, and an arrow to where that tile lands in the picture.</desc>
+  <defs>
+    <marker id="amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/>
+    </marker>
+    <style>
+      .card  { fill: #ffffff; stroke: #e5e7eb; }
+      .title { font-size: 15px; font-weight: 700; fill: #111827; }
+      .step  { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
+      .cap   { font-size: 11.5px; fill: #374151; }
+      .dim   { font-size: 11px; fill: #6b7280; }
+      .mono  { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      .idx   { fill: #f8fafc; stroke: #cbd5e1; }
+      .tile  { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 1.2; }
+    </style>
+  </defs>
+  <rect class="card" x="0.5" y="0.5" width="1179" height="565" rx="8"/>
+  <text class="title" x="28" y="34">What a position buys: one tile, copied</text>
+  <text class="dim"   x="28" y="53">The terminal takes the character. The panel takes the number, and spends it here.</text>
+<text class="step" x="40" y="104">the positions, one per cell</text>
+<rect class="idx" x="40" y="116" width="32" height="26" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+<text class="mono" x="56.0" y="133" font-size="12" text-anchor="middle" fill="#334155">9</text>
+<rect class="idx" x="72" y="116" width="32" height="26"/>
+<text class="mono" x="88.0" y="133" font-size="12" text-anchor="middle" fill="#334155">7</text>
+<rect class="idx" x="104" y="116" width="32" height="26"/>
+<text class="mono" x="120.0" y="133" font-size="12" text-anchor="middle" fill="#334155">7</text>
+<rect class="idx" x="136" y="116" width="32" height="26"/>
+<text class="mono" x="152.0" y="133" font-size="12" text-anchor="middle" fill="#334155">4</text>
+<rect class="idx" x="168" y="116" width="32" height="26"/>
+<text class="mono" x="184.0" y="133" font-size="12" text-anchor="middle" fill="#334155">2</text>
+<rect class="idx" x="200" y="116" width="32" height="26"/>
+<text class="mono" x="216.0" y="133" font-size="12" text-anchor="middle" fill="#334155">0</text>
+<rect class="idx" x="232" y="116" width="32" height="26"/>
+<text class="mono" x="248.0" y="133" font-size="12" text-anchor="middle" fill="#334155">0</text>
+<rect class="idx" x="264" y="116" width="32" height="26"/>
+<text class="mono" x="280.0" y="133" font-size="12" text-anchor="middle" fill="#334155">1</text>
+<rect class="idx" x="40" y="142" width="32" height="26"/>
+<text class="mono" x="56.0" y="159" font-size="12" text-anchor="middle" fill="#334155">8</text>
+<rect class="idx" x="72" y="142" width="32" height="26"/>
+<text class="mono" x="88.0" y="159" font-size="12" text-anchor="middle" fill="#334155">9</text>
+<rect class="idx" x="104" y="142" width="32" height="26" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+<text class="mono" x="120.0" y="159" font-size="12" text-anchor="middle" fill="#334155">6</text>
+<rect class="idx" x="136" y="142" width="32" height="26"/>
+<text class="mono" x="152.0" y="159" font-size="12" text-anchor="middle" fill="#334155">3</text>
+<rect class="idx" x="168" y="142" width="32" height="26"/>
+<text class="mono" x="184.0" y="159" font-size="12" text-anchor="middle" fill="#334155">1</text>
+<rect class="idx" x="200" y="142" width="32" height="26"/>
+<text class="mono" x="216.0" y="159" font-size="12" text-anchor="middle" fill="#334155">0</text>
+<rect class="idx" x="232" y="142" width="32" height="26"/>
+<text class="mono" x="248.0" y="159" font-size="12" text-anchor="middle" fill="#334155">1</text>
+<rect class="idx" x="264" y="142" width="32" height="26"/>
+<text class="mono" x="280.0" y="159" font-size="12" text-anchor="middle" fill="#334155">2</text>
+<rect class="idx" x="40" y="168" width="32" height="26"/>
+<text class="mono" x="56.0" y="185" font-size="12" text-anchor="middle" fill="#334155">6</text>
+<rect class="idx" x="72" y="168" width="32" height="26"/>
+<text class="mono" x="88.0" y="185" font-size="12" text-anchor="middle" fill="#334155">8</text>
+<rect class="idx" x="104" y="168" width="32" height="26"/>
+<text class="mono" x="120.0" y="185" font-size="12" text-anchor="middle" fill="#334155">5</text>
+<rect class="idx" x="136" y="168" width="32" height="26"/>
+<text class="mono" x="152.0" y="185" font-size="12" text-anchor="middle" fill="#334155">2</text>
+<rect class="idx" x="168" y="168" width="32" height="26" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+<text class="mono" x="184.0" y="185" font-size="12" text-anchor="middle" fill="#334155">0</text>
+<rect class="idx" x="200" y="168" width="32" height="26"/>
+<text class="mono" x="216.0" y="185" font-size="12" text-anchor="middle" fill="#334155">1</text>
+<rect class="idx" x="232" y="168" width="32" height="26"/>
+<text class="mono" x="248.0" y="185" font-size="12" text-anchor="middle" fill="#334155">3</text>
+<rect class="idx" x="264" y="168" width="32" height="26"/>
+<text class="mono" x="280.0" y="185" font-size="12" text-anchor="middle" fill="#334155">4</text>
+<text class="cap" x="40" y="220">the same numbers the table above produces,</text>
+<text class="cap" x="40" y="236">one per character cell</text>
+<text class="dim" x="40" y="258">eight by three shown here; the panel's own grid</text>
+<text class="dim" x="40" y="273">is 64 by 24, so 1,536 of them</text>
+<text class="step" x="340" y="104">the glyph atlas: what a number selects</text>
+<rect class="tile" x="340" y="116" width="34" height="42" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.8"/>
+<text class="dim" x="357" y="142" text-anchor="middle">blank</text>
+<text class="mono" x="357" y="174" font-size="12" text-anchor="middle" fill="#6b7280">0</text>
+<rect class="tile" x="378" y="116" width="34" height="42" rx="2"/>
+<text class="mono" x="395" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">.</text>
+<text class="mono" x="395" y="174" font-size="12" text-anchor="middle" fill="#6b7280">1</text>
+<rect class="tile" x="416" y="116" width="34" height="42" rx="2"/>
+<text class="mono" x="433" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">:</text>
+<text class="mono" x="433" y="174" font-size="12" text-anchor="middle" fill="#6b7280">2</text>
+<rect class="tile" x="454" y="116" width="34" height="42" rx="2"/>
+<text class="mono" x="471" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">-</text>
+<text class="mono" x="471" y="174" font-size="12" text-anchor="middle" fill="#6b7280">3</text>
+<rect class="tile" x="492" y="116" width="34" height="42" rx="2"/>
+<text class="mono" x="509" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">=</text>
+<text class="mono" x="509" y="174" font-size="12" text-anchor="middle" fill="#6b7280">4</text>
+<rect class="tile" x="530" y="116" width="34" height="42" rx="2"/>
+<text class="mono" x="547" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">+</text>
+<text class="mono" x="547" y="174" font-size="12" text-anchor="middle" fill="#6b7280">5</text>
+<rect class="tile" x="568" y="116" width="34" height="42" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.8"/>
+<text class="mono" x="585" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">*</text>
+<text class="mono" x="585" y="174" font-size="12" text-anchor="middle" fill="#6b7280">6</text>
+<rect class="tile" x="606" y="116" width="34" height="42" rx="2"/>
+<text class="mono" x="623" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">#</text>
+<text class="mono" x="623" y="174" font-size="12" text-anchor="middle" fill="#6b7280">7</text>
+<rect class="tile" x="644" y="116" width="34" height="42" rx="2"/>
+<text class="mono" x="661" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">%</text>
+<text class="mono" x="661" y="174" font-size="12" text-anchor="middle" fill="#6b7280">8</text>
+<rect class="tile" x="682" y="116" width="34" height="42" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.8"/>
+<text class="mono" x="699" y="146" font-size="19" text-anchor="middle" fill="#1e3a8a">@</text>
+<text class="mono" x="699" y="174" font-size="12" text-anchor="middle" fill="#6b7280">9</text>
+<text class="cap" x="340" y="220">every character of the ramp, drawn once into a</text>
+<text class="cap" x="340" y="236">fixed-size tile - ten tiles, not a font</text>
+<text class="dim" x="340" y="258">rebuilt when the ramp, the invert or the font size</text>
+<text class="dim" x="340" y="273">changes, and never once per frame</text>
+<text class="step" x="760" y="104">the picture they assemble</text>
+<rect x="754" y="110" width="364" height="114" fill="#0b0b0c" stroke="#334155"/>
+<rect x="760" y="116" width="44" height="34" fill="#f59e0b" opacity="0.28"/>
+<text class="mono" x="782.0" y="141" font-size="22" text-anchor="middle" fill="#8ab4f0">@</text>
+<text class="mono" x="826.0" y="141" font-size="22" text-anchor="middle" fill="#8ab4f0">#</text>
+<text class="mono" x="870.0" y="141" font-size="22" text-anchor="middle" fill="#8ab4f0">#</text>
+<text class="mono" x="914.0" y="141" font-size="22" text-anchor="middle" fill="#8ab4f0">=</text>
+<text class="mono" x="958.0" y="141" font-size="22" text-anchor="middle" fill="#8ab4f0">:</text>
+<text class="mono" x="1090.0" y="141" font-size="22" text-anchor="middle" fill="#8ab4f0">.</text>
+<text class="mono" x="782.0" y="175" font-size="22" text-anchor="middle" fill="#8ab4f0">%</text>
+<text class="mono" x="826.0" y="175" font-size="22" text-anchor="middle" fill="#8ab4f0">@</text>
+<rect x="848" y="150" width="44" height="34" fill="#f59e0b" opacity="0.28"/>
+<text class="mono" x="870.0" y="175" font-size="22" text-anchor="middle" fill="#8ab4f0">*</text>
+<text class="mono" x="914.0" y="175" font-size="22" text-anchor="middle" fill="#8ab4f0">-</text>
+<text class="mono" x="958.0" y="175" font-size="22" text-anchor="middle" fill="#8ab4f0">.</text>
+<text class="mono" x="1046.0" y="175" font-size="22" text-anchor="middle" fill="#8ab4f0">.</text>
+<text class="mono" x="1090.0" y="175" font-size="22" text-anchor="middle" fill="#8ab4f0">:</text>
+<text class="mono" x="782.0" y="209" font-size="22" text-anchor="middle" fill="#8ab4f0">*</text>
+<text class="mono" x="826.0" y="209" font-size="22" text-anchor="middle" fill="#8ab4f0">%</text>
+<text class="mono" x="870.0" y="209" font-size="22" text-anchor="middle" fill="#8ab4f0">+</text>
+<text class="mono" x="914.0" y="209" font-size="22" text-anchor="middle" fill="#8ab4f0">:</text>
+<rect x="936" y="184" width="44" height="34" fill="#f59e0b" opacity="0.28"/>
+<text class="mono" x="1002.0" y="209" font-size="22" text-anchor="middle" fill="#8ab4f0">.</text>
+<text class="mono" x="1046.0" y="209" font-size="22" text-anchor="middle" fill="#8ab4f0">-</text>
+<text class="mono" x="1090.0" y="209" font-size="22" text-anchor="middle" fill="#8ab4f0">=</text>
+<text class="cap" x="760" y="244">each cell is a copy of one tile, and all 1,536</text>
+<text class="cap" x="760" y="260">copies are a single array operation</text>
+<text class="dim" x="760" y="282">position 0 is the blank tile, which is why one of</text>
+<text class="dim" x="760" y="297">the three followed below arrives empty</text>
+<line x1="28" y1="322" x2="1152" y2="322" stroke="#e5e7eb"/>
+<text class="step" x="40" y="350">three cells, followed through</text>
+<rect class="idx" x="40" y="374" width="32" height="26" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+<text class="mono" x="56" y="391" font-size="12" text-anchor="middle" fill="#334155">9</text>
+<line x1="80" y1="387" x2="106" y2="387" stroke="#f59e0b" stroke-width="1.6" marker-end="url(#amber)"/>
+<rect class="tile" x="114" y="366" width="34" height="42" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.8"/>
+<text class="mono" x="131" y="396" font-size="19" text-anchor="middle" fill="#1e3a8a">@</text>
+<line x1="156" y1="387" x2="182" y2="387" stroke="#f59e0b" stroke-width="1.6" marker-end="url(#amber)"/>
+<rect x="190" y="370" width="44" height="34" fill="#0b0b0c" stroke="#334155"/>
+<rect x="190" y="370" width="44" height="34" fill="#f59e0b" opacity="0.28"/>
+<text class="mono" x="212" y="396" font-size="22" text-anchor="middle" fill="#8ab4f0">@</text>
+<text class="cap" x="40" y="434">position 9 picks the @ tile,</text>
+<text class="cap" x="40" y="450">which lands at row 1, column 1</text>
+<rect class="idx" x="420" y="374" width="32" height="26" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+<text class="mono" x="436" y="391" font-size="12" text-anchor="middle" fill="#334155">6</text>
+<line x1="460" y1="387" x2="486" y2="387" stroke="#f59e0b" stroke-width="1.6" marker-end="url(#amber)"/>
+<rect class="tile" x="494" y="366" width="34" height="42" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.8"/>
+<text class="mono" x="511" y="396" font-size="19" text-anchor="middle" fill="#1e3a8a">*</text>
+<line x1="536" y1="387" x2="562" y2="387" stroke="#f59e0b" stroke-width="1.6" marker-end="url(#amber)"/>
+<rect x="570" y="370" width="44" height="34" fill="#0b0b0c" stroke="#334155"/>
+<rect x="570" y="370" width="44" height="34" fill="#f59e0b" opacity="0.28"/>
+<text class="mono" x="592" y="396" font-size="22" text-anchor="middle" fill="#8ab4f0">*</text>
+<text class="cap" x="420" y="434">position 6 picks the * tile,</text>
+<text class="cap" x="420" y="450">which lands at row 2, column 3</text>
+<rect class="idx" x="800" y="374" width="32" height="26" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.6"/>
+<text class="mono" x="816" y="391" font-size="12" text-anchor="middle" fill="#334155">0</text>
+<line x1="840" y1="387" x2="866" y2="387" stroke="#f59e0b" stroke-width="1.6" marker-end="url(#amber)"/>
+<rect class="tile" x="874" y="366" width="34" height="42" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.8"/>
+<text class="dim" x="891" y="392" text-anchor="middle">blank</text>
+<line x1="916" y1="387" x2="942" y2="387" stroke="#f59e0b" stroke-width="1.6" marker-end="url(#amber)"/>
+<rect x="950" y="370" width="44" height="34" fill="#0b0b0c" stroke="#334155"/>
+<rect x="950" y="370" width="44" height="34" fill="#f59e0b" opacity="0.28"/>
+<text class="cap" x="800" y="434">position 0 picks the blank tile,</text>
+<text class="cap" x="800" y="450">which lands at row 3, column 5</text>
+<text class="dim" x="40" y="478">Nothing is drawn along the way: the tile is copied, pixels and all, into the place the position names. That is the whole</text>
+<text class="dim" x="40" y="493">reason the panel asks this table for a number and has no use at all for the character standing at it.</text>
+<text class="dim" x="40" y="514">How those tiles then become bytes for the panel is a separate scenario - see the related list below.</text>
+</svg>

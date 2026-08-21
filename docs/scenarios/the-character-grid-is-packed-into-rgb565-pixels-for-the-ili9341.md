@@ -149,11 +149,13 @@ margin it no longer reaches, so the buffer must be zeroed rather than left.
     cell's colour towards the unlit screen colour by it, so `@` peaking at 239
     rather than 255 is visible rather than academic.
 
-[^atlas]: A **glyph atlas** is every character of the font drawn once, in
-    advance, into one array — [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46).
-    A frame is then assembled by copying the right rectangles out of it rather
-    than by drawing text, which at 64 by 24 is one array operation instead of
-    1,536 calls into the font renderer.
+[^atlas]: A **glyph atlas** is every character of the *ramp* — ten of them for
+    the default ramp, not the whole font — drawn once, in advance, into one
+    array: [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46). A frame is then
+    assembled by copying the right rectangles out of it rather than by drawing
+    text, which at 64 by 24 is one array operation instead of 1,536 calls into
+    the font renderer. That it holds the ramp and not the font is why changing
+    the ramp rebuilds it.
 
 [^rgb565]: **RGB565** is how the panel wants a pixel: two bytes, five bits of
     red, six of green, five of blue — green gets the spare bit because the eye

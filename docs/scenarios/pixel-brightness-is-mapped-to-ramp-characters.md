@@ -18,29 +18,66 @@ averaging is the correct filter for that reduction and not merely the fast
 one: an ASCII cell represents the mean brightness of the region it covers,
 which is precisely what BOX[^box] computes.
 
+One number does the whole job, and the figure above follows it from end to
+end. The ramp[^ramp] in use here has ten characters, so each of them covers
+about 26 of the 256 possible brightnesses, and every brightness it covers gets
+the same answer: that character's *position* along the ramp. Where the two displays part is what
+they do with that number. The terminal is handed the character standing at the
+position and prints it. The SPI panel[^panel] is handed the position itself,
+because it never draws text at all: it keeps the ramp already rendered as
+fixed-size tiles — a **glyph atlas**[^atlas] — and copies the tile standing at
+that index. So a position, a character and a tile are three views of one
+number.
+
 The table is built in [`_build_lut`](../../src/art/ascii_art.py#L159) and
-produces **two** outputs from one calculation: characters for the terminal,
-and ramp[^ramp] *positions* for the SPI panel[^panel], which draws
-pre-rendered glyphs from an atlas[^atlas] and wants an index rather than a
-character. Deriving both from the same `indices` array is what keeps the two
-displays choosing identically. It also survives `invert`[^invert], which
+produces **two** outputs from one calculation: the characters for the terminal,
+and the positions for the panel. Deriving both from the same `indices` array is
+what keeps the two displays choosing identically. It also survives `invert`[^invert], which
 reverses the character sequence while leaving the position table untouched —
 so both outputs flip together, by construction rather than by both remembering
 to.
 
-![A bar of all 256 brightness values divided into ten bands, dark at the left and
-light at the right, each band labelled with the ramp character it maps to and the
-ramp position beneath it, with the boundary values 0, 26, 52, 77, 103, 128, 154,
-180, 205 and 231 marked underneath. Below the bar, the terminal takes a row of
-characters and the panel takes the same positions as numbers](../images/brightness-to-ramp.svg)
+![A bar of all 256 brightness values, dark at the left and light at the right,
+divided where one ramp character gives way to the next, with two labelled rows
+beneath it: the character the terminal draws, and the ramp position the panel
+uses to index its glyph atlas, boxed to read as an index. Below those, one whole
+row of the picture as the terminal takes it and the same row as the panel takes it; and at
+the foot, a strip of the atlas itself: the ten ramp characters drawn as tiles and
+numbered 0 to 9, which is what those positions
+select](../images/brightness-to-ramp.svg)
 
-*The whole conversion, as one picture: brightness along the bar, the character
-under it, and the position under that. The two rows at the bottom are the same
-lookup asked two different questions, which is why the displays cannot disagree
-about which glyph a brightness deserves — and why `invert`, which reverses the
-characters and leaves the positions alone, flips both at once.*
+*The whole conversion, as one picture. The two rows under the bar are the same
+table asked two different questions: the terminal wants the character, and the
+panel wants the position, because it blits a tile from its atlas rather than
+drawing text. Neither row is a second table — there is one `indices` array and
+both answers are read out of it, which is why the displays cannot disagree about
+which glyph a brightness deserves, and why `invert` reverses the characters
+while leaving the positions alone.*
+
+*The strip at the foot is what a position is a position **in**: the panel's
+atlas, every ramp character drawn once as a tile and picked by number. Seeing
+the tiles is the quickest way to understand why one display wants a character
+and the other wants an integer.*
 
 Kept by hand: edit [`brightness-to-ramp.svg`](../images/brightness-to-ramp.svg)
+directly, since nothing regenerates it.
+
+![Three blocks side by side: a grid of ramp positions, the glyph atlas holding
+one pre-drawn tile per ramp character numbered 0 to 9, and the picture those
+positions assemble, with the same three cells highlighted in amber in all three.
+Beneath them the three are followed one at a time — the position, an arrow to the
+tile it selects, and an arrow to the cell of the picture that tile lands
+in](../images/position-to-tile.svg)
+
+*What the panel does with the number, which is the half the table above cannot
+show. Follow one chain and the mechanism is plain: a position picks a tile, and
+the tile is copied — pixels and all — into the place that position names.
+Nothing is drawn at any point, which is why the panel wants a number and has no
+use for the character standing at it. The third chain is worth the space on its
+own: position 0 is the **blank** tile, so an empty cell is a copy like any
+other rather than a cell that was skipped.*
+
+Kept by hand: edit [`position-to-tile.svg`](../images/position-to-tile.svg)
 directly, since nothing regenerates it.
 
 | Class | What it represents, and its part in this scenario |
@@ -153,11 +190,13 @@ scenario.
     [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
     the driver's buffer holds.
 
-[^atlas]: A **glyph atlas** is every character of the font drawn once, in
-    advance, into one array — [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46).
-    A frame is then assembled by copying the right rectangles out of it rather
-    than by drawing text, which at 64 by 24 is one array operation instead of
-    1,536 calls into the font renderer.
+[^atlas]: A **glyph atlas** is every character of the *ramp* — ten of them for
+    the default ramp, not the whole font — drawn once, in advance, into one
+    array: [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46). A frame is then
+    assembled by copying the right rectangles out of it rather than by drawing
+    text, which at 64 by 24 is one array operation instead of 1,536 calls into
+    the font renderer. That it holds the ramp and not the font is why changing
+    the ramp rebuilds it.
 
 [^invert]: The **invert** setting reverses the ramp, so bright pixels get the
     dark end of it — white-on-black becomes black-on-white in effect. It
