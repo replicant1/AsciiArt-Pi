@@ -12,8 +12,9 @@ tens of thousands of pixels, because this ran first.
 The order is rotate, then crop, then resize, and each step is where it is for
 a reason. Rotation comes first because cropping to an aspect ratio is
 meaningless before the picture is the right way up. The crop only happens in
-`fill`[^fill] mode, and is the difference between a picture that fills the
-grid and one letterboxed inside it. The resize is last and uses area
+`fill`[^fill] mode, and is the difference between a grid that is the whole
+window and one that shrinks to the frame's shape, leaving the window blank
+around it. The resize is last and uses area
 averaging, which is not merely the fast choice — an ASCII cell *represents*
 the mean brightness of the region it covers, so BOX[^box] computes exactly the
 right thing. LANCZOS is markedly slower and its extra sharpness is invisible
@@ -38,17 +39,23 @@ implementations that agree today.
 ![One camera frame at each stage of the pipeline: a 320 by 240 frame carrying a
 large letter F, the same frame after a rotation that as mounted turns nothing,
 the frame with hatched bands top and bottom marking the rows a fill-mode crop
-throws away, the surviving strip divided into character cells with a few shaded
-to show each one averaging the pixels it covers, and finally a grid of ramp
-characters](../images/imageprocessor-pipeline.svg)
+cuts away, the surviving strip divided into character cells with a few shaded to
+show each one averaging the pixels it covers, and finally a grid of ramp
+characters. Below them the same window drawn twice: with fill the grid is the
+whole window and the F is cut off top and bottom, and with fit a narrower grid
+holds the whole F while the window stays blank at both
+sides](../images/imageprocessor-pipeline.svg)
 
 *The five stages in order, with the picture as it stands at each one. The three
 in the middle are the ones `to_grid` performs, so the chroma planes go through
 exactly those and differ only in skipping the levels stretch at the end. The `F`
-is there to make a rotation or a flip visible at a glance, and the hatched bands
-are the rows `fill` throws away — in `fit` mode nothing is cut and the picture is
-letterboxed inside the grid instead. The sizes are the ones this document
-quotes: a 320x240 frame, an 80x30 grid, 2,400 values where there were 76,800.*
+is there to make a rotation, a flip or a crop visible at a glance.*
+
+*The pair underneath is what the crop is **for**, and the only place the two
+modes can be told apart: `fill` makes the grid the whole window and pays for it
+with 80 rows of the frame, while `fit` keeps the whole frame and pays for it
+with 6,700 blank cells at the sides of the same window. Both numbers are this
+app's — `fit_grid` really does return 133x50 for a 267x50 window.*
 
 Edit [`imageprocessor-pipeline.svg`](../images/imageprocessor-pipeline.svg) if
 the order of the stages ever changes. It is drawn by hand rather than generated,
@@ -86,7 +93,7 @@ sequenceDiagram
 | 3 | [`_grid_for`](../../ascii_camera.py#L545) caches the grid until rotation or fill invalidates it | Recomputing the fit every frame would be wasted work on a value that changes only when the window or the settings do. [`_adopt`](../../ascii_camera.py#L282) clears the cache for exactly `rotation` and `fill`, the two settings that change a shape rather than an appearance |
 | 4 | [`process`](../../src/capture/image_processor.py#L159)`(frame.luma, cols, rows)` | The plane and the grid, and nothing else. Contrast, auto-levels, rotation, fill and mirror are attributes the processor already holds — assigned when the config changed, not passed on every frame |
 | 5 | [`rotate`](../../src/capture/image_processor.py#L76), by rot90 and then fliplr if mirror is on | The flip is applied **after** the rotation and to every plane, because `to_grid` routes luma and chroma both through here. Rotation before crop, because cropping to an aspect ratio has no meaning until the picture is upright |
-| 6 | [`crop_to_aspect`](../../src/capture/image_processor.py#L109), but only when fill is on | The target is `cols / (rows * cell_aspect)` — the grid's shape *on screen*, not in characters, since a character cell is about twice as tall as it is wide. A 4:3 frame into a 2:1 grid loses 80 rows of height; into a square grid it loses 80 columns of width. Without this the picture is letterboxed inside the grid instead of filling it |
+| 6 | [`crop_to_aspect`](../../src/capture/image_processor.py#L109), but only when fill is on | The target is `cols / (rows * cell_aspect)` — the grid's shape *on screen*, not in characters, since a character cell is about twice as tall as it is wide. A 4:3 frame into a 2:1 grid loses 80 rows of height; into a square grid it loses 80 columns of width. With `fill` off the frame is not cut at all: [`_grid_for`](../../ascii_camera.py#L545) asks [`fit_grid`](../../src/capture/image_processor.py#L25) for a grid of the frame's own shape instead, and the window is left with blank cells around it - 133x50 inside a 267x50 window leaves 6,700 of them |
 | 7 | [`resize`](../../src/capture/image_processor.py#L131) to exactly cols by rows, with BOX | Area averaging, and the step that makes everything downstream cheap: 76,800 pixels become 2,400 at an 80x30 grid. It is also the correct filter rather than the fast one, since an ASCII cell is the mean brightness of what it covers |
 | 8 | [`adjust_levels`](../../src/capture/image_processor.py#L144) stretches the 2nd to 98th percentile | Percentiles rather than the true extremes, so one bright speck cannot flatten everything else. Skipped when the range is under 8, which stops a nearly-flat frame being amplified into noise. Applied after the resize, so it costs 2,400 comparisons rather than 76,800 |
 | 9 | a uint8 array of exactly rows by cols | One value per character cell, and the only thing anything downstream sees. The same array is handed to the brightness mapping and, in a live scheme[^scheme], back into `colour_grid` as the Y term — so the colour of a cell and its glyph are derived from identical brightness |
@@ -126,11 +133,11 @@ that is a separate collaboration, not a boundary crossed here.
     the driver's buffer holds.
 
 [^fill]: **fill** and **fit** are the two ways a 4:3 frame can be put into a
-    grid of another shape. `fit` keeps all of the picture and leaves blank
-    margins — letterboxing. `fill` crops the frame to the grid's on-screen
-    shape so no margin remains, at the price of the edges. It is a setting like
-    any other, and one of the two that change the grid's shape rather than its
-    appearance.
+    window that is not its shape. `fit` keeps the whole frame and shrinks the
+    grid to match it, so the window is left with blank cells around the
+    picture. `fill` makes the grid the whole window and crops the frame to
+    suit, so no cell is wasted and the frame's edges are lost. It is one of the
+    two settings that change the grid's shape rather than its appearance.
 
 [^box]: `BOX` and `LANCZOS` are resampling filters, named as the imaging
     library names them. `BOX` averages the pixels covering a cell; `LANCZOS`
