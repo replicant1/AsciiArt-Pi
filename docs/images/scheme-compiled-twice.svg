@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 450" width="1180" height="450"
+     font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>One colour scheme, compiled twice</title>
+  <desc>The amber scheme blended from its unlit screen colour to its lit ink
+        across ten ramp positions, and the same ten colours as the terminal can
+        actually show them, where two adjacent steps collapse onto one palette
+        entry.</desc>
+  <defs>
+    <style>
+      .card  { fill: #ffffff; stroke: #e5e7eb; }
+      .title { font-size: 15px; font-weight: 700; fill: #111827; }
+      .step  { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
+      .cap   { font-size: 11.5px; fill: #374151; }
+      .dim   { font-size: 11px; fill: #6b7280; }
+      .mono  { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; }
+    </style>
+  </defs>
+  <rect class="card" x="0.5" y="0.5" width="1179" height="449" rx="8"/>
+  <text class="title" x="28" y="34">One blend, compiled twice</text>
+  <text class="dim"   x="28" y="53">The panel takes the colours as they are. The terminal has 240 to choose from, and cannot always tell two steps apart.</text>
+<text class="step" x="40" y="92">the blend: the scheme's unlit screen to its lit ink, one colour per ramp position</text>
+<rect x="40" y="104" width="106" height="52" fill="rgb(26, 13, 0)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="93.0" y="174" text-anchor="middle" fill="#6b7280">0</text>
+<rect x="150" y="104" width="106" height="52" fill="rgb(51, 31, 5)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="203.0" y="174" text-anchor="middle" fill="#6b7280">1</text>
+<rect x="260" y="104" width="106" height="52" fill="rgb(76, 50, 11)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="313.0" y="174" text-anchor="middle" fill="#6b7280">2</text>
+<rect x="370" y="104" width="106" height="52" fill="rgb(102, 69, 17)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="423.0" y="174" text-anchor="middle" fill="#6b7280">3</text>
+<rect x="480" y="104" width="106" height="52" fill="rgb(127, 88, 22)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="533.0" y="174" text-anchor="middle" fill="#6b7280">4</text>
+<rect x="590" y="104" width="106" height="52" fill="rgb(153, 107, 28)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="643.0" y="174" text-anchor="middle" fill="#6b7280">5</text>
+<rect x="700" y="104" width="106" height="52" fill="rgb(178, 126, 34)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="753.0" y="174" text-anchor="middle" fill="#6b7280">6</text>
+<rect x="810" y="104" width="106" height="52" fill="rgb(204, 145, 39)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="863.0" y="174" text-anchor="middle" fill="#6b7280">7</text>
+<rect x="920" y="104" width="106" height="52" fill="rgb(229, 164, 45)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="973.0" y="174" text-anchor="middle" fill="#6b7280">8</text>
+<rect x="1030" y="104" width="106" height="52" fill="rgb(255, 183, 51)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="1083.0" y="174" text-anchor="middle" fill="#6b7280">9</text>
+<text class="dim" x="40" y="192">position 0 is exactly the screen colour, 26, 13, 0</text>
+<text class="dim" x="1140" y="192" text-anchor="end">position 9 is exactly the ink, 255, 183, 51</text>
+<text class="step" x="40" y="234">what the terminal can show: each blend snapped to its nearest of 240 entries</text>
+<rect x="40" y="246" width="106" height="52" fill="rgb(8, 8, 8)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="93.0" y="316" text-anchor="middle" fill="#6b7280" font-weight="400">232</text>
+<rect x="150" y="246" width="106" height="52" fill="rgb(28, 28, 28)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="203.0" y="316" text-anchor="middle" fill="#6b7280" font-weight="400">234</text>
+<rect x="260" y="246" width="106" height="52" fill="rgb(48, 48, 48)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="313.0" y="316" text-anchor="middle" fill="#6b7280" font-weight="400">236</text>
+<rect x="370" y="246" width="106" height="52" fill="rgb(95, 95, 0)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="423.0" y="316" text-anchor="middle" fill="#6b7280" font-weight="400">58</text>
+<rect x="480" y="246" width="106" height="52" fill="rgb(135, 95, 0)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="533.0" y="316" text-anchor="middle" fill="#b91c1c" font-weight="700">94</text>
+<rect x="590" y="246" width="106" height="52" fill="rgb(135, 95, 0)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="643.0" y="316" text-anchor="middle" fill="#b91c1c" font-weight="700">94</text>
+<rect x="700" y="246" width="106" height="52" fill="rgb(175, 135, 0)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="753.0" y="316" text-anchor="middle" fill="#6b7280" font-weight="400">136</text>
+<rect x="810" y="246" width="106" height="52" fill="rgb(215, 135, 0)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="863.0" y="316" text-anchor="middle" fill="#6b7280" font-weight="400">172</text>
+<rect x="920" y="246" width="106" height="52" fill="rgb(215, 175, 0)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="973.0" y="316" text-anchor="middle" fill="#6b7280" font-weight="400">178</text>
+<rect x="1030" y="246" width="106" height="52" fill="rgb(255, 175, 95)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="mono" x="1083.0" y="316" text-anchor="middle" fill="#6b7280" font-weight="400">215</text>
+<path d="M480 326 L480 334 L696 334 L696 326" fill="none" stroke="#b91c1c" stroke-width="1.4"/>
+<text class="cap" x="588.0" y="352" text-anchor="middle" fill="#b91c1c">94 twice</text>
+<text class="dim" x="40" y="378">Positions 4 and 5 are 127, 88, 22 and 153, 107, 28 in the blend - different colours, which the panel draws as different</text>
+<text class="dim" x="40" y="393">colours. The terminal has no entry between them, so both land on 135, 95, 0. That is not a bug to fix; it is what the terminal is.</text>
+<text class="dim" x="40" y="415">Compiled once per scheme, ramp length and invert together, then applied to a whole frame as one array index. invert reverses</text>
+<text class="dim" x="40" y="430">the finished table rather than blending again, so there is one statement of what the scheme looks like.</text>
+</svg>

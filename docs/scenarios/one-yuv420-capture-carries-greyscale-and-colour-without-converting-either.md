@@ -29,6 +29,23 @@ same scene as reference RGB888[^rgb888] and comparing, rather than by reading
 it off a diagram — the two orders differ only by swapping blue and red, which
 is easy to look at and be wrong about.
 
+![One capture buffer of 320 bytes across and 360 rows down: the top 240 rows are
+the luma plane, the 60 below them the U plane and the 60 below that the V plane,
+with a hatched column at the right for stride padding. Slicing the top block
+gives a 240 by 320 greyscale picture; the rows below it flatten, split in half
+and reshape into two planes of 120 by 160. Beside them, the byte counts add up,
+and two colour swatches show what swapping the plane order does](../images/yuv420-buffer.svg)
+
+*The whole of the trick is that the greyscale picture is a **slice**, not a
+conversion — one rectangle of the buffer, taken as it is. The two blocks under
+it are where the 38 KB goes, and the reshape from 60 rows of 320 into 120 rows
+of 160 is what `chroma` does with offsets rather than with a decode. The two
+swatches are the failure that plane order buys you: red and blue exchanged,
+which is exactly plausible enough to survive a glance.*
+
+Kept by hand: edit [`yuv420-buffer.svg`](../images/yuv420-buffer.svg) directly,
+since nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`YuvFrame`](../../src/capture/camera.py#L22) | One YUV420 frame, exposing its planes as views[^view] rather than copies. Here it is the **whole subject**: [`luma`](../../src/capture/camera.py#L47) is a slice and [`chroma`](../../src/capture/camera.py#L51) is arithmetic on offsets, so neither costs anything until somebody reads the pixels |

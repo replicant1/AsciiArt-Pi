@@ -24,6 +24,23 @@ were computed separately, a cell could end up with a bright character in a dark
 colour, and the picture would look subtly wrong in a way that is very hard to
 attribute.
 
+![A full-resolution luma plane above two quarter-resolution chroma planes, all
+three reduced through one path to a grid of character cells; one cell magnified
+to show its Y, U and V values; below, the three conversion formulas producing an
+RGB triple, and that colour going two ways — kept as it is for the panel, and
+snapped to the nearest entry of the terminal's fixed palette](../images/chroma-to-cell-colour.svg)
+
+*The saving is entirely in where the arithmetic sits: three coefficients per
+cell, on a few thousand cells, rather than on 76,800 pixels. The cell in the
+middle is the load-bearing part — its `Y` is the luma grid that already chose
+the character, handed back in rather than worked out again. The two swatches at
+the bottom are real: `Y 120, U 90, V 200` gives `220, 81, 52`, which the
+terminal can only render as xterm 167.*
+
+Kept by hand: edit
+[`chroma-to-cell-colour.svg`](../images/chroma-to-cell-colour.svg) directly,
+since nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`YuvFrame`](../../src/capture/camera.py#L22) | One YUV420 frame, exposing its planes as views[^view] rather than copies. Here it is the **source of the colour**: [`chroma`](../../src/capture/camera.py#L51) is offset arithmetic over the buffer already in hand, not a decode, and the two planes are half resolution on both axes |

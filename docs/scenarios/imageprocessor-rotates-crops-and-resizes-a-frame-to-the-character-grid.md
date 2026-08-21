@@ -35,6 +35,25 @@ between them would show up as colour fringing along every edge in the picture,
 so the two must go through the same code rather than through two
 implementations that agree today.
 
+![One camera frame at each stage of the pipeline: a 320 by 240 frame carrying a
+large letter F, the same frame after a rotation that as mounted turns nothing,
+the frame with hatched bands top and bottom marking the rows a fill-mode crop
+throws away, the surviving strip divided into character cells with a few shaded
+to show each one averaging the pixels it covers, and finally a grid of ramp
+characters](../images/imageprocessor-pipeline.svg)
+
+*The five stages in order, with the picture as it stands at each one. The three
+in the middle are the ones `to_grid` performs, so the chroma planes go through
+exactly those and differ only in skipping the levels stretch at the end. The `F`
+is there to make a rotation or a flip visible at a glance, and the hatched bands
+are the rows `fill` throws away — in `fit` mode nothing is cut and the picture is
+letterboxed inside the grid instead. The sizes are the ones this document
+quotes: a 320x240 frame, an 80x30 grid, 2,400 values where there were 76,800.*
+
+Edit [`imageprocessor-pipeline.svg`](../images/imageprocessor-pipeline.svg) if
+the order of the stages ever changes. It is drawn by hand rather than generated,
+so nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the process is hung off. Here it is the **sizer**: [`_grid_for`](../../ascii_camera.py#L545) decides how many characters the picture is to become, from the window and the frame's own shape, and caches that decision until something invalidates it |

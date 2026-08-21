@@ -1,0 +1,275 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 500" width="1180" height="500"
+     font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>How one grid of ramp positions becomes a frame of RGB565 bytes</title>
+  <desc>The glyph atlas, the grid of ramp positions, the gather that fills a
+        four-dimensional array, the transpose that turns it into a picture, and
+        the two bytes each pixel becomes.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/>
+    </marker>
+    <style>
+      .card  { fill: #ffffff; stroke: #e5e7eb; }
+      .title { font-size: 15px; font-weight: 700; fill: #111827; }
+      .step  { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
+      .cap   { font-size: 11.5px; fill: #374151; }
+      .dim   { font-size: 11px; fill: #6b7280; }
+      .mono  { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      .tile  { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 1.2; }
+      .cellr { fill: none; stroke: #93c5fd; stroke-width: 0.7; }
+      .box   { fill: #f8fafc; stroke: #cbd5e1; }
+    </style>
+  </defs>
+  <rect class="card" x="0.5" y="0.5" width="1179" height="499" rx="8"/>
+  <text class="title" x="28" y="34">One grid of ramp positions, one frame of RGB565</text>
+  <text class="dim"   x="28" y="53">Nothing is drawn per cell: the glyphs were drawn once, and a frame is a copy, a swap and some arithmetic.</text>
+<text class="step" x="40" y="92">the glyph atlas</text>
+<rect class="tile" x="40" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="49.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8"> </text>
+<rect class="tile" x="63" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="72.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">.</text>
+<rect class="tile" x="86" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="95.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">:</text>
+<rect class="tile" x="109" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="118.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">-</text>
+<rect class="tile" x="132" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="141.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">=</text>
+<rect class="tile" x="155" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="164.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">+</text>
+<rect class="tile" x="178" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="187.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">*</text>
+<rect class="tile" x="201" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="210.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">#</text>
+<rect class="tile" x="224" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="233.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">%</text>
+<rect class="tile" x="247" y="104" width="19" height="38" rx="2"/>
+<text class="mono" x="256.5" y="130" font-size="15" text-anchor="middle" fill="#1d4ed8">@</text>
+<text class="cap" x="40" y="166">every character of the ramp, rasterised once</text>
+<text class="cap" x="40" y="182">into a 5 x 10 pixel tile</text>
+<text class="dim" x="40" y="200">rebuilt on a ramp, invert or font-size change,</text>
+<text class="dim" x="40" y="215">never per frame</text>
+<text class="step" x="310" y="92">the grid of positions</text>
+<rect class="box" x="310" y="104" width="26" height="22"/>
+<text class="mono" x="323" y="119" font-size="11" text-anchor="middle" fill="#334155">9</text>
+<rect class="box" x="336" y="104" width="26" height="22"/>
+<text class="mono" x="349" y="119" font-size="11" text-anchor="middle" fill="#334155">7</text>
+<rect class="box" x="362" y="104" width="26" height="22"/>
+<text class="mono" x="375" y="119" font-size="11" text-anchor="middle" fill="#334155">7</text>
+<rect class="box" x="388" y="104" width="26" height="22"/>
+<text class="mono" x="401" y="119" font-size="11" text-anchor="middle" fill="#334155">4</text>
+<rect class="box" x="414" y="104" width="26" height="22"/>
+<text class="mono" x="427" y="119" font-size="11" text-anchor="middle" fill="#334155">2</text>
+<rect class="box" x="440" y="104" width="26" height="22"/>
+<text class="mono" x="453" y="119" font-size="11" text-anchor="middle" fill="#334155">0</text>
+<rect class="box" x="466" y="104" width="26" height="22"/>
+<text class="mono" x="479" y="119" font-size="11" text-anchor="middle" fill="#334155">0</text>
+<rect class="box" x="492" y="104" width="26" height="22"/>
+<text class="mono" x="505" y="119" font-size="11" text-anchor="middle" fill="#334155">1</text>
+<rect class="box" x="310" y="126" width="26" height="22"/>
+<text class="mono" x="323" y="141" font-size="11" text-anchor="middle" fill="#334155">8</text>
+<rect class="box" x="336" y="126" width="26" height="22"/>
+<text class="mono" x="349" y="141" font-size="11" text-anchor="middle" fill="#334155">9</text>
+<rect class="box" x="362" y="126" width="26" height="22"/>
+<text class="mono" x="375" y="141" font-size="11" text-anchor="middle" fill="#334155">6</text>
+<rect class="box" x="388" y="126" width="26" height="22"/>
+<text class="mono" x="401" y="141" font-size="11" text-anchor="middle" fill="#334155">3</text>
+<rect class="box" x="414" y="126" width="26" height="22"/>
+<text class="mono" x="427" y="141" font-size="11" text-anchor="middle" fill="#334155">1</text>
+<rect class="box" x="440" y="126" width="26" height="22"/>
+<text class="mono" x="453" y="141" font-size="11" text-anchor="middle" fill="#334155">0</text>
+<rect class="box" x="466" y="126" width="26" height="22"/>
+<text class="mono" x="479" y="141" font-size="11" text-anchor="middle" fill="#334155">1</text>
+<rect class="box" x="492" y="126" width="26" height="22"/>
+<text class="mono" x="505" y="141" font-size="11" text-anchor="middle" fill="#334155">2</text>
+<rect class="box" x="310" y="148" width="26" height="22"/>
+<text class="mono" x="323" y="163" font-size="11" text-anchor="middle" fill="#334155">6</text>
+<rect class="box" x="336" y="148" width="26" height="22"/>
+<text class="mono" x="349" y="163" font-size="11" text-anchor="middle" fill="#334155">8</text>
+<rect class="box" x="362" y="148" width="26" height="22"/>
+<text class="mono" x="375" y="163" font-size="11" text-anchor="middle" fill="#334155">5</text>
+<rect class="box" x="388" y="148" width="26" height="22"/>
+<text class="mono" x="401" y="163" font-size="11" text-anchor="middle" fill="#334155">2</text>
+<rect class="box" x="414" y="148" width="26" height="22"/>
+<text class="mono" x="427" y="163" font-size="11" text-anchor="middle" fill="#334155">0</text>
+<rect class="box" x="440" y="148" width="26" height="22"/>
+<text class="mono" x="453" y="163" font-size="11" text-anchor="middle" fill="#334155">1</text>
+<rect class="box" x="466" y="148" width="26" height="22"/>
+<text class="mono" x="479" y="163" font-size="11" text-anchor="middle" fill="#334155">3</text>
+<rect class="box" x="492" y="148" width="26" height="22"/>
+<text class="mono" x="505" y="163" font-size="11" text-anchor="middle" fill="#334155">4</text>
+<rect class="box" x="310" y="170" width="26" height="22"/>
+<text class="mono" x="323" y="185" font-size="11" text-anchor="middle" fill="#334155">3</text>
+<rect class="box" x="336" y="170" width="26" height="22"/>
+<text class="mono" x="349" y="185" font-size="11" text-anchor="middle" fill="#334155">5</text>
+<rect class="box" x="362" y="170" width="26" height="22"/>
+<text class="mono" x="375" y="185" font-size="11" text-anchor="middle" fill="#334155">4</text>
+<rect class="box" x="388" y="170" width="26" height="22"/>
+<text class="mono" x="401" y="185" font-size="11" text-anchor="middle" fill="#334155">1</text>
+<rect class="box" x="414" y="170" width="26" height="22"/>
+<text class="mono" x="427" y="185" font-size="11" text-anchor="middle" fill="#334155">0</text>
+<rect class="box" x="440" y="170" width="26" height="22"/>
+<text class="mono" x="453" y="185" font-size="11" text-anchor="middle" fill="#334155">2</text>
+<rect class="box" x="466" y="170" width="26" height="22"/>
+<text class="mono" x="479" y="185" font-size="11" text-anchor="middle" fill="#334155">5</text>
+<rect class="box" x="492" y="170" width="26" height="22"/>
+<text class="mono" x="505" y="185" font-size="11" text-anchor="middle" fill="#334155">7</text>
+<text class="cap" x="310" y="216">64 x 24 cells, one ramp position each</text>
+<text class="dim" x="310" y="234">1,536 of them, from the same table the</text>
+<text class="dim" x="310" y="249">terminal asks for characters</text>
+<line x1="524" y1="150" x2="556" y2="150" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="step" x="572" y="92">tiles[indices], one gather</text>
+<rect class="tile" x="572" y="104" width="54" height="54"/>
+<line class="cellr" x1="582.8" y1="104" x2="582.8" y2="158"/>
+<line class="cellr" x1="593.6" y1="104" x2="593.6" y2="158"/>
+<line class="cellr" x1="604.4" y1="104" x2="604.4" y2="158"/>
+<line class="cellr" x1="615.2" y1="104" x2="615.2" y2="158"/>
+<line class="cellr" x1="572" y1="109.4" x2="626" y2="109.4"/>
+<line class="cellr" x1="572" y1="114.8" x2="626" y2="114.8"/>
+<line class="cellr" x1="572" y1="120.2" x2="626" y2="120.2"/>
+<line class="cellr" x1="572" y1="125.6" x2="626" y2="125.6"/>
+<line class="cellr" x1="572" y1="131.0" x2="626" y2="131.0"/>
+<line class="cellr" x1="572" y1="136.4" x2="626" y2="136.4"/>
+<line class="cellr" x1="572" y1="141.8" x2="626" y2="141.8"/>
+<line class="cellr" x1="572" y1="147.2" x2="626" y2="147.2"/>
+<line class="cellr" x1="572" y1="152.6" x2="626" y2="152.6"/>
+<rect class="tile" x="634" y="104" width="54" height="54"/>
+<line class="cellr" x1="644.8" y1="104" x2="644.8" y2="158"/>
+<line class="cellr" x1="655.6" y1="104" x2="655.6" y2="158"/>
+<line class="cellr" x1="666.4" y1="104" x2="666.4" y2="158"/>
+<line class="cellr" x1="677.2" y1="104" x2="677.2" y2="158"/>
+<line class="cellr" x1="634" y1="109.4" x2="688" y2="109.4"/>
+<line class="cellr" x1="634" y1="114.8" x2="688" y2="114.8"/>
+<line class="cellr" x1="634" y1="120.2" x2="688" y2="120.2"/>
+<line class="cellr" x1="634" y1="125.6" x2="688" y2="125.6"/>
+<line class="cellr" x1="634" y1="131.0" x2="688" y2="131.0"/>
+<line class="cellr" x1="634" y1="136.4" x2="688" y2="136.4"/>
+<line class="cellr" x1="634" y1="141.8" x2="688" y2="141.8"/>
+<line class="cellr" x1="634" y1="147.2" x2="688" y2="147.2"/>
+<line class="cellr" x1="634" y1="152.6" x2="688" y2="152.6"/>
+<rect class="tile" x="572" y="166" width="54" height="54"/>
+<line class="cellr" x1="582.8" y1="166" x2="582.8" y2="220"/>
+<line class="cellr" x1="593.6" y1="166" x2="593.6" y2="220"/>
+<line class="cellr" x1="604.4" y1="166" x2="604.4" y2="220"/>
+<line class="cellr" x1="615.2" y1="166" x2="615.2" y2="220"/>
+<line class="cellr" x1="572" y1="171.4" x2="626" y2="171.4"/>
+<line class="cellr" x1="572" y1="176.8" x2="626" y2="176.8"/>
+<line class="cellr" x1="572" y1="182.2" x2="626" y2="182.2"/>
+<line class="cellr" x1="572" y1="187.6" x2="626" y2="187.6"/>
+<line class="cellr" x1="572" y1="193.0" x2="626" y2="193.0"/>
+<line class="cellr" x1="572" y1="198.4" x2="626" y2="198.4"/>
+<line class="cellr" x1="572" y1="203.8" x2="626" y2="203.8"/>
+<line class="cellr" x1="572" y1="209.2" x2="626" y2="209.2"/>
+<line class="cellr" x1="572" y1="214.6" x2="626" y2="214.6"/>
+<rect class="tile" x="634" y="166" width="54" height="54"/>
+<line class="cellr" x1="644.8" y1="166" x2="644.8" y2="220"/>
+<line class="cellr" x1="655.6" y1="166" x2="655.6" y2="220"/>
+<line class="cellr" x1="666.4" y1="166" x2="666.4" y2="220"/>
+<line class="cellr" x1="677.2" y1="166" x2="677.2" y2="220"/>
+<line class="cellr" x1="634" y1="171.4" x2="688" y2="171.4"/>
+<line class="cellr" x1="634" y1="176.8" x2="688" y2="176.8"/>
+<line class="cellr" x1="634" y1="182.2" x2="688" y2="182.2"/>
+<line class="cellr" x1="634" y1="187.6" x2="688" y2="187.6"/>
+<line class="cellr" x1="634" y1="193.0" x2="688" y2="193.0"/>
+<line class="cellr" x1="634" y1="198.4" x2="688" y2="198.4"/>
+<line class="cellr" x1="634" y1="203.8" x2="688" y2="203.8"/>
+<line class="cellr" x1="634" y1="209.2" x2="688" y2="209.2"/>
+<line class="cellr" x1="634" y1="214.6" x2="688" y2="214.6"/>
+<text class="cap" x="572" y="240">24 x 64 x 10 x 5 - cell rows, cell columns,</text>
+<text class="cap" x="572" y="256">then the pixel rows and columns inside each</text>
+<text class="dim" x="572" y="274">one numpy operation, where a text call per cell</text>
+<text class="dim" x="572" y="289">would be 1,536 of them a frame</text>
+<line x1="700" y1="150" x2="732" y2="150" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="step" x="748" y="92">transpose(0, 2, 1, 3), then reshape</text>
+<rect class="box" x="748" y="104" width="150" height="54"/>
+<line x1="748" y1="113" x2="898" y2="113" stroke="#f87171" stroke-width="1"/>
+<line x1="748" y1="122" x2="898" y2="122" stroke="#f87171" stroke-width="1"/>
+<line x1="748" y1="131" x2="898" y2="131" stroke="#f87171" stroke-width="1"/>
+<line x1="748" y1="140" x2="898" y2="140" stroke="#f87171" stroke-width="1"/>
+<line x1="748" y1="149" x2="898" y2="149" stroke="#f87171" stroke-width="1"/>
+<text class="dim" x="748" y="174">as gathered: a cell's ten pixel rows</text>
+<text class="dim" x="748" y="189">sit together, which is not a picture</text>
+<line x1="920" y1="131" x2="952" y2="131" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect class="tile" x="968" y="104" width="150" height="112"/>
+<rect x="968" y="104" width="150" height="14" fill="#1d4ed8" opacity="0.15"/>
+<rect x="968" y="118" width="150" height="14" fill="#1d4ed8" opacity="0.19"/>
+<rect x="968" y="132" width="150" height="14" fill="#1d4ed8" opacity="0.24"/>
+<rect x="968" y="146" width="150" height="14" fill="#1d4ed8" opacity="0.28"/>
+<rect x="968" y="160" width="150" height="14" fill="#1d4ed8" opacity="0.32"/>
+<rect x="968" y="174" width="150" height="14" fill="#1d4ed8" opacity="0.37"/>
+<rect x="968" y="188" width="150" height="14" fill="#1d4ed8" opacity="0.42"/>
+<text class="cap" x="968" y="234">240 x 320 of coverage,</text>
+<text class="cap" x="968" y="250">0 to 255 a pixel</text>
+<text class="dim" x="968" y="268">the @ glyph peaks at 239: the</text>
+<text class="dim" x="968" y="283">rasteriser antialiases its edges</text>
+<line x1="28" y1="306" x2="1152" y2="306" stroke="#e5e7eb"/>
+<text class="step" x="40" y="336">one pixel, packed</text>
+<rect x="40" y="348" width="42" height="42" fill="#c8c8c8" stroke="#9ca3af"/>
+<text class="dim" x="40" y="406">coverage 200</text>
+<line x1="92" y1="369" x2="122" y2="369" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="138" y="352" width="110" height="34" fill="#ef4444" opacity="0.13" stroke="#ef4444"/>
+<line x1="160" y1="352" x2="160" y2="386" stroke="#ef4444" stroke-width="0.6" opacity="0.5"/>
+<line x1="182" y1="352" x2="182" y2="386" stroke="#ef4444" stroke-width="0.6" opacity="0.5"/>
+<line x1="204" y1="352" x2="204" y2="386" stroke="#ef4444" stroke-width="0.6" opacity="0.5"/>
+<line x1="226" y1="352" x2="226" y2="386" stroke="#ef4444" stroke-width="0.6" opacity="0.5"/>
+<text class="cap" x="193" y="345" text-anchor="middle" fill="#ef4444">R x 5</text>
+<rect x="248" y="352" width="132" height="34" fill="#16a34a" opacity="0.13" stroke="#16a34a"/>
+<line x1="270" y1="352" x2="270" y2="386" stroke="#16a34a" stroke-width="0.6" opacity="0.5"/>
+<line x1="292" y1="352" x2="292" y2="386" stroke="#16a34a" stroke-width="0.6" opacity="0.5"/>
+<line x1="314" y1="352" x2="314" y2="386" stroke="#16a34a" stroke-width="0.6" opacity="0.5"/>
+<line x1="336" y1="352" x2="336" y2="386" stroke="#16a34a" stroke-width="0.6" opacity="0.5"/>
+<line x1="358" y1="352" x2="358" y2="386" stroke="#16a34a" stroke-width="0.6" opacity="0.5"/>
+<text class="cap" x="314" y="345" text-anchor="middle" fill="#16a34a">G x 6</text>
+<rect x="380" y="352" width="110" height="34" fill="#2563eb" opacity="0.13" stroke="#2563eb"/>
+<line x1="402" y1="352" x2="402" y2="386" stroke="#2563eb" stroke-width="0.6" opacity="0.5"/>
+<line x1="424" y1="352" x2="424" y2="386" stroke="#2563eb" stroke-width="0.6" opacity="0.5"/>
+<line x1="446" y1="352" x2="446" y2="386" stroke="#2563eb" stroke-width="0.6" opacity="0.5"/>
+<line x1="468" y1="352" x2="468" y2="386" stroke="#2563eb" stroke-width="0.6" opacity="0.5"/>
+<text class="cap" x="435" y="345" text-anchor="middle" fill="#2563eb">B x 5</text>
+<text class="mono" x="502" y="374" font-size="13" fill="#111827">= 25, 50, 25  ->  0xCE 0x59</text>
+<text class="cap" x="138" y="406">five bits of red and blue, six of green, high byte first</text>
+<text class="dim" x="138" y="424">greyscale packs straight from the coverage channel, because red, green and blue are then the same</text>
+<text class="dim" x="138" y="439">number - a three-channel image is never built. Colour blends the cell colour towards the unlit screen.</text>
+<text class="step" x="748" y="336">then down the bus</text>
+<rect x="748" y="348" width="370" height="26" fill="#eff6ff" stroke="#1d4ed8"/>
+<line x1="757.7" y1="348" x2="757.7" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="767.5" y1="348" x2="767.5" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="777.2" y1="348" x2="777.2" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="786.9" y1="348" x2="786.9" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="796.7" y1="348" x2="796.7" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="806.4" y1="348" x2="806.4" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="816.2" y1="348" x2="816.2" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="825.9" y1="348" x2="825.9" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="835.6" y1="348" x2="835.6" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="845.4" y1="348" x2="845.4" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="855.1" y1="348" x2="855.1" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="864.8" y1="348" x2="864.8" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="874.6" y1="348" x2="874.6" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="884.3" y1="348" x2="884.3" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="894.1" y1="348" x2="894.1" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="903.8" y1="348" x2="903.8" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="913.5" y1="348" x2="913.5" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="923.3" y1="348" x2="923.3" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="933.0" y1="348" x2="933.0" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="942.7" y1="348" x2="942.7" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="952.5" y1="348" x2="952.5" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="962.2" y1="348" x2="962.2" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="971.9" y1="348" x2="971.9" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="981.7" y1="348" x2="981.7" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="991.4" y1="348" x2="991.4" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1001.2" y1="348" x2="1001.2" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1010.9" y1="348" x2="1010.9" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1020.6" y1="348" x2="1020.6" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1030.4" y1="348" x2="1030.4" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1040.1" y1="348" x2="1040.1" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1049.8" y1="348" x2="1049.8" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1059.6" y1="348" x2="1059.6" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1069.3" y1="348" x2="1069.3" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1079.1" y1="348" x2="1079.1" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1088.8" y1="348" x2="1088.8" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1098.5" y1="348" x2="1098.5" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<line x1="1108.3" y1="348" x2="1108.3" y2="374" stroke="#1d4ed8" stroke-width="0.5" opacity="0.6"/>
+<text class="cap" x="748" y="396">153,600 bytes, in 38 writes of 4,096</text>
+<text class="dim" x="748" y="414">the driver's buffer is 4 KB, so a frame cannot</text>
+<text class="dim" x="748" y="429">go in one call. About 33 ms, against 3.7 ms of</text>
+<text class="dim" x="748" y="444">drawing - which is why none of it is per cell</text>
+</svg>
