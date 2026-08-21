@@ -22,6 +22,19 @@ on the worker's next idle tick. And the tick is faster while the screen is up,
 0.1 s against 0.2 s, because the sweeping bar is animated by that same tick and
 a slower one would take over seven seconds to cross.
 
+![Three successive drawings of the start-up screen a tenth of a second apart. Each
+shows the app's name, the grid size, a message — starting camera, then waiting for
+first frame, then ready — and a bar of twenty-eight cells along which a comet of
+nine ramp characters advances three cells each time](../images/splash-sweep.svg)
+
+*Three ticks of the same screen, which is all there is to it: a message that is
+replaced as start-up moves on, and a comet that moves far enough between frames
+to read as travelling. The bar is a liveness indicator and deliberately not a
+progress bar — nothing at this point knows how long the camera will take.*
+
+Kept by hand: edit [`splash-sweep.svg`](../images/splash-sweep.svg) directly,
+since nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | The panel's own thread. Here it is the **clock and the arbiter**: [`_tick_splash`](../../src/lcd/lcd_worker.py#L321) advances the animation on the idle timeout, and it is what decides the screen has been owed its time and may go |

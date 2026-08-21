@@ -27,6 +27,23 @@ attached to a frame would never arrive.
 [`show_notice`](../../src/lcd/lcd_display.py#L259) paints into the persistent
 frame buffer and sends it on its own.
 
+![The SPI panel showing an ASCII picture with a two-line message painted across
+the bottom 36 of its 240 rows in warm white on near-black, marked with a bracket.
+Beside it, the same band arriving with a frame to carry it and arriving with no
+frame at all, painted into the buffer that persists between renders. At the right,
+the picture region that repaints itself and the margin outside it that does
+not](../images/notice-band.svg)
+
+*A seventh of the glass, in fixed ink over whatever is underneath. The two
+smaller pairs are the distinction the whole mechanism turns on: a notice that
+could only travel attached to a frame would never arrive in the case it exists
+for, which is the camera having stopped. The dashed rectangle at the right is
+why taking the band away means writing zeros — the picture repaints itself, and
+the margin around it never does.*
+
+Kept by hand: edit [`notice-band.svg`](../images/notice-band.svg) directly, since
+nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | The thread that owns the panel. Here it is the **clock**: it holds the text and its expiry, notices when either the message or its absence differs from what is on the glass, and acts only on that difference |

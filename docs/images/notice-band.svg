@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 470" width="1180" height="470"
+     font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>The failure notice, and the 36 rows it occupies</title>
+  <desc>The SPI panel with a picture on it and a two-line message painted over
+        the bottom 36 of its 240 rows, in fixed warm-white ink on a near-black
+        ground. Beside it, the same band travelling with a frame and travelling
+        without one, and the margin that has to be zeroed when the band goes.</desc>
+  <defs>
+    <style>
+      .card  { fill: #ffffff; stroke: #e5e7eb; }
+      .title { font-size: 15px; font-weight: 700; fill: #111827; }
+      .step  { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
+      .cap   { font-size: 11.5px; fill: #374151; }
+      .dim   { font-size: 11px; fill: #6b7280; }
+      .mono  { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      .panel { fill: #0b0b0c; stroke: #334155; stroke-width: 1.4; }
+    </style>
+  </defs>
+  <rect class="card" x="0.5" y="0.5" width="1179" height="469" rx="8"/>
+  <text class="title" x="28" y="34">Thirty-six rows of the two hundred and forty</text>
+  <text class="dim"   x="28" y="53">In the enclosure the panel is the whole output, so a message has to be painted over the picture. There is nowhere else to put one.</text>
+<text class="step" x="40" y="92">the panel, 320 x 240 as it is used</text>
+<rect class="panel" x="40.0" y="104.0" width="400.0" height="300.0"/>
+<text class="mono" x="50.0" y="141.5" font-size="15" fill="#8ab4f0" opacity="0.75">  ..::--==++**##%%@@##**++==--::..  </text>
+<text class="mono" x="50.0" y="174.0" font-size="15" fill="#8ab4f0" opacity="0.75"> .::--==++**##%%@@@@%%##**++==--::. </text>
+<text class="mono" x="50.0" y="206.5" font-size="15" fill="#8ab4f0" opacity="0.75">..::--==++**##%%@@@@@@%%##**++==--::</text>
+<text class="mono" x="50.0" y="239.0" font-size="15" fill="#8ab4f0" opacity="0.75"> .::--==++**##%%@@@@%%##**++==--::. </text>
+<text class="mono" x="50.0" y="271.5" font-size="15" fill="#8ab4f0" opacity="0.75">  ..::--==++**##%%@@##**++==--::..  </text>
+<text class="mono" x="50.0" y="304.0" font-size="15" fill="#8ab4f0" opacity="0.75">   ...::--==++**##**++==--::...     </text>
+<rect x="40.0" y="359.0" width="400.0" height="45.0" fill="rgb(28,12,8)" stroke="#7c2d12" stroke-width="0.8"/>
+<text class="mono" x="47.5" y="376.5" font-size="11" fill="rgb(255,236,200)">cannot do that: I can change how the picture</text>
+<text class="mono" x="47.5" y="394.0" font-size="11" fill="rgb(255,236,200)">looks, not where the camera points</text>
+<line x1="452.5" y1="359.0" x2="452.5" y2="404.0" stroke="#b91c1c" stroke-width="1.2"/>
+<line x1="447.5" y1="359.0" x2="457.5" y2="359.0" stroke="#b91c1c" stroke-width="1.2"/>
+<line x1="447.5" y1="404.0" x2="457.5" y2="404.0" stroke="#b91c1c" stroke-width="1.2"/>
+<text class="cap" x="467.5" y="386.5" fill="#b91c1c">36 rows</text>
+<text class="cap" x="40" y="430">two lines of 44 characters, and anything longer is cut with an ellipsis</text>
+<text class="dim" x="40" y="450">fixed ink on a fixed ground, not the scheme's colours: a message tinted by whatever cells sit under it</text>
+<text class="dim" x="40" y="465">would be least legible exactly when it matters most</text>
+<line x1="590" y1="104" x2="590" y2="400" stroke="#e5e7eb"/>
+<text class="step" x="622" y="92">two ways it reaches the glass</text>
+<rect x="622" y="108" width="120" height="90" fill="#0b0b0c" stroke="#334155"/>
+<text class="mono" x="682" y="158" font-size="13" text-anchor="middle" fill="#8ab4f0">a frame</text>
+<line x1="750" y1="153" x2="782" y2="153" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="798" y="108" width="120" height="90" fill="#0b0b0c" stroke="#334155"/>
+<rect x="798" y="176" width="120" height="22" fill="rgb(28,12,8)" stroke="#7c2d12" stroke-width="0.8"/>
+<text class="cap" x="622" y="222">with a frame to carry it, like everything else</text>
+<text class="cap" x="622" y="238">the panel shows</text>
+<rect x="622" y="262" width="120" height="90" fill="#0b0b0c" stroke="#334155" stroke-dasharray="4 3"/>
+<text class="mono" x="682" y="306" font-size="12" text-anchor="middle" fill="#64748b">no frame -</text>
+<text class="mono" x="682" y="322" font-size="12" text-anchor="middle" fill="#64748b">the last one</text>
+<line x1="750" y1="307" x2="782" y2="307" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="798" y="262" width="120" height="90" fill="#0b0b0c" stroke="#334155"/>
+<rect x="798" y="330" width="120" height="22" fill="rgb(28,12,8)" stroke="#7c2d12" stroke-width="0.8"/>
+<text class="cap" x="622" y="376">painted into the frame buffer that persists between</text>
+<text class="cap" x="622" y="392">renders, and pushed on its own - which is the case the</text>
+<text class="cap" x="622" y="408">whole mechanism exists for, because when the camera</text>
+<text class="cap" x="622" y="424">stops there is no frame to ride on</text>
+<line x1="950" y1="104" x2="950" y2="400" stroke="#e5e7eb"/>
+<text class="step" x="982" y="92">taking it away</text>
+<rect x="982" y="108" width="140" height="105" fill="#0b0b0c" stroke="#334155"/>
+<rect x="990" y="116" width="124" height="74" fill="#111827" stroke="#1d4ed8" stroke-dasharray="3 2"/>
+<text class="dim" x="982" y="234" fill="#1d4ed8">the picture region repaints</text>
+<text class="dim" x="982" y="249" fill="#1d4ed8">itself on the next frame</text>
+<text class="dim" x="982" y="271">the margin outside it never</text>
+<text class="dim" x="982" y="286">gets written again, so the</text>
+<text class="dim" x="982" y="301">band has to be zeroed rather</text>
+<text class="dim" x="982" y="316">than simply not drawn - or its</text>
+<text class="dim" x="982" y="331">last row survives for good</text>
+<text class="dim" x="982" y="353">the same trap the font-size</text>
+<text class="dim" x="982" y="368">rebuild has, and the same fix</text>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker></defs>
+</svg>

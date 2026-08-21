@@ -30,6 +30,23 @@ screen end of the blend rather than the ink end. The table is reversed rather
 than the blend recomputed, which keeps one definition of what the scheme looks
 like.
 
+![Two rows of ten colour swatches. The upper row is the amber scheme blended from
+its near-black screen colour to its amber ink, one swatch per ramp position. The
+lower row is the same ten colours as the terminal can show them, each labelled
+with its palette index; the two swatches at positions four and five are visibly
+identical and both are labelled 94](../images/scheme-compiled-twice.svg)
+
+*The lossiness is the thing worth seeing rather than reading. The blend above
+has ten distinct colours and the panel draws all ten; the row below has nine,
+because two adjacent steps land nearer to each other than to any entry the
+terminal owns. Every colour in the figure is what the code produces —
+`index_table` for the amber scheme over ten positions really does return
+`232, 234, 236, 58, 94, 94, 136, 172, 178, 215`.*
+
+Kept by hand: edit
+[`scheme-compiled-twice.svg`](../images/scheme-compiled-twice.svg) directly,
+since nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`Scheme`](../../src/art/palettes.py#L69) | One display's whole appearance as a value: lit ink, unlit screen, and which of three kinds it is. Here it is the **definition**, and it has no behaviour — being a plain value is what lets the [nine of them](../../src/art/palettes.py#L79) be a list the knob[^detent] walks |

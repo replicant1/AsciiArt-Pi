@@ -67,7 +67,9 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
 # side and not the other.
 DOC_FILES=(images/imageprocessor-pipeline.svg images/rgb565-packing.svg
            images/yuv420-buffer.svg images/chroma-to-cell-colour.svg
-           images/brightness-to-ramp.svg
+           images/brightness-to-ramp.svg images/scheme-compiled-twice.svg
+           images/notice-band.svg images/terminal-layout.svg
+           images/quadrature-detent.svg images/splash-sweep.svg
            images/screenshot.png images/screenshot-colour.png
            images/both-displays.jpg images/scheme-montage.png
            images/enclosure-hero.png images/enclosure-ports.png

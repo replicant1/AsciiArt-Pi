@@ -26,6 +26,22 @@ the terminal**. Anything written to standard output or standard error while it
 holds the screen corrupts the picture until the next full repaint, which is why
 the app redirects both to a log file before it starts.
 
+![A terminal window with the character picture centred inside it, the leftover
+rows bracketed above and below, an amber line marking the width every row is
+padded out to, and the status line in reverse video along the bottom. Beside it,
+two rows showing padding overwriting the previous frame, three coloured blocks
+standing for the runs a row is written in, and a note that curses owns the
+screen](../images/terminal-layout.svg)
+
+*The window is almost never the grid's shape, and what the class does about it
+is all here: centre, pad, and reserve the last row. The amber line is the part
+worth seeing — every row is written out to the full width, so the previous
+frame is overwritten rather than cleared, which costs the same number of writes
+and does not flash.*
+
+Kept by hand: edit [`terminal-layout.svg`](../images/terminal-layout.svg)
+directly, since nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the process is hung off. Here it is the **supplier**: it builds the lines and the colours, decides the status line[^statusline], and hands all three over — it never positions anything on the screen itself |

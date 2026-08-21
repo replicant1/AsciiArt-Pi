@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 492" width="1180" height="492"
+     font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>Where the picture sits in a terminal window</title>
+  <desc>A terminal window with the character picture centred in it, the leftover
+        rows split above and below, every row padded out to the full width, and
+        the status line in reverse video on the last row. Beside it, why padding
+        replaces clearing and why colour is written as runs.</desc>
+  <defs>
+    <style>
+      .card  { fill: #ffffff; stroke: #e5e7eb; }
+      .title { font-size: 15px; font-weight: 700; fill: #111827; }
+      .step  { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
+      .cap   { font-size: 11.5px; fill: #374151; }
+      .dim   { font-size: 11px; fill: #6b7280; }
+      .mono  { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      .term  { fill: #0b0b0c; stroke: #334155; stroke-width: 1.4; }
+    </style>
+  </defs>
+  <rect class="card" x="0.5" y="0.5" width="1179" height="491" rx="8"/>
+  <text class="title" x="28" y="34">Where the picture sits, and why nothing is ever cleared</text>
+  <text class="dim"   x="28" y="53">The window is almost never the grid's shape. What is left over is split, and every row is padded out to the full width.</text>
+<text class="step" x="40" y="92">one terminal window</text>
+<rect class="term" x="40" y="104" width="520" height="272"/>
+<rect x="40" y="136" width="520" height="182" fill="#111827" stroke="#1d4ed8" stroke-dasharray="4 3"/>
+<text class="mono" x="96" y="166" font-size="16" fill="#8ab4f0" opacity="0.8">..::--==++**##%%@@##**++==--::..</text>
+<text class="mono" x="96" y="200" font-size="16" fill="#8ab4f0" opacity="0.8">.::--==++**##%%@@@@%%##**++==--:</text>
+<text class="mono" x="96" y="234" font-size="16" fill="#8ab4f0" opacity="0.8">:--==++**##%%@@@@@@%%##**++==--:</text>
+<text class="mono" x="96" y="268" font-size="16" fill="#8ab4f0" opacity="0.8">.::--==++**##%%@@@@%%##**++==--:</text>
+<text class="mono" x="96" y="302" font-size="16" fill="#8ab4f0" opacity="0.8">..::--==++**##%%@@##**++==--::..</text>
+<line x1="416" y1="140" x2="416" y2="314" stroke="#f59e0b" stroke-dasharray="3 3"/>
+<rect x="40" y="346" width="520" height="30" fill="#cbd5e1"/>
+<text class="mono" x="52" y="366" font-size="12.5" fill="#0b0b0c">scheme grey  ramp coarse  15.0fps  80x30  s r i +</text>
+<path d="M32 104 L24 104 L24 136 L32 136" fill="none" stroke="#b91c1c" stroke-width="1.2"/>
+<path d="M32 318 L24 318 L24 346 L32 346" fill="none" stroke="#b91c1c" stroke-width="1.2"/>
+<text class="cap" x="40" y="400" fill="#b91c1c">the remainder is split above and below, so the picture is centred</text>
+<text class="cap" x="40" y="418" fill="#b45309">the amber line is where every row is padded out to: the last frame</text>
+<text class="cap" x="40" y="434" fill="#b45309">is overwritten rather than cleared</text>
+<text class="dim" x="40" y="456">the status line is reserved first, which is why the canvas is one row short - and it is</text>
+<text class="dim" x="40" y="471">drawn in reverse video, which works on a terminal with no colours at all</text>
+<line x1="590" y1="104" x2="590" y2="440" stroke="#e5e7eb"/>
+<text class="step" x="620" y="92">padded, not cleared</text>
+<rect x="620" y="108" width="250" height="26" fill="#0b0b0c" stroke="#334155"/>
+<text class="mono" x="628" y="126" font-size="12" fill="#8ab4f0">##%%@@%%##  the last frame</text>
+<rect x="620" y="142" width="250" height="26" fill="#0b0b0c" stroke="#334155"/>
+<text class="mono" x="628" y="160" font-size="12" fill="#8ab4f0">..::--::..</text>
+<rect x="700" y="142" width="170" height="26" fill="#f59e0b" opacity="0.18"/>
+<text class="cap" x="620" y="192">the amber part is padding, and it costs the same</text>
+<text class="cap" x="620" y="208">as clearing and redrawing - without the flash</text>
+<text class="dim" x="620" y="230">fill mode is the exception. Letterboxing leaves cells</text>
+<text class="dim" x="620" y="245">the picture stops writing to, so it forces a real clear.</text>
+<text class="step" x="620" y="290">colour written as runs</text>
+<rect x="620" y="302" width="94" height="26" fill="#f59e0b" opacity="0.8"/>
+<rect x="714" y="302" width="70" height="26" fill="#22c55e" opacity="0.8"/>
+<rect x="784" y="302" width="86" height="26" fill="#60a5fa" opacity="0.8"/>
+<text class="cap" x="620" y="352">three calls rather than 250: adjacent cells of one</text>
+<text class="cap" x="620" y="368">colour are written together</text>
+<text class="dim" x="620" y="390">a greyscale row goes as a single string, because</text>
+<text class="dim" x="620" y="405">greyscale passes None rather than a uniform array -</text>
+<text class="dim" x="620" y="420">not a missing value, but the cheapest instruction</text>
+<text class="dim" x="620" y="435">there is: draw in the terminal's own foreground</text>
+<line x1="910" y1="104" x2="910" y2="440" stroke="#e5e7eb"/>
+<text class="step" x="940" y="92">curses owns the screen</text>
+<text class="cap" x="940" y="120">Anything written to standard</text>
+<text class="cap" x="940" y="136">output or standard error while</text>
+<text class="cap" x="940" y="152">curses holds the terminal</text>
+<text class="cap" x="940" y="168">corrupts the picture until the</text>
+<text class="cap" x="940" y="184">next full repaint.</text>
+<text class="dim" x="940" y="212">So both are redirected to a log</text>
+<text class="dim" x="940" y="227">file before any of this starts,</text>
+<text class="dim" x="940" y="242">and one thread does all of the</text>
+<text class="dim" x="940" y="257">drawing - curses is not safe to</text>
+<text class="dim" x="940" y="272">drive from two.</text>
+<text class="dim" x="940" y="300">A resize arrives as a keypress</text>
+<text class="dim" x="940" y="315">rather than as an event, so a</text>
+<text class="dim" x="940" y="330">resize and a keystroke cannot</text>
+<text class="dim" x="940" y="345">race: they are one queue.</text>
+<text class="dim" x="940" y="373">None of this runs in the</text>
+<text class="dim" x="940" y="388">enclosure, which boots with</text>
+<text class="dim" x="940" y="403">--no-terminal and has no</text>
+<text class="dim" x="940" y="418">monitor to run it on.</text>
+</svg>

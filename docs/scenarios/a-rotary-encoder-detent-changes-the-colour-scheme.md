@@ -34,6 +34,22 @@ ends in a full repaint of some 27,000 cells; four of those five pictures were
 never on screen long enough to see, and the strobing fed on itself because a
 slower frame banks more detents.
 
+![Two pin traces over one detent. Both rest high; CLK falls, then DT falls, then
+CLK rises, then DT rises back to rest, each edge carrying a burst of contact
+bounce. The four quarters are labelled with the pin pair — 1 1, 0 1, 0 0, 1 0 and
+1 1 again — and a green marker at the final transition shows the single point at
+which a step is emitted](../images/quadrature-detent.svg)
+
+*Quadrature drawn rather than described: the two pins a quarter cycle apart, and
+the whole click as one round trip from rest back to rest. The chatter on every
+edge is the bounce that made counting edges impossible — and the green marker is
+the answer to it, since only the transition that completes the cycle emits
+anything at all.*
+
+Kept by hand: edit
+[`quadrature-detent.svg`](../images/quadrature-detent.svg) directly, since
+nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`QuadratureDecoder`](../../src/control/encoder.py#L88) | Pin levels in, detents out. Here it is the **arbiter of what counts as movement**, and it is deliberately free of hardware, threads and clocks: [`feed`](../../src/control/encoder.py#L100) is a table lookup, so the part that can be subtly wrong is testable on a machine with no encoder attached |
