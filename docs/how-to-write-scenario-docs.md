@@ -69,6 +69,8 @@ In this order, with no heading before the first diagram section:
 8. Any closing prose about the diagram
 9. Repeat 5–8 if the scenario has a second diagram
 10. `## Related scenarios`
+11. `### Footnotes`, then the **footnote definitions** — one block at the end
+    of the file, below *Related scenarios*
 
 ### 3. The description
 
@@ -270,6 +272,119 @@ fails the test — with a closing italic line: *"(The unlinked entries above are
 documents not written yet.)"*. When the document appears, turn the bold into a
 link in the same change, and use the title it actually ended up with.
 
+## Footnotes
+
+A scenario is read by people who have not read the other twenty-four, and by
+people who have never seen the domain. Both are lost by the same mechanism: a
+word the writer no longer notices using. Footnotes are how a document stays
+readable to them without the body turning into a tutorial — the sentence keeps
+its pace, and the definition waits at the bottom for whoever needs it.
+
+### Two kinds of term, and the second is the one that gets missed
+
+**Domain vocabulary** is the easy half, because it looks unfamiliar on the
+page: `ISP`, `YUV420`, stride, a daemon thread, a numpy view. Anyone can see
+that those need explaining.
+
+**The app's own vocabulary** is the half that gets past the writer, because it
+is what they say every day: *greyscale mode*, *colour scheme*, *the character
+grid*, *the ramp*, *the LCD worker*, *the Zero 2*. Each is a phrase in plain
+English that means something exact here and nothing in particular anywhere
+else. *Greyscale mode* is the one that started this rule: it means the `grey`
+scheme, and a reader who does not yet know the app has nine schemes, one of
+them the default, cannot get there from the words.
+
+Two questions catch it:
+
+- Is the term a **name in `src/`** — a class, a scheme, a setting, a mode? Then
+  it is this app's word for this app's thing, however ordinary it sounds.
+- Would understanding it need **another document to have been read first**?
+  Scenarios are meant to be read out of order, so "it is explained in the
+  colour-scheme one" is not an answer.
+
+### What does not earn a footnote
+
+- A term the sentence already explains. `Daemon, so a wedged capture cannot
+  keep the process alive` has done the work — that one carries a note only
+  because "daemon" also means something else in Unix, which the sentence does
+  not say.
+- **Design reasoning.** Why the collaboration is shaped this way belongs in the
+  description or in the step table's third column. A footnote that argues is a
+  paragraph that landed in the wrong place. Define the term, then give the one
+  fact that makes it matter here: the `YUV420` note earns its length by ending
+  at the 76,800 and 38,400 bytes the body is already quoting.
+
+### Mechanics
+
+GitHub Flavored Markdown: `[^label]` where the term is, `[^label]: …` at the
+end of the file. GitHub collects the definitions into its own *Footnotes*
+section wherever they sit in the source, renders each marker as a numbered
+link, and gives every note a `↩` back to where it was referenced.
+
+- **Label with a word, not a number** — `[^stride]`, `[^scheme]`. The rendered
+  numbering is automatic and follows first use, so inserting a term never
+  renumbers anything by hand.
+- **Mark the first use only.** A second reference to the same note is fine
+  where it genuinely helps — `[^scheme]` is used at *colour scheme* and again
+  at *greyscale mode* — and GitHub gives both markers one number and the note
+  two back-links, `↩` and `↩2`.
+- **Order the definitions by first use**, which is the order they render in.
+- **Head the block `### Footnotes`, at level three.** GitHub's own footnotes
+  heading exists but is screen-reader-only, so without one the notes arrive
+  on the page with nothing naming them — and the level matters, because
+  `.markdown-body h2` carries a `border-bottom` and `.markdown-body
+  .footnotes` a `border-top`. At level two that is two grey rules stacked
+  under the word; at level three it is the section's own, which is the one
+  that belongs there. The heading has to be the last thing before the
+  definitions, since they render where they sit.
+
+### Two placements that break things
+
+**Never inside a diagram message or the step table's Message column.**
+`docs_links_test.py` compares those two verbatim after stripping links,
+backticks and bold — and a `[^x]` survives that stripping, so the check fails
+with the row and the message differing by exactly the marker. Put the marker in
+the third column instead, which sits beside the message anyway. This is the
+only one of the two mistakes that is caught for you.
+
+**Never immediately before a colon.** `the character grid[^grid]: the ISP does
+the downscale` renders correctly, but `[^grid]:` is also what a *definition*
+looks like, so it misleads a reader of the raw file and anything scanning for
+one. Reword, or use a dash.
+
+### Checking them
+
+Nothing in the suite pairs markers with definitions, so do it directly — an
+orphan marker renders as literal text on the page, which is easy to miss in a
+document that has a dozen real ones:
+
+```bash
+python3 - <<'CHECK'
+import re, pathlib
+s = pathlib.Path("docs/scenarios/NAME.md").read_text()
+defs = re.findall(r"(?m)^\[\^([\w-]+)\]:", s)
+refs = re.findall(r"\[\^([\w-]+)\]", re.sub(r"(?m)^\[\^[\w-]+\]:.*$", "", s))
+print("orphan refs:", set(refs) - set(defs), " unused defs:", set(defs) - set(refs))
+CHECK
+```
+
+Everything else applies as it does in the body: `#L` anchors inside a footnote
+are checked like any other, so link into `src/` freely, and **measure the
+claims**. The stride note says the stride comes back equal to the width because
+the running service logs `stride=320`, not because the code reads as though it
+would.
+
+### Where they are not links
+
+On GitHub they are links, in both directions. In the raw file, and in VS Code's
+built-in preview, `[^isp]` shows as literal text — that preview needs the
+`bierner.markdown-footnotes` extension before it renders them at all. Worth
+knowing before concluding a document is broken.
+
+Twelve notes in the capture-thread scenario is the most any document carries,
+and that one is unusually dense in hardware terms. One per term, at first use,
+and only for terms.
+
 ## Getting the facts right
 
 **Run the code rather than paraphrasing it.** Every refusal message in the
@@ -303,7 +418,7 @@ makes "every reason, not the first" demonstrable rather than asserted.
 ## Before committing
 
 ```bash
-python3 tests/docs/docs_links_test.py     # 25 checks
+python3 tests/docs/docs_links_test.py     # 31 checks
 ```
 
 Its second half exists for these documents and covers what reading cannot see:
