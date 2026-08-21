@@ -2,28 +2,30 @@
 
 **Priority: `LOW`** — it runs only when something has already gone wrong, but it is the only way a sealed box can tell anyone that it has. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-In the enclosure there is no terminal, no status line and nobody watching a log.
-The panel is the entire output of the machine, and it is showing a picture. When
-the API key is refused or the camera stops delivering, the picture carries on
-looking exactly as it did — which is the failure mode this scenario exists to
-prevent.
+In the enclosure there is no terminal, no status line[^statusline] and nobody
+watching a log. The panel[^panel] is the entire output of the machine, and it
+is showing a picture. When the API key[^apikey] is refused or the camera stops
+delivering, the picture carries on looking exactly as it did — which is the
+failure mode this scenario exists to prevent.
 
 The answer is a band along the bottom of the panel: [36 pixels of
 240](../../src/lcd/lcd_display.py#L37), a seventh of the glass, painted over
 whatever is already there and taken away four seconds later. It is drawn in
-[fixed ink](../../src/lcd/lcd_display.py#L39) on a
-[near-black ground](../../src/lcd/lcd_display.py#L40) rather than in the scheme's
-colours, and that is deliberate twice over. The glyph atlas holds only the ramp
-characters, so the character grid **cannot spell anything at all** — a message
-has to be rasterised separately or it cannot exist. And a message tinted by
-whatever cell colours happen to sit under it would be least legible exactly when
-it matters most, which under the `live` scheme is most of the time.
+[fixed ink](../../src/lcd/lcd_display.py#L39) on a [near-black
+ground](../../src/lcd/lcd_display.py#L40) rather than in the scheme[^scheme]'s
+colours, and that is deliberate twice over. The glyph atlas[^atlas] holds only
+the ramp[^ramp] characters, so the character grid[^grid] **cannot spell
+anything at all** — a message has to be rasterised[^coverage] separately or it
+cannot exist. And a message tinted by whatever cell colours happen to sit
+under it would be least legible exactly when it matters most, which under the
+`live` scheme is most of the time.
 
-**The band is pushed whether or not there is a frame to push it with.** That is
-the case the whole mechanism is built for: when the camera stops, the render
-loop has nothing to draw, so a notice that could only travel attached to a frame
-would never arrive. [`show_notice`](../../src/lcd/lcd_display.py#L259) paints
-into the persistent frame buffer and sends it on its own.
+**The band is pushed whether or not there is a frame to push it with.** That
+is the case the whole mechanism is built for: when the camera stops, the
+render loop has nothing to draw, so a notice[^notice] that could only travel
+attached to a frame would never arrive.
+[`show_notice`](../../src/lcd/lcd_display.py#L259) paints into the persistent
+frame buffer and sends it on its own.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
@@ -63,8 +65,8 @@ sequenceDiagram
 | 3 | `run` wakes after [`IDLE_TICK`](../../src/lcd/lcd_worker.py#L43) with no frame waiting | A fifth of a second. This is the path that matters: no frame is coming, because the thing being reported is often the reason no frame is coming |
 | 4 | [`_tick_notice`](../../src/lcd/lcd_worker.py#L297) asks what should be shown, and what is | The comparison is against `_notice_shown`, which records what was last **put on the glass** rather than what was last asked for. Those differ the moment a notice expires, and the difference is the whole trigger |
 | 5 | [`show_notice`](../../src/lcd/lcd_display.py#L259)`(text)` | The no-frame path. The frame buffer persists between renders, so the band can be painted over the last good picture and sent without one |
-| 6 | [`notice_mask`](../../src/lcd/lcd_display.py#L213) wraps to two lines of 44 and caches the result | A notice stands for four seconds and the panel redraws 27 times a second, so rasterising per frame would put a PIL text call back on the hot path — the one thing `lcd_display.py` exists to keep off it. [Two lines](../../src/lcd/lcd_display.py#L37) is the whole budget; a third would start eating the picture |
-| 7 | [`_paint_notice`](../../src/lcd/lcd_display.py#L246) blends warm white over the bottom 36 rows | Straight into the RGB565 buffer, arithmetic rather than drawing. It writes to the full frame rather than the picture region, so the band lands on the panel edge whatever margin the grid fit leaves |
+| 6 | [`notice_mask`](../../src/lcd/lcd_display.py#L213) wraps to two lines of 44 and caches the result | A notice stands for four seconds and the panel redraws 27 times a second, so rasterising per frame would put a PIL[^pil] text call back on the hot path — the one thing `lcd_display.py` exists to keep off it. [Two lines](../../src/lcd/lcd_display.py#L37) is the whole budget; a third would start eating the picture |
+| 7 | [`_paint_notice`](../../src/lcd/lcd_display.py#L246) blends warm white over the bottom 36 rows | Straight into the RGB565[^rgb565] buffer, arithmetic rather than drawing. It writes to the full frame rather than the picture region, so the band lands on the panel edge whatever margin the grid fit leaves |
 | 8 | `show_packed` sends the whole frame buffer | 153,600 bytes, 38 writes of 4,096, about 33 ms. There is no partial update: a notice costs a full transfer, which is affordable precisely because it happens when nothing else is using the bus |
 | 9 | four seconds on, [`_live_notice`](../../src/lcd/lcd_worker.py#L162) returns None | Expiry is checked on read rather than swept, so no timer thread exists and a notice cannot outlive the run |
 | 10 | [`clear_notice`](../../src/lcd/lcd_display.py#L272)`()` | Reached only because `_band_painted` distinguishes *nothing to clean up* from *a message just expired*. Without that flag the two are the same state and the band would never come off |
@@ -100,3 +102,79 @@ model rather than from this codebase.
   — where the sentences in the table above are chosen, and why they are short.
 - [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
   — the ordinary path this one interrupts, and the thread it shares.
+
+### Footnotes
+
+[^statusline]: The **status line** is the single line of readouts under the
+    picture — scheme, ramp, frame rate, grid size — built by
+    [`status_line`](../../src/hdmi/status_line.py#L76). It is also where a
+    refusal or a notice is shown on the terminal, since there is nowhere else
+    to put one.
+
+[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
+    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
+    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
+    kernel driver behind it. In the sealed enclosure it is the only display
+    there is. One full frame is 153,600 bytes, sent in
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
+    the driver's buffer holds.
+
+[^apikey]: The key that authenticates a call to the model's API, read from
+    [`KEY_FILE`](../../src/language/parser.py#L101) by
+    [`api_key`](../../src/language/parser.py#L301). Without one the whole model
+    path is switched off rather than failing at the call, which is why every
+    path that needs it is `LOW` priority: the appliance runs without it.
+
+[^scheme]: A **colour scheme** is one of the nine named looks in
+    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
+    of the render configuration. `grey` is the default, and is what "greyscale
+    mode" means: characters only, drawn from the luma plane and nothing else.
+    `live` is the only scheme that reads the chroma planes, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
+    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
+    the same greyscale picture from two fixed colours.
+
+[^atlas]: A **glyph atlas** is every character of the font drawn once, in
+    advance, into one array — [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46).
+    A frame is then assembled by copying the right rectangles out of it rather
+    than by drawing text, which at 64 by 24 is one array operation instead of
+    1,536 calls into the font renderer.
+
+[^ramp]: A **ramp** is the string of characters the picture is drawn with,
+    ordered from lightest to darkest — ` .:-=+*#%@` is one. Brightness picks a
+    position along it, so the ramp is what decides how the picture looks before
+    any colour is involved. The named ones are in
+    [`RAMPS`](../../src/art/ascii_art.py#L17) and the setting chooses between
+    them.
+
+[^grid]: The **character grid** is the picture as this app holds it: `rows` by
+    `cols` character **cells** rather than pixels, each cell one character
+    chosen from the brightness of the patch of camera frame it covers.
+    [`to_grid`](../../src/capture/image_processor.py#L172) is what resizes a
+    plane to it. How big it is depends on where the picture is going — 64 by 24
+    on the SPI panel at the default font size, and whatever the window holds on
+    the HDMI terminal.
+
+[^coverage]: **Rasterising** a glyph turns its outline into pixels, and what
+    comes out is **coverage**: how much of each pixel the shape actually fills,
+    0 to 255. Edge pixels land in between, which is what antialiasing is. It
+    matters here that coverage is a fade and not a mask — the panel blends the
+    cell's colour towards the unlit screen colour by it, so `@` peaking at 239
+    rather than 255 is visible rather than academic.
+
+[^notice]: A **notice** is a short message painted over the bottom of the
+    picture on the panel — two lines in fixed ink over whatever is underneath,
+    sized by [`NOTICE_LINES`](../../src/lcd/lcd_display.py#L37). It is how a
+    box with no keyboard and no terminal says something went wrong, and it
+    covers 36 of the panel's 240 rows.
+
+[^pil]: The Python Imaging Library, as maintained in Pillow. It is what
+    rasterises the glyphs and what the panel's slower path uses to convert an
+    image. Its per-call cost is the thing this app organises itself to avoid:
+    one call that does a whole frame is fine, 1,536 calls that each do a cell
+    are not.
+
+[^rgb565]: **RGB565** is how the panel wants a pixel: two bytes, five bits of
+    red, six of green, five of blue — green gets the spare bit because the eye
+    is most sensitive to it. [`rgb565`](../../src/lcd/lcd.py#L271) packs one
+    colour and [`pack_rgb565`](../../src/lcd/lcd.py#L254) a whole image.

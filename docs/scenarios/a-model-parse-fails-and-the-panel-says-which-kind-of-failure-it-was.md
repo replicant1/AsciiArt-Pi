@@ -1,18 +1,19 @@
 # A model parse fails and the panel says which kind of failure it was
 
-**Priority: `LOW`** — it needs the optional ask path to have been switched on and then to have gone wrong, but it is where the app decides whether a failure is a sentence or a silence. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `LOW`** — it needs the optional ask[^ask] path to have been switched on and then to have gone wrong, but it is where the app decides whether a failure is a sentence or a silence. [What the priorities mean](../how-to-write-scenario-docs.md).
 
 `ask something calmer` reaches for a network, a key and a model, and any of the
 three can fail. The camera's own settings are unaffected — every typed command
 still works — so the only real question is what the person standing in front of
 the box is told.
 
-**Nothing is the wrong answer, and a traceback is a worse one.** The panel is
-240 pixels tall and has [44 characters to work
+**Nothing is the wrong answer, and a traceback is a worse one.** The
+panel[^panel] is 240 pixels tall and has [44 characters to work
 with](the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md).
 [`short_failure`](../../src/language/resolver.py#L180) exists to turn whatever
-the SDK raised into a sentence that fits, and it keeps the full text for the
-socket reply, where whoever typed the command can read a whole error.
+the SDK[^sdk] raised into a sentence that fits, and it keeps the full text for
+the socket[^socket] reply, where whoever typed the command can read a whole
+error.
 
 **It sorts by what the person should do next, not by exception class.** "The
 network is down" and "the key was refused" call for different actions, and that
@@ -54,10 +55,10 @@ sequenceDiagram
 | Step | Message | What is going on |
 |---:|---|---|
 | 1 | `ask something calmer` | A phrase the [shortcut table](a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md) deliberately declines to answer, so it reaches the model. Had the table known it, none of this would run |
-| 2 | `asking: something calmer`, for 22 seconds | Said *before* the attempt, because a parse takes seconds and a panel with no spinner is indistinguishable from a camera ignoring you. The duration is [the parser's timeout plus two](../../src/language/parser.py#L95) — the notice must not expire while the request is still out, which the [default four seconds](../../src/lcd/lcd_worker.py#L58) got wrong |
+| 2 | `asking: something calmer`, for 22 seconds | Said *before* the attempt, because a parse takes seconds and a panel with no spinner is indistinguishable from a camera ignoring you. The duration is [the parser's timeout plus two](../../src/language/parser.py#L95) — the notice[^notice] must not expire while the request is still out, which the [default four seconds](../../src/lcd/lcd_worker.py#L58) got wrong |
 | 3 | [`parse`](../../src/language/parser.py#L401)`(utterance, config, previous)` | The settings go with the utterance, because "calmer" has no meaning without a "than what" |
 | 4 | one request, [tool_choice](../../src/language/parser.py#L204) any | One of two tools, never prose. A parser that can reply with a paragraph has a third output shape nothing downstream handles |
-| 5 | the connection fails | Or the key is rejected, or it times out at [twenty seconds](../../src/language/parser.py#L95), or the rate limit is hit. From here they are the same event |
+| 5 | the connection fails | Or the key is rejected, or it times out at [twenty seconds](../../src/language/parser.py#L95), or the rate limit[^ratelimit] is hit. From here they are the same event |
 | 6 | every SDK exception widened into one `ParseError` | [Deliberately broad](../../src/language/parser.py#L401). The class name is in the log either way, and the caller has a 320-pixel band to fill rather than a decision to make |
 | 7 | `ParseError("Connection error.")` | The full text, unshortened. This is what the socket reply will carry |
 | 8 | [`record`](../../src/language/resolver.py#L216)`(error="Connection error.")` | Written before anything is said, so a failure that also fails to display is still on disk. The outcome is `error`, which is what separates it from a decline in the log |
@@ -75,7 +76,7 @@ whole ask path on the socket thread in the first place.
 |---|---|
 | The network is down or unreachable | `no network - words need one, settings do not` |
 | The request timed out at 20 s | `the model took too long - try again` |
-| The key was missing, wrong or rejected | `the API key was refused` |
+| The key was missing, wrong or rejected | `the API key was refused`[^apikey] |
 | Too many requests too quickly | `asking too fast - wait a moment` |
 | The model's safety classifiers [refused](../../src/language/parser.py#L401) | `the model would not answer - rephrase it` |
 | The model [called neither tool](../../src/language/parser.py#L401) | `could not ask the model` |
@@ -114,3 +115,50 @@ the opposite advice.
   — how the sentence chosen here actually reaches the glass.
 - [Every ask is recorded with its source, its cost and its elapsed time](every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md)
   — where the unshortened error goes, and why the outcome field matters.
+
+### Footnotes
+
+[^ask]: An **ask** is a request in words rather than in settings — "make it
+    warmer" — as opposed to a typed command, which already names the setting.
+    It arrives as [`Ask`](../../src/control/command_server.py#L55), and
+    [`AskResolver`](../../src/language/resolver.py#L33) decides whether the
+    shortcut table can answer it or the language model has to.
+
+[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
+    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
+    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
+    kernel driver behind it. In the sealed enclosure it is the only display
+    there is. One full frame is 153,600 bytes, sent in
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
+    the driver's buffer holds.
+
+[^sdk]: The vendor's client library for talking to the model's API. Its
+    exceptions are the vendor's, and they are deliberately not allowed out of
+    [`parser`](../../src/language/parser.py): everything it can raise is
+    widened into one `ParseError`, so no caller has to know one vendor error
+    from another to put a sentence on a panel.
+
+[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
+    one machine — the same read-and-write as a network socket, with no network.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
+    which is how a shell, a phone or a script reaches a running camera without
+    the app ever opening a port.
+
+[^notice]: A **notice** is a short message painted over the bottom of the
+    picture on the panel — two lines in fixed ink over whatever is underneath,
+    sized by [`NOTICE_LINES`](../../src/lcd/lcd_display.py#L37). It is how a
+    box with no keyboard and no terminal says something went wrong, and it
+    covers 36 of the panel's 240 rows.
+
+[^ratelimit]: A **sliding window** rate limit: the last sixty seconds of
+    admitted requests are remembered, and the twenty-first inside that window
+    is refused — [`AskLimit`](../../src/control/web_server.py#L167). It counts
+    only the requests that reach the model and cost money; settings are free
+    and unlimited. What it is really defending against is not an attacker but
+    a phone left face up, posting the same form for hours.
+
+[^apikey]: The key that authenticates a call to the model's API, read from
+    [`KEY_FILE`](../../src/language/parser.py#L101) by
+    [`api_key`](../../src/language/parser.py#L301). Without one the whole model
+    path is switched off rather than failing at the call, which is why every
+    path that needs it is `LOW` priority: the appliance runs without it.

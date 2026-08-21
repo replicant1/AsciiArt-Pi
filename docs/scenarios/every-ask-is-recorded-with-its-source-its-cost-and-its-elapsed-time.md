@@ -2,22 +2,23 @@
 
 **Priority: `LOW`** — nothing depends on it and it is allowed to fail silently, which is exactly why it is the last thing anyone checks and the first thing worth getting right. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-The ask path is the one part of this app whose behaviour cannot be asserted in a
-test. A model's answer to "something calmer" is not a fact about the codebase,
-so the only way to know whether the prompt is any good is to keep what really
-happened and look at it later.
+The ask[^ask] path is the one part of this app whose behaviour cannot be
+asserted in a test. A model's answer to "something calmer" is not a fact about
+the codebase, so the only way to know whether the prompt is any good is to
+keep what really happened and look at it later.
 
 [`AskLog`](../../src/language/asklog.py#L75) writes one JSON line per ask to
-`logs/asks.jsonl`. It records what was said, what the settings were at the time,
-what came back, how long it took and what it cost — and, in the field that
-matters most, **who answered**.
+`logs/asks.jsonl`[^jsonl]. It records what was said, what the settings were at
+the time, what came back, how long it took and what it cost — and, in the
+field that matters most, **who answered**.
 
-**`source` decides what a record is evidence of.** A `table` record says nothing
-whatsoever about the prompt, because the model was never asked. Anything
-counting hit rate, or promoting real utterances into eval cases, has to filter
-on it or it will score the model on answers it never gave. It is written even on
-the default, because a record that omits it is ambiguous rather than obviously a
-model answer, and this file is read months later.
+**`source` decides what a record is evidence of.** A `table` record says
+nothing whatsoever about the prompt, because the model was never asked.
+Anything counting hit rate, or promoting real utterances into eval
+cases[^eval], has to filter on it or it will score the model on answers it
+never gave. It is written even on the default, because a record that omits it
+is ambiguous rather than obviously a model answer, and this file is read
+months later.
 
 **It is allowed to do nothing, and it is never allowed to raise.** The caller is
 in the middle of answering somebody. A full disk or a read-only mount costs a
@@ -56,10 +57,10 @@ sequenceDiagram
 | 2 | outcome from which field is set, not from a flag | `error` beats `declined` beats everything else. Deriving it from the fields rather than passing it in means the record cannot disagree with itself |
 | 3 | [`_sparse`](../../src/language/asklog.py#L67) asks the config how it differs from the defaults | Storing all twelve settings on every line would make the file unreadable by eye. Storing the difference makes each record show what was unusual about the moment |
 | 4 | `{"scheme": "amber"}`, and nothing else | This is the same shape `eval_cases.json` uses for `now`, on purpose: a real ask can be lifted into a test case without reshaping it |
-| 5 | keep only the fields that mean something for this outcome | A declined record has no `delta`; an error has no `usage`. The pruning is a plain [truthiness test](../../src/language/asklog.py#L90), which is why the next step exists |
+| 5 | keep only the fields that mean something for this outcome | A declined record has no `delta`[^delta]; an error has no `usage`[^tokens]. The pruning is a plain [truthiness test](../../src/language/asklog.py#L90), which is why the next step exists |
 | 6 | `seconds` written back explicitly, because `0.0` is falsy | A table hit takes no measurable time, and the truthiness test would drop the field precisely for the records where it is most informative. Two lines of code to keep a zero that means something |
 | 7 | rotate at [two megabytes](../../src/language/asklog.py#L64), keeping one old file | About 5,000 asks at roughly 400 bytes each. Less about disk than about an append-only file nobody ever rotates eventually surprising someone on a small card |
-| 8 | append one line, under the lock | The socket thread and the phone's handler can both be answering at once, and a JSONL file survives interleaving only if whole lines are written whole |
+| 8 | append one line, under the lock | The socket[^socket] thread and the phone's handler can both be answering at once, and a JSONL file survives interleaving only if whole lines are written whole |
 | 9 | the record written, or None if it could not be | The return value is used by tests and ignored in production. Returning `None` rather than raising is the whole contract: this is the one place in the path allowed to do nothing at all |
 
 ## What four real records look like
@@ -75,11 +76,12 @@ Produced by running the code, not by hand:
 
 Four things are visible in those four lines. The two `answered` records differ
 only in `source` and `seconds`, and treating them as equivalent is exactly the
-mistake `source` exists to prevent. `cache_read` at 1,409 of 1,520 input tokens
-is the [system prompt and tool schema](../../src/language/parser.py#L127) being
-served from cache, which is what makes a second ask cheaper than a first.
-`before` is absent throughout, because it was identical to the defaults and the
-pruning dropped it. And the table hit kept its `seconds: 0.0`.
+mistake `source` exists to prevent. `cache_read`[^promptcache] at 1,409 of
+1,520 input tokens is the [system prompt and tool
+schema](../../src/language/parser.py#L127) being served from cache, which is
+what makes a second ask cheaper than a first. `before` is absent throughout,
+because it was identical to the defaults and the pruning dropped it. And the
+table hit kept its `seconds: 0.0`.
 
 ## Turning a record back into a test
 
@@ -100,3 +102,48 @@ does what it already did.
   — the outcome that is not an error, and reads as evidence the system worked.
 - [A model parse fails and the panel says which kind of failure it was](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md)
   — the outcome that is, and where the unshortened text is kept.
+
+### Footnotes
+
+[^ask]: An **ask** is a request in words rather than in settings — "make it
+    warmer" — as opposed to a typed command, which already names the setting.
+    It arrives as [`Ask`](../../src/control/command_server.py#L55), and
+    [`AskResolver`](../../src/language/resolver.py#L33) decides whether the
+    shortcut table can answer it or the language model has to.
+
+[^jsonl]: **JSON Lines**: one complete JSON object per line, appended and
+    never rewritten. A file that is still valid if the process dies mid-write,
+    still readable with `tail`, and does not need parsing in full to add to —
+    which is what a record kept by an appliance needs to be.
+
+[^eval]: An **eval** is a stored request paired with the answer a person
+    judged correct, run against the model to score a change to the prompt.
+    [`as_case`](../../src/language/asklog.py#L182) can turn a real record into
+    a *candidate* one, but only a candidate: its `expect` field holds what the
+    model actually said, which is the thing under test, so promoting it
+    unlooked-at would build a suite that only checks the model still does what
+    it did before.
+
+[^delta]: A **delta** is a plain dict of the settings a change means to alter —
+    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
+    hands it to the configuration; none of them assigns a setting directly.
+    That is what keeps validation in one place no matter who asked.
+
+[^tokens]: A **token** is the unit a language model reads and writes and is
+    billed by — roughly a short word or a piece of one. It is why the cost of
+    an ask can be stated as a fraction of a cent rather than guessed at:
+    [`record`](../../src/language/asklog.py#L90) keeps the count the model
+    itself reports.
+
+[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
+    one machine — the same read-and-write as a network socket, with no network.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
+    which is how a shell, a phone or a script reaches a running camera without
+    the app ever opening a port.
+
+[^promptcache]: The model's provider bills a repeated **prefix** of a request
+    at a lower rate if it is identical to last time. The system prompt and the
+    tool schema never vary, so they go first and are cached — measured at 2,103
+    cached tokens against roughly 420 that change. Putting the live settings
+    into the prompt instead would alter the prefix on every call and cache
+    nothing.

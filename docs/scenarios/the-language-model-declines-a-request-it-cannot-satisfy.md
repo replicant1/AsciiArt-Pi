@@ -1,6 +1,6 @@
 # The language model declines a request it cannot satisfy
 
-**Priority: `LOW`** — it needs the optional ask path switched on, and it is the outcome nobody designs for first, but it is what stops the camera inventing an answer. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `LOW`** — it needs the optional ask[^ask] path switched on, and it is the outcome nobody designs for first, but it is what stops the camera inventing an answer. [What the priorities mean](../how-to-write-scenario-docs.md).
 
 `ask point it at the door` is a perfectly sensible thing to say to a camera and
 an impossible thing for this one to do. Nothing in the settings moves a lens.
@@ -16,14 +16,14 @@ with prose, because a third output shape is one nothing downstream handles.
 **A decline is not a failure.** It travels a different path from a
 [`ParseError`](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md):
 nothing is logged as an error, the reply carries the model's own words rather
-than a summary, and the panel says `cannot do that:` followed by the reason. The
-distinction is load-bearing in the log, where a decline is evidence the system
-worked and an error is evidence it did not.
+than a summary, and the panel[^panel] says `cannot do that:` followed by the
+reason. The distinction is load-bearing in the log, where a decline is
+evidence the system worked and an error is evidence it did not.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`AskResolver`](../../src/language/resolver.py#L33) | The whole of the ask path. Here it is the **router**: a decline is checked for before a delta, and sent to the panel and the socket without ever reaching the render loop |
-| [`parser`](../../src/language/parser.py) | A module of functions, not a class. Here it is the **interpreter of the reply**: it turns a `decline` tool call, and one particular shape of `set_render`, into the same thing |
+| [`AskResolver`](../../src/language/resolver.py#L33) | The whole of the ask path. Here it is the **router**: a decline is checked for before a delta[^delta], and sent to the panel and the socket[^socket] without ever reaching the render loop |
+| [`parser`](../../src/language/parser.py) | A module of functions, not a class. Here it is the **interpreter of the reply**: it turns a `decline` tool call[^tooluse], and one particular shape of `set_render`, into the same thing |
 | [`Parsed`](../../src/language/parser.py#L274) | What one utterance came back as. Here it is the **discriminated answer**: exactly one of `delta` and `declined` is set, so no caller has to guess which happened |
 
 ## A request nothing in the settings can honour
@@ -73,12 +73,12 @@ to apply.
 | `set_render` carrying only an [`unmet` field](../../src/language/parser.py#L401) | `Parsed(declined=unmet)` | "zoom in a bit" on its own: nothing here maps to a setting, and it said so. That is a refusal with a reason wearing a different hat, so it is reported as one rather than as an empty change nobody can see |
 | `set_render` with nothing at all, and no `unmet` | [`ParseError`](../../src/language/parser.py#L270) | Deliberately an error. Dressing a malformed answer up as a polite refusal would hide it from the eval, and hiding it is how a scoreboard stops measuring |
 
-**`unmet` alongside a real delta is not a decline at all.** "make it warmer and
-play some music" changes the scheme *and* says the second half went nowhere. The
-delta is applied, and the leftover is appended to the note the person sees. That
-is the case the third column above is guarding: a request can be partly
-satisfiable, and collapsing partial success into refusal would lose the half
-that worked.
+**`unmet` alongside a real delta is not a decline at all.** "make it warmer
+and play some music" changes the scheme[^scheme] *and* says the second half
+went nowhere. The delta is applied, and the leftover is appended to the note
+the person sees. That is the case the third column above is guarding: a
+request can be partly satisfiable, and collapsing partial success into refusal
+would lose the half that worked.
 
 ## Related scenarios
 
@@ -91,3 +91,45 @@ that worked.
   — why the table declines to guess and hands these phrases on.
 - [Every ask is recorded with its source, its cost and its elapsed time](every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md)
   — what a declined record looks like, and why it is not filed as an error.
+
+### Footnotes
+
+[^ask]: An **ask** is a request in words rather than in settings — "make it
+    warmer" — as opposed to a typed command, which already names the setting.
+    It arrives as [`Ask`](../../src/control/command_server.py#L55), and
+    [`AskResolver`](../../src/language/resolver.py#L33) decides whether the
+    shortcut table can answer it or the language model has to.
+
+[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
+    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
+    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
+    kernel driver behind it. In the sealed enclosure it is the only display
+    there is. One full frame is 153,600 bytes, sent in
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
+    the driver's buffer holds.
+
+[^delta]: A **delta** is a plain dict of the settings a change means to alter —
+    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
+    hands it to the configuration; none of them assigns a setting directly.
+    That is what keeps validation in one place no matter who asked.
+
+[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
+    one machine — the same read-and-write as a network socket, with no network.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
+    which is how a shell, a phone or a script reaches a running camera without
+    the app ever opening a port.
+
+[^tooluse]: Rather than replying in prose, the model is made to answer by
+    **calling a tool** — naming one of the schemas it was given and filling in
+    its arguments. `tool_choice` is set so that it must call one, never write a
+    sentence, which is what keeps the answer a shape this code can act on
+    instead of one it would have to parse.
+
+[^scheme]: A **colour scheme** is one of the nine named looks in
+    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
+    of the render configuration. `grey` is the default, and is what "greyscale
+    mode" means: characters only, drawn from the luma plane and nothing else.
+    `live` is the only scheme that reads the chroma planes, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
+    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
+    the same greyscale picture from two fixed colours.

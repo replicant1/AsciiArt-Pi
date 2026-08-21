@@ -2,33 +2,34 @@
 
 **Priority: `MEDIUM`** — asking is opt-in, but this is the half of it that still works with the network down and no key present. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-`ask make it green` used to cross a network, wait 2.6 seconds and cost a third
-of a US cent to work out `{"scheme": "green"}` — which is the scheme's own name,
-said out loud. A table of 137 phrasings answers that class of phrase before any
-model call or key check happens, in microseconds and for nothing.
+`ask make it green`[^ask] used to cross a network, wait 2.6 seconds and cost a
+third of a US cent to work out `{"scheme": "green"}`[^scheme] — which is the
+scheme's own name, said out loud. A table of 137 phrasings answers that class
+of phrase before any model call or key check happens, in microseconds and for
+nothing.
 
-Two properties fall out of putting the lookup **before** the key check, and both
-are worth more than the money. A hit needs no API key and no network, so with
-the WiFi down `green` and `freeze it` still work and `ask` stops being all or
-nothing. And a hit is instant, which on a 240x320 panel with no spinner is the
-difference you actually feel.
+Two properties fall out of putting the lookup **before** the key check, and
+both are worth more than the money. A hit needs no API key[^apikey] and no
+network, so with the WiFi down `green` and `freeze it` still work and `ask`
+stops being all or nothing. And a hit is instant, which on a 240x320
+panel[^panel] with no spinner is the difference you actually feel.
 
 **The table is exact and the model is fuzzy, and that split is the whole
 design.** The lookup matches a normalised string and returns `None` the moment
-it is not certain. A table that guessed would be competing with the model at the
-thing the model is for, and losing quietly: a near-miss becomes a wrong setting
-with no round trip to blame it on. So `something calmer`, `green, high contrast
-and the fine ramp`, and every phrase that should be *declined* are left alone —
-a table cannot decline well, it can only fail to match, which is not the same
-thing.
+it is not certain. A table that guessed would be competing with the model at
+the thing the model is for, and losing quietly: a near-miss becomes a wrong
+setting with no round trip to blame it on. So `something calmer`, `green, high
+contrast and the fine ramp[^ramp]`, and every phrase that should be *declined*
+are left alone — a table cannot decline well, it can only fail to match, which
+is not the same thing.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`CommandServer`](../../src/control/command_server.py#L80) | The Unix socket and a thread per client. Here it is only the **doorway**: [`_prepare`](../../src/control/command_server.py#L214) offers the line to a resolver and does nothing else, which is what lets everything below run on a thread the picture does not depend on |
+| [`CommandServer`](../../src/control/command_server.py#L80) | The Unix socket[^socket] and a thread per client. Here it is only the **doorway**: [`_prepare`](../../src/control/command_server.py#L214) offers the line to a resolver and does nothing else, which is what lets everything below run on a thread the picture does not depend on |
 | [`AskResolver`](../../src/language/resolver.py#L33) | The whole of the ask path, and the one part of the app allowed to be slow. Here it is the **triage**: [`resolve`](../../src/language/resolver.py#L98) recognises an `ask`, reads the settings through a callable, and tries the table first. Only if the table declines does it reach for a key, a network and the model |
 | [`shortcuts`](../../src/language/shortcuts.py) | A module of functions, not a class. Here it is the **exact matcher**: [`look_up`](../../src/language/shortcuts.py#L246) either knows a phrase precisely or says `None`. It holds no fuzziness at all, on purpose |
-| [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state. Here it is **read, never written**: a stepped phrase like "a bit more contrast" is meaningless without the current value, so the table's entries are functions of the config rather than constants |
-| [`AskLog`](../../src/language/asklog.py#L75) | An append-only record of every ask. Here it records `source: "table"`, which is what makes the entry evidence of the *table* and not of the prompt — anything counting hit rate or promoting real phrases into eval cases has to filter on it |
+| [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state. Here it is **read, never written**: a stepped phrase like "a bit more contrast" is meaningless without the current value, so the table's entries are functions of the config[^config] rather than constants |
+| [`AskLog`](../../src/language/asklog.py#L75) | An append-only record of every ask. Here it records `source: "table"`, which is what makes the entry evidence of the *table* and not of the prompt — anything counting hit rate or promoting real phrases into eval cases[^eval] has to filter on it |
 
 ## A phrase the table knows exactly
 
@@ -69,7 +70,7 @@ sequenceDiagram
 | 8 | `TABLE` gives the resolver for that exact string | An exact dict lookup over [137 phrasings](../../src/language/shortcuts.py#L145), or `None`. No fuzzy matching exists here to go wrong. Two entries claiming one phrase [raise at import](../../src/language/shortcuts.py#L154) rather than letting dict order decide which silently never runs |
 | 9 | the resolver reads contrast, and `BY_NAME` for its [`Spec`](../../src/control/render_config.py#L63) | A [stepped entry](../../src/language/shortcuts.py#L109) is a function of the live config, not a constant — "more" has no meaning without a "than what". The step is [×1.3](../../src/language/shortcuts.py#L55), the smallest move that is unmistakable on the panel |
 | 10 | 1.0, and a `Spec` whose range is 0.1 to 4.0 | The step is [clamped](../../src/language/shortcuts.py#L103) to the spec, so asking for more contrast at the ceiling yields `{contrast: 4.0}` — a no-op rather than a refusal. Clamping is what makes a step phrase safe to repeat |
-| 11 | `{contrast: 1.3}` | A delta in exactly the shape a typed command produces. From here nothing downstream can tell the table answered |
+| 11 | `{contrast: 1.3}` | A delta[^delta] in exactly the shape a typed command produces. From here nothing downstream can tell the table answered |
 | 12 | [`record`](../../src/language/asklog.py#L90)`(source="table", seconds=0.0)` | Written on this thread too, and silently skipped if there is no log — an ask that works is worth more than a record of it. The `source` field is the load-bearing part: a table hit says nothing about the prompt, because the model was never asked |
 | 13 | [`Ask`](../../src/control/command_server.py#L55)`(utterance, delta, note="instant")` | A delta already worked out, on its way to the render loop, which will apply it exactly as it applies a typed one. `note="instant"` is what the person sees in place of the model's elapsed seconds |
 
@@ -83,7 +84,7 @@ missed and cost four seconds against the model.
 | Kind | Examples | Why the table and not the model |
 |---|---|---|
 | A setting's value, said out loud | `green`, `make it amber`, `fine characters` | Generated from `SPECS`, so a scheme added to `palettes.py` is speakable the same day without editing the table |
-| A boolean, said as a verb | `freeze it`, `invert it`, `mirror it` | There is nothing to interpret |
+| A boolean, said as a verb | `freeze it`, `invert it`[^invert], `mirror it` | There is nothing to interpret |
 | A step along a range | `a bit more contrast`, `bigger characters` | Arithmetic on a value the model would have to be told |
 | [`undo that`](../../src/language/shortcuts.py#L103) | `undo`, `put that back` | Not a guess at all — the app knows the previous config exactly, so the restoring delta is [a diff](../../src/control/render_config.py#L178). The model can only approximate this from a sparse description in its prompt |
 
@@ -137,3 +138,77 @@ courtesy is checked rather than assumed, so `pleasant` is not read as `please`.
 - [A render configuration change is refused](a-render-configuration-change-is-refused.md)
   — the delta produced here is judged by exactly the same validator, which is
   why the table is checked against it at import.
+
+### Footnotes
+
+[^ask]: An **ask** is a request in words rather than in settings — "make it
+    warmer" — as opposed to a typed command, which already names the setting.
+    It arrives as [`Ask`](../../src/control/command_server.py#L55), and
+    [`AskResolver`](../../src/language/resolver.py#L33) decides whether the
+    shortcut table can answer it or the language model has to.
+
+[^scheme]: A **colour scheme** is one of the nine named looks in
+    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
+    of the render configuration. `grey` is the default, and is what "greyscale
+    mode" means: characters only, drawn from the luma plane and nothing else.
+    `live` is the only scheme that reads the chroma planes, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
+    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
+    the same greyscale picture from two fixed colours.
+
+[^apikey]: The key that authenticates a call to the model's API, read from
+    [`KEY_FILE`](../../src/language/parser.py#L101) by
+    [`api_key`](../../src/language/parser.py#L301). Without one the whole model
+    path is switched off rather than failing at the call, which is why every
+    path that needs it is `LOW` priority: the appliance runs without it.
+
+[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
+    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
+    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
+    kernel driver behind it. In the sealed enclosure it is the only display
+    there is. One full frame is 153,600 bytes, sent in
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
+    the driver's buffer holds.
+
+[^ramp]: A **ramp** is the string of characters the picture is drawn with,
+    ordered from lightest to darkest — ` .:-=+*#%@` is one. Brightness picks a
+    position along it, so the ramp is what decides how the picture looks before
+    any colour is involved. The named ones are in
+    [`RAMPS`](../../src/art/ascii_art.py#L17) and the setting chooses between
+    them.
+
+[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
+    one machine — the same read-and-write as a network socket, with no network.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
+    which is how a shell, a phone or a script reaches a running camera without
+    the app ever opening a port.
+
+[^config]: The **render configuration** is the complete live state of how the
+    picture is drawn — scheme, ramp, contrast, rotation and the rest. It is
+    frozen: nothing assigns to it, and every change produces a whole new
+    [`RenderConfig`](../../src/control/render_config.py#L118) through
+    [`with_changes`](../../src/control/render_config.py#L141), which is also
+    the only code that decides whether a value is allowed. What the settings
+    are, and what each accepts, is
+    [`SPECS`](../../src/control/render_config.py#L74) — one table that the
+    validator, the `help` text, the command-line arguments and the model's
+    tool schema are all built from.
+
+[^eval]: An **eval** is a stored request paired with the answer a person
+    judged correct, run against the model to score a change to the prompt.
+    [`as_case`](../../src/language/asklog.py#L182) can turn a real record into
+    a *candidate* one, but only a candidate: its `expect` field holds what the
+    model actually said, which is the thing under test, so promoting it
+    unlooked-at would build a suite that only checks the model still does what
+    it did before.
+
+[^delta]: A **delta** is a plain dict of the settings a change means to alter —
+    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
+    hands it to the configuration; none of them assigns a setting directly.
+    That is what keeps validation in one place no matter who asked.
+
+[^invert]: The **invert** setting reverses the ramp, so bright pixels get the
+    dark end of it — white-on-black becomes black-on-white in effect. It
+    reverses the characters and deliberately leaves the position table alone,
+    which is how both displays stay in agreement about which glyph a brightness
+    deserves.

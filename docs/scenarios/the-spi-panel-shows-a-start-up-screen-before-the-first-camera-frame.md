@@ -2,11 +2,11 @@
 
 **Priority: `MEDIUM`** — it runs once per boot and never again, but for the first twenty seconds it is the only evidence the machine is working. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-`picamera2` takes about six seconds to import and libcamera another fifteen to
-hand over a first frame. In a sealed box with no keyboard and no monitor, that
-is twenty seconds of unlit glass, which is exactly what broken hardware looks
-like. The value of this collaboration is that the panel says what is happening
-instead.
+`picamera2`[^picamera2] takes about six seconds to import and libcamera
+another fifteen to hand over a first frame. In a sealed box with no keyboard
+and no monitor, that is twenty seconds of unlit glass, which is exactly what
+broken hardware looks like. The value of this collaboration is that the
+panel[^panel] says what is happening instead.
 
 It also has to say it **honestly**, and that turns out to be the hard part.
 The message is not a fixed splash: it is replaced as start-up moves on, from
@@ -25,7 +25,7 @@ a slower one would take over seven seconds to cross.
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | The panel's own thread. Here it is the **clock and the arbiter**: [`_tick_splash`](../../src/lcd/lcd_worker.py#L321) advances the animation on the idle timeout, and it is what decides the screen has been owed its time and may go |
-| [`SplashScreen`](../../src/lcd/lcd_splash.py#L55) | The start-up screen as a picture. Here it is the **renderer**, and a pure one: [`render`](../../src/lcd/lcd_splash.py#L135) takes a message, a detail line and a phase number, and returns an image — it knows nothing about panels or threads |
+| [`SplashScreen`](../../src/lcd/lcd_splash.py#L55) | The start-up screen[^splash] as a picture. Here it is the **renderer**, and a pure one: [`render`](../../src/lcd/lcd_splash.py#L135) takes a message, a detail line and a phase number, and returns an image — it knows nothing about panels or threads |
 | [`ILI9341`](../../src/lcd/lcd.py#L47) | The panel over SPI. Here it is the **sink**, and it takes a whole frame however little of it changed: one advancing character on the bar costs the same 153,600 bytes a picture does |
 
 ## Twenty seconds of saying so
@@ -65,7 +65,7 @@ sequenceDiagram
 |---:|---|---|
 | 1 | [`splash`](../../src/lcd/lcd_worker.py#L124)`("starting camera")` | Records a message and returns. Nothing is drawn here, which is what makes it safe to call from a thread that does not own the panel — and why a message replaced within 200 ms is simply never seen |
 | 2 | the six second picamera2 import, then camera.start() | The reason any of this exists. The import alone is the largest single delay before anything can reach the panel, and it is deliberately not paid at module scope so that the panel can be lit before it |
-| 3 | [`splash`](../../src/lcd/lcd_worker.py#L124)`("waiting for first frame")` | The detail line is omitted, which means keep whatever is there — so the caller that knows the grid size sets it once and every later message keeps it |
+| 3 | [`splash`](../../src/lcd/lcd_worker.py#L124)`("waiting for first frame")` | The detail line is omitted, which means keep whatever is there — so the caller that knows the grid[^grid] size sets it once and every later message keeps it |
 | 4 | get times out after [`SPLASH_TICK`](../../src/lcd/lcd_worker.py#L44), with the inbox still empty | 0.1 s rather than the 0.2 s used later. The tick is the animation's frame rate as well as a poll interval: at the idle rate a full sweep would take over seven seconds, longer than the screen is ever up |
 | 5 | [`render`](../../src/lcd/lcd_splash.py#L135)`(message, detail, phase)` | A pure function of three arguments. Keeping the picture free of the panel is what lets it be checked without hardware, on a machine where the panel cannot be looked at anyway |
 | 6 | one image, the bar advanced three cells | The sweep is a comet of nine characters over a twenty-eight cell bar, moving three cells a tick. It is a *liveness* indicator rather than a progress bar — nothing here knows how long the camera will take, and a bar that implied it did would be a lie |
@@ -92,3 +92,32 @@ seconds to answer.
   — how a picture reaches the same panel once there is one.
 - [A failure notice is painted over the picture on the SPI panel](a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md) — the band,
   which shares the frame buffer this screen writes to.
+
+### Footnotes
+
+[^picamera2]: The Python library for the Pi's camera stack, with **libcamera**
+    — the Linux camera framework it drives — underneath it. It owns the sensor,
+    the ISP configuration and the buffers the app reads from, and it is the
+    successor to the older `picamera`.
+
+[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
+    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
+    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
+    kernel driver behind it. In the sealed enclosure it is the only display
+    there is. One full frame is 153,600 bytes, sent in
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
+    the driver's buffer holds.
+
+[^splash]: The **start-up screen** is what the panel shows before the camera
+    has produced anything: a name and a moving bar, drawn by
+    [`SplashScreen`](../../src/lcd/lcd_splash.py#L55). It exists because
+    libcamera takes about twenty seconds to deliver a first frame, and unlit
+    glass for twenty seconds is what broken hardware looks like.
+
+[^grid]: The **character grid** is the picture as this app holds it: `rows` by
+    `cols` character **cells** rather than pixels, each cell one character
+    chosen from the brightness of the patch of camera frame it covers.
+    [`to_grid`](../../src/capture/image_processor.py#L172) is what resizes a
+    plane to it. How big it is depends on where the picture is going — 64 by 24
+    on the SPI panel at the default font size, and whatever the window holds on
+    the HDMI terminal.
