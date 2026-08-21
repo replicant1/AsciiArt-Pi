@@ -62,14 +62,16 @@ In this order, with no heading before the first diagram section:
 2. **Priority line** — one line, ``**Priority: `HIGH`** — why``, linking to the
    criteria. The reason is this scenario's own, not the category's
 3. **Description** — two or three paragraphs
-4. **Cast table** — one row per class, no heading above it
-5. `## A heading naming what this diagram shows`
-6. **The diagram**
-7. **The step table**
-8. Any closing prose about the diagram
-9. Repeat 5–8 if the scenario has a second diagram
-10. `## Related scenarios`
-11. `### Footnotes`, then the **footnote definitions** — one block at the end
+4. **An illustration**, if the scenario has geometry worth showing. Optional,
+   and most scenarios do not
+5. **Cast table** — one row per class, no heading above it
+6. `## A heading naming what this diagram shows`
+7. **The diagram**
+8. **The step table**
+9. Any closing prose about the diagram
+10. Repeat 6–9 if the scenario has a second diagram
+11. `## Related scenarios`
+12. `### Footnotes`, then the **footnote definitions** — one block at the end
     of the file, below *Related scenarios*
 
 ### 3. The description
@@ -84,7 +86,105 @@ when they explain a decision: *"The first version of the parser did refuse bad
 choices itself, which put 'must be one of' in two modules and meant
 `rotation 45` never reached the validator at all."*
 
-### 4. The cast table
+### 4. The illustration, when there is geometry to show
+
+Some scenarios are about *shape*: a frame that changes proportion, a plane that
+is thrown away, a grid that is a hundredth of the size of what fed it. Prose can
+only assert that, and a sequence diagram cannot say it at all — it is built to
+show who calls whom, not what the data now looks like. Where the substance is
+geometric, one drawing does the job of a paragraph and does it better.
+
+`imageprocessor-rotates-crops-and-resizes-a-frame-to-the-character-grid.md` has
+the worked example: five panels left to right, the picture as it stands at each
+one.
+
+**Draw the data, not the calls.** The sequence diagram already answers *who says
+what to whom*. The illustration answers *what does the picture look like here* —
+which is why they can sit in one document without repeating each other. If a
+draft is turning into boxes with verbs in them, it is a diagram, not an
+illustration, and it belongs in mermaid or nowhere.
+
+**Put a motif in the data.** The single decision that made the ImageProcessor
+figure work is the letter `F` sitting in the frame: asymmetric on both axes, so
+a rotation, a transposition and a mirror are all visible at a glance. Without it
+the panels are five blue rectangles and every claim is back in the caption.
+Anything with no symmetry will do; a letter is easiest to draw.
+
+**Show what is discarded**, not only what survives. The crop panel is hatched
+where `fill` throws rows away, and that band is the whole point of the stage —
+a picture of the surviving strip alone would say nothing about what the setting
+costs.
+
+**Every number in it is a claim.** Take the dimensions and counts from the
+document's own prose, which has already been checked, rather than working them
+out again beside it. A figure that disagrees with the paragraph above it is
+worse than no figure, and nothing in the suite compares the two.
+
+#### What is worth drawing, and what is not
+
+| Suitable | Why |
+|---|---|
+| Shapes and proportions changing — rotate, crop, resize, letterbox | It is geometry; a picture *is* the explanation |
+| Something being thrown away or kept — cropped bands, dropped frames, a margin never written to | The absence is invisible in prose and obvious in a drawing |
+| Sizes collapsing — 76,800 pixels to 2,400 cells, 153,600 bytes to 38 writes | The ratio is the point, and a drawing carries it without arithmetic |
+| Layout in memory — planes stacked in one buffer, tiles gathered from an atlas, bytes packed into RGB565 | It has a real shape, and the shape is the reason the code is fast |
+| A grid and what fills a cell | The cell is this app's unit; showing one is worth a paragraph |
+| The *shape* of a signal — two switches a quarter-cycle apart, and the bounce between them | It is a picture of what the pins do, not of how long they take. Duration is the thing that cannot be drawn honestly; a transition can |
+
+| Not suitable | Why |
+|---|---|
+| Threads, and which of them may block | Nothing about a thread has a shape. The sequence diagram's bands already say it, and better |
+| Timing and elapsed seconds | A duration drawn to scale is a gantt chart, which the mermaid traps table says lies about its own start |
+| Control flow, branches, error paths | The no-`alt` rule applies here too: one outcome per document, and the step table carries the ordering |
+| Class structure and who owns what | That is the cast table's job, and the [class overview](class-overview.md)'s |
+| Anything the sequence diagram already shows | A second drawing of one thing is a second thing to keep true |
+
+#### Drawing it
+
+Hand-written **SVG** in `docs/images/`, referenced from the document like any
+other figure. Mermaid stays the house language for the *collaboration* diagram —
+but a mermaid flowchart can only name a transposed axis or a dropped band, and
+this kind of figure exists to show them, so it is written by hand.
+
+- **A white card, whatever the reader's theme.** GitHub renders markdown light
+  or dark; an explicit light background with dark ink reads as a printed figure
+  in both, and needs one file rather than a `<picture>` pair.
+- **Self-contained.** System font stack, no external images, no script. It is
+  served as an `<img>`, so nothing it references from elsewhere will load.
+- **About 1180 units wide**, which is roughly the width GitHub gives a document
+  before it scales the image down.
+- **Panels in a row, captions under each**: what the stage is called above, what
+  the data now is below, in two sizes so the dimension line reads as secondary.
+- **Alt text describes the picture**, because it is all a screen reader gets —
+  not "a diagram of the pipeline" but what is in each panel. The italic caption
+  underneath is for everybody and says what to notice, which is a different job.
+- **Say that it is hand-drawn**, so the next person does not go looking for the
+  script that regenerates it.
+
+**Render it and look at it before committing.** `mermaid-cli` brings a headless
+browser with it, which will screenshot an SVG at its real size:
+
+```bash
+node -e '
+const p = require("/opt/homebrew/lib/node_modules/@mermaid-js/mermaid-cli/node_modules/puppeteer");
+(async () => {
+  const b = await p.launch(), pg = await b.newPage();
+  await pg.setViewport({width: 1200, height: 500, deviceScaleFactor: 2});
+  await pg.goto("file:///ABSOLUTE/PATH/figure.svg");
+  await pg.screenshot({path: "/tmp/figure.png", clip: {x: 0, y: 0, width: 1180, height: 470}});
+  await b.close();
+})();'
+```
+
+`qlmanage -t -s 1400 -o . figure.svg` is quicker and crops awkwardly; either
+way, the point is to look. The first draft of the ImageProcessor figure had its
+dashed outline overlapping its own heading, which is invisible in the markup and
+obvious the moment it is drawn.
+
+**Add the file to `sync.sh`.** `DOC_FILES` names every image explicitly, and one
+that is not in the list is silently never synced to the Pi.
+
+### 5. The cast table
 
 Two columns. No lead-in line and no heading — the header row already says what
 the table is.
@@ -106,7 +206,7 @@ The role is what keeps this from duplicating the generated
 scenario and the *caller* in another. **If a cast row would read the same in
 every scenario, it is not pulling its weight.**
 
-### 6. The diagram
+### 7. The diagram
 
 Mermaid, in a ` ```mermaid ` fence. GitHub renders it natively and
 `tools/docs/render_region.js` already depends on mermaid-cli, so it is the
@@ -177,7 +277,7 @@ mmdc -i /tmp/d0.mmd -o /tmp/d0.png -t dark -b '#0d1117'      # dark
 Then look at both. A diagram that parses is not the same as a diagram that
 reads.
 
-### 7. The step table
+### 8. The step table
 
 Three columns, directly under its diagram, one row per message.
 

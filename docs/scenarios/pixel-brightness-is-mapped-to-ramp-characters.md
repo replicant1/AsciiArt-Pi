@@ -28,6 +28,21 @@ reverses the character sequence while leaving the position table untouched —
 so both outputs flip together, by construction rather than by both remembering
 to.
 
+![A bar of all 256 brightness values divided into ten bands, dark at the left and
+light at the right, each band labelled with the ramp character it maps to and the
+ramp position beneath it, with the boundary values 0, 26, 52, 77, 103, 128, 154,
+180, 205 and 231 marked underneath. Below the bar, the terminal takes a row of
+characters and the panel takes the same positions as numbers](../images/brightness-to-ramp.svg)
+
+*The whole conversion, as one picture: brightness along the bar, the character
+under it, and the position under that. The two rows at the bottom are the same
+lookup asked two different questions, which is why the displays cannot disagree
+about which glyph a brightness deserves — and why `invert`, which reverses the
+characters and leaves the positions alone, flips both at once.*
+
+Kept by hand: edit [`brightness-to-ramp.svg`](../images/brightness-to-ramp.svg)
+directly, since nothing regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`ImageProcessor`](../../src/capture/image_processor.py#L49) | Rotate, crop, resize and level-adjust, shared by the luma[^yuv] and chroma planes so they stay in register. Here it is the **reducer**: [`process`](../../src/capture/image_processor.py#L159) turns a sensor-sized plane into exactly one pixel per character cell, which is what makes the mapping that follows cheap |

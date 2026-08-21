@@ -65,7 +65,10 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.
-DOC_FILES=(images/screenshot.png images/screenshot-colour.png
+DOC_FILES=(images/imageprocessor-pipeline.svg images/rgb565-packing.svg
+           images/yuv420-buffer.svg images/chroma-to-cell-colour.svg
+           images/brightness-to-ramp.svg
+           images/screenshot.png images/screenshot-colour.png
            images/both-displays.jpg images/scheme-montage.png
            images/enclosure-hero.png images/enclosure-ports.png
            images/enclosure-north.png images/enclosure-exploded.png

@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 480" width="1180" height="480"
+     font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>One YUV420 capture buffer, and the two pictures inside it</title>
+  <desc>A single buffer of 360 rows holds the luma plane in its first 240 rows
+        and the two chroma planes below it. Slicing the first block gives a
+        greyscale picture with no conversion; the rest reshapes into two
+        quarter-resolution planes.</desc>
+  <defs>
+    <pattern id="pad" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#f3f4f6"/>
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#d1d5db" stroke-width="1.4"/>
+    </pattern>
+    <linearGradient id="grey" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/><stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/>
+    </marker>
+    <style>
+      .card  { fill: #ffffff; stroke: #e5e7eb; }
+      .title { font-size: 15px; font-weight: 700; fill: #111827; }
+      .step  { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
+      .cap   { font-size: 11.5px; fill: #374151; }
+      .dim   { font-size: 11px; fill: #6b7280; }
+      .mono  { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; }
+      .plane { stroke: #1d4ed8; stroke-width: 1.4; }
+    </style>
+  </defs>
+  <rect class="card" x="0.5" y="0.5" width="1179" height="479" rx="8"/>
+  <text class="title" x="28" y="34">One buffer, two pictures</text>
+  <text class="dim"   x="28" y="53">The camera hands back 360 rows. Greyscale is the top 240 of them, taken as they are.</text>
+<text class="step" x="40" y="92">what the camera returns</text>
+<rect class="plane" x="40" y="104" width="180" height="180" fill="#dbeafe"/>
+<rect class="plane" x="40" y="284" width="180" height="45" fill="#bfdbfe"/>
+<rect class="plane" x="40" y="329" width="180" height="45" fill="#93c5fd"/>
+<rect x="220" y="104" width="14" height="270" fill="url(#pad)" stroke="#d1d5db"/>
+<text class="mono" x="130" y="200" font-size="26" text-anchor="middle" fill="#1e3a8a">Y</text>
+<text class="mono" x="130" y="313" font-size="17" text-anchor="middle" fill="#1e3a8a">U</text>
+<text class="mono" x="130" y="358" font-size="17" text-anchor="middle" fill="#1e3a8a">V</text>
+<text class="dim" x="40" y="396">320 bytes across, 360 rows down</text>
+<text class="dim" x="40" y="411">height x 3/2, in one allocation</text>
+<text class="dim" x="246" y="118">stride padding, if the</text>
+<text class="dim" x="246" y="133">hardware wants any -</text>
+<text class="dim" x="246" y="148">on this Pi it wants none,</text>
+<text class="dim" x="246" y="163">and the slice is insurance</text>
+<text class="cap" x="246" y="200">240 rows of luma</text>
+<text class="dim" x="246" y="215">76,800 bytes</text>
+<text class="cap" x="246" y="307">60 rows of U, 19,200</text>
+<text class="cap" x="246" y="352">60 rows of V, 19,200</text>
+<line x1="420" y1="190" x2="452" y2="190" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="step" x="468" y="92">greyscale, for nothing</text>
+<rect class="plane" x="468" y="104" width="200" height="150" fill="url(#grey)"/>
+<text class="mono" x="468" y="278" fill="#111827">luma = buf[:240, :320]</text>
+<text class="cap" x="468" y="298">a view of those same bytes: nothing</text>
+<text class="cap" x="468" y="314">copied and nothing converted, because</text>
+<text class="cap" x="468" y="330">the Y plane already is the picture</text>
+<line x1="420" y1="345" x2="452" y2="345" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="step" x="468" y="368">colour, for 38 KB more</text>
+<rect class="plane" x="468" y="380" width="200" height="16" fill="#bfdbfe"/>
+<text class="dim" x="468" y="412">the 120 rows below the luma, flattened</text>
+<text class="dim" x="468" y="427">then split in half and each half reshaped</text>
+<line x1="684" y1="388" x2="716" y2="388" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect class="plane" x="732" y="366" width="80" height="60" fill="#bfdbfe"/>
+<rect class="plane" x="824" y="366" width="80" height="60" fill="#93c5fd"/>
+<text class="mono" x="772" y="401" text-anchor="middle" fill="#1e3a8a">U</text>
+<text class="mono" x="864" y="401" text-anchor="middle" fill="#1e3a8a">V</text>
+<text class="dim" x="732" y="444">120 x 160 each: half the resolution on</text>
+<text class="dim" x="732" y="459">both axes, so a quarter of the samples</text>
+<line x1="700" y1="104" x2="700" y2="336" stroke="#e5e7eb"/>
+<text class="step" x="732" y="92">what the copy costs</text>
+<text class="cap" x="732" y="118">luma alone</text>
+<text class="mono" x="1080" y="118" text-anchor="end">76,800</text>
+<text class="cap" x="732" y="140">both chroma planes</text>
+<text class="mono" x="1080" y="140" text-anchor="end">38,400</text>
+<line x1="732" y1="150" x2="1080" y2="150" stroke="#d1d5db"/>
+<text class="cap" x="732" y="170">one copy, made every frame</text>
+<text class="mono" x="1080" y="170" text-anchor="end" fill="#1d4ed8">115,200</text>
+<text class="dim" x="732" y="194">The 38 KB is paid on every frame and read</text>
+<text class="dim" x="732" y="209">only in a live scheme. Taking it now is one</text>
+<text class="dim" x="732" y="224">copy; fetching it later would be a second.</text>
+<text class="step" x="732" y="258">U before V, checked rather than assumed</text>
+<rect x="732" y="270" width="56" height="42" fill="#d1603d" stroke="#9ca3af"/>
+<rect x="804" y="270" width="56" height="42" fill="#3d7ad1" stroke="#9ca3af"/>
+<text class="dim" x="732" y="328">as delivered</text>
+<text class="dim" x="804" y="328">swapped</text>
+<text class="dim" x="880" y="286">The wrong order swaps blue</text>
+<text class="dim" x="880" y="301">and red, which looks plausible</text>
+<text class="dim" x="880" y="316">enough to survive a glance - so</text>
+<text class="dim" x="880" y="331">it was settled against a reference</text>
+<text class="dim" x="880" y="346">RGB888 capture of one scene.</text>
+</svg>

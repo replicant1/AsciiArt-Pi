@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 470" width="1180" height="470"
+     font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>What ImageProcessor does to one frame</title>
+  <desc>A camera frame of 320 by 240 pixels is rotated, cropped, resized and
+        levelled until it is a grid of character cells.</desc>
+
+  <defs>
+    <pattern id="dropped" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="7" height="7" fill="#fee2e2"/>
+      <line x1="0" y1="0" x2="0" y2="7" stroke="#f87171" stroke-width="1.6"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/>
+    </marker>
+    <style>
+      .card   { fill: #ffffff; stroke: #e5e7eb; }
+      .title  { font-size: 15px; font-weight: 700; fill: #111827; }
+      .step   { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
+      .cap    { font-size: 11.5px; fill: #374151; }
+      .dim    { font-size: 11px; fill: #6b7280; }
+      .frame  { fill: #eff6ff; stroke: #1d4ed8; stroke-width: 1.6; }
+      .ghost  { fill: none; stroke: #9ca3af; stroke-width: 1.2; stroke-dasharray: 4 3; }
+      .keep   { fill: #eff6ff; stroke: #16a34a; stroke-width: 2; }
+      .glyph  { font-family: ui-monospace, Menlo, Consolas, monospace; fill: #1d4ed8; }
+      .cell   { stroke: #93c5fd; stroke-width: 0.8; fill: none; }
+      .lane   { fill: #f9fafb; stroke: #d1d5db; stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+
+  <rect class="card" x="0.5" y="0.5" width="1179" height="469" rx="8"/>
+  <text class="title" x="28" y="34">One frame, from the sensor to the character grid</text>
+  <text class="dim"   x="28" y="53">Left to right, the same picture at every stage. Nothing here crosses a thread.</text>
+
+  <!-- 1. the camera frame -->
+  <text class="step" x="40" y="92">the camera frame</text>
+  <rect class="frame" x="40" y="104" width="160" height="120" rx="3"/>
+  <text class="glyph" x="120" y="188" font-size="72" text-anchor="middle">F</text>
+  <text class="cap" x="40" y="244">320 x 240, one byte a pixel</text>
+  <text class="dim" x="40" y="260">76,800 of them</text>
+  <line x1="212" y1="164" x2="252" y2="164" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 2. rotate -->
+  <text class="step" x="264" y="92">rotate</text>
+  <rect class="frame" x="264" y="104" width="160" height="120" rx="3"/>
+  <text class="glyph" x="344" y="188" font-size="72" text-anchor="middle">F</text>
+  <text class="cap" x="264" y="244">as mounted, no turn and no flip</text>
+  <g>
+    <rect class="ghost" x="264" y="256" width="40" height="30" rx="2"/>
+    <text class="glyph" x="284" y="279" font-size="17" text-anchor="middle" fill="#9ca3af">F</text>
+    <line x1="308" y1="271" x2="322" y2="271" stroke="#9ca3af" stroke-width="1.2" marker-end="url(#arrow)"/>
+    <rect class="ghost" x="326" y="251" width="30" height="40" rx="2"/>
+    <text class="glyph" x="341" y="277" font-size="17" text-anchor="middle" fill="#9ca3af"
+          transform="rotate(90 341 271)">F</text>
+    <text class="dim" x="364" y="268">a quarter turn</text>
+    <text class="dim" x="364" y="283">transposes: 240 x 320</text>
+  </g>
+  <line x1="436" y1="164" x2="476" y2="164" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 3. crop -->
+  <text class="step" x="488" y="92">crop, in fill mode only</text>
+  <rect x="488" y="104" width="160" height="120" rx="3" fill="url(#dropped)" stroke="#9ca3af" stroke-width="1"/>
+  <rect class="keep" x="488" y="134" width="160" height="60"/>
+  <text class="glyph" x="568" y="182" font-size="46" text-anchor="middle">F</text>
+  <text class="cap" x="488" y="244">4:3 into a 2:1 grid keeps the</text>
+  <text class="cap" x="488" y="260">middle and drops 80 rows</text>
+  <text class="dim" x="488" y="276">in fit mode nothing is cut, and</text>
+  <text class="dim" x="488" y="291">the picture is letterboxed instead</text>
+  <line x1="660" y1="164" x2="700" y2="164" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 4. resize -->
+  <text class="step" x="712" y="92">resize, by area averaging</text>
+  <rect class="frame" x="712" y="134" width="160" height="60" rx="0"/>
+  <g class="cell">
+    <path d="M732 134 V194 M752 134 V194 M772 134 V194 M792 134 V194 M812 134 V194 M832 134 V194 M852 134 V194"/>
+    <path d="M712 149 H872 M712 164 H872 M712 179 H872"/>
+  </g>
+  <rect x="752" y="149" width="20" height="15" fill="#1d4ed8" opacity="0.75"/>
+  <rect x="772" y="149" width="20" height="15" fill="#1d4ed8" opacity="0.45"/>
+  <rect x="752" y="164" width="20" height="15" fill="#1d4ed8" opacity="0.30"/>
+  <text class="cap" x="712" y="244">every cell becomes the mean of</text>
+  <text class="cap" x="712" y="260">the pixels it covers</text>
+  <text class="dim" x="712" y="276">80 x 30 here: 2,400 values, and</text>
+  <text class="dim" x="712" y="291">everything downstream is this size</text>
+  <line x1="884" y1="164" x2="924" y2="164" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- 5. levels -->
+  <text class="step" x="936" y="92">levels, then the grid</text>
+  <rect class="frame" x="936" y="134" width="160" height="60" rx="0"/>
+  <text class="glyph" x="944" y="152" font-size="13">@ % # * + = - . &#160;</text>
+  <text class="glyph" x="944" y="169" font-size="13">% # * + = - . &#160; &#160;</text>
+  <text class="glyph" x="944" y="186" font-size="13"># * + = - . &#160; &#160; &#160;</text>
+  <text class="cap" x="936" y="244">the 2nd to 98th percentile of this</text>
+  <text class="cap" x="936" y="260">frame stretched to 0-255</text>
+  <text class="dim" x="936" y="276">2,400 comparisons, not 76,800,</text>
+  <text class="dim" x="936" y="291">because it runs after the resize</text>
+
+  <!-- the shared lane -->
+  <rect class="lane" x="264" y="326" width="608" height="86" rx="6"/>
+  <text class="step" x="284" y="352" fill="#374151">to_grid, shared by every plane</text>
+  <text class="cap" x="284" y="373">The two chroma planes - 160 x 120 each - take exactly the three stages above this lane:</text>
+  <text class="cap" x="284" y="390">the same rotate, the same crop, the same resize. Any difference between the planes would</text>
+  <text class="cap" x="284" y="407">show as colour fringing along every edge. They skip levels, which is the luma path only.</text>
+  <line x1="884" y1="369" x2="928" y2="369" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+  <text class="dim" x="936" y="360">one RGB per cell,</text>
+  <text class="dim" x="936" y="375">in a live scheme</text>
+  <text class="dim" x="936" y="390">only</text>
+
+  <line x1="152" y1="326" x2="152" y2="412" stroke="#e5e7eb"/>
+  <text class="cap" x="40" y="352">The grid size is</text>
+  <text class="cap" x="40" y="369">settled before any</text>
+  <text class="cap" x="40" y="386">of this: 64 x 24 on</text>
+  <text class="cap" x="40" y="403">the panel, larger on</text>
+  <text class="cap" x="40" y="420">a full-screen terminal.</text>
+</svg>

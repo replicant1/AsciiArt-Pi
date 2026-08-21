@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 470" width="1180" height="470"
+     font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <title>Where a character cell's colour comes from</title>
+  <desc>A full-resolution luma plane and two quarter-resolution chroma planes go
+        through the same reduction to a grid of cells. One cell's Y, U and V
+        become an RGB triple, which the panel takes as it is and the terminal
+        snaps to the nearest entry of its fixed palette.</desc>
+  <defs>
+    <linearGradient id="grey" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/><stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/>
+    </marker>
+    <style>
+      .card  { fill: #ffffff; stroke: #e5e7eb; }
+      .title { font-size: 15px; font-weight: 700; fill: #111827; }
+      .step  { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
+      .cap   { font-size: 11.5px; fill: #374151; }
+      .dim   { font-size: 11px; fill: #6b7280; }
+      .mono  { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; }
+      .pl    { stroke: #1d4ed8; stroke-width: 1.4; }
+      .cellr { fill: #eff6ff; stroke: #93c5fd; stroke-width: 0.7; }
+    </style>
+  </defs>
+  <rect class="card" x="0.5" y="0.5" width="1179" height="469" rx="8"/>
+  <text class="title" x="28" y="34">One cell's colour, and where it is cheap to work out</text>
+  <text class="dim"   x="28" y="53">The conversion runs after the downscale, so it is arithmetic on cells rather than on pixels.</text>
+<text class="step" x="40" y="92">three planes, two resolutions</text>
+<rect class="pl" x="40" y="104" width="150" height="112" fill="url(#grey)"/>
+<text class="dim" x="40" y="232">Y, 320 x 240</text>
+<rect class="pl" x="40" y="246" width="74" height="56" fill="#bfdbfe"/>
+<rect class="pl" x="122" y="246" width="74" height="56" fill="#93c5fd"/>
+<text class="mono" x="77" y="280" text-anchor="middle" fill="#1e3a8a">U</text>
+<text class="mono" x="159" y="280" text-anchor="middle" fill="#1e3a8a">V</text>
+<text class="dim" x="40" y="320">160 x 120 each: a quarter of the samples,</text>
+<text class="dim" x="40" y="335">which is what makes colour affordable</text>
+<line x1="212" y1="175" x2="248" y2="175" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text class="step" x="264" y="92">to_grid, the same path for all three</text>
+<rect class="cellr" x="264" y="104" width="24" height="18"/>
+<rect class="cellr" x="264" y="122" width="24" height="18"/>
+<rect class="cellr" x="264" y="140" width="24" height="18"/>
+<rect class="cellr" x="264" y="158" width="24" height="18"/>
+<rect class="cellr" x="264" y="176" width="24" height="18"/>
+<rect class="cellr" x="264" y="194" width="24" height="18"/>
+<rect class="cellr" x="264" y="212" width="24" height="18"/>
+<rect class="cellr" x="288" y="104" width="24" height="18"/>
+<rect class="cellr" x="288" y="122" width="24" height="18"/>
+<rect class="cellr" x="288" y="140" width="24" height="18"/>
+<rect class="cellr" x="288" y="158" width="24" height="18"/>
+<rect class="cellr" x="288" y="176" width="24" height="18"/>
+<rect class="cellr" x="288" y="194" width="24" height="18"/>
+<rect class="cellr" x="288" y="212" width="24" height="18"/>
+<rect class="cellr" x="312" y="104" width="24" height="18"/>
+<rect class="cellr" x="312" y="122" width="24" height="18"/>
+<rect class="cellr" x="312" y="140" width="24" height="18"/>
+<rect class="cellr" x="312" y="158" width="24" height="18"/>
+<rect class="cellr" x="312" y="176" width="24" height="18"/>
+<rect class="cellr" x="312" y="194" width="24" height="18"/>
+<rect class="cellr" x="312" y="212" width="24" height="18"/>
+<rect class="cellr" x="336" y="104" width="24" height="18"/>
+<rect class="cellr" x="336" y="122" width="24" height="18"/>
+<rect class="cellr" x="336" y="140" width="24" height="18"/>
+<rect class="cellr" x="336" y="158" width="24" height="18"/>
+<rect class="cellr" x="336" y="176" width="24" height="18"/>
+<rect class="cellr" x="336" y="194" width="24" height="18"/>
+<rect class="cellr" x="336" y="212" width="24" height="18"/>
+<rect class="cellr" x="360" y="104" width="24" height="18"/>
+<rect class="cellr" x="360" y="122" width="24" height="18"/>
+<rect class="cellr" x="360" y="140" width="24" height="18"/>
+<rect class="cellr" x="360" y="158" width="24" height="18"/>
+<rect class="cellr" x="360" y="176" width="24" height="18"/>
+<rect class="cellr" x="360" y="194" width="24" height="18"/>
+<rect class="cellr" x="360" y="212" width="24" height="18"/>
+<rect class="cellr" x="384" y="104" width="24" height="18"/>
+<rect class="cellr" x="384" y="122" width="24" height="18"/>
+<rect class="cellr" x="384" y="140" width="24" height="18"/>
+<rect class="cellr" x="384" y="158" width="24" height="18"/>
+<rect class="cellr" x="384" y="176" width="24" height="18"/>
+<rect class="cellr" x="384" y="194" width="24" height="18"/>
+<rect class="cellr" x="384" y="212" width="24" height="18"/>
+<rect class="cellr" x="408" y="104" width="24" height="18"/>
+<rect class="cellr" x="408" y="122" width="24" height="18"/>
+<rect class="cellr" x="408" y="140" width="24" height="18"/>
+<rect class="cellr" x="408" y="158" width="24" height="18"/>
+<rect class="cellr" x="408" y="176" width="24" height="18"/>
+<rect class="cellr" x="408" y="194" width="24" height="18"/>
+<rect class="cellr" x="408" y="212" width="24" height="18"/>
+<rect class="cellr" x="432" y="104" width="24" height="18"/>
+<rect class="cellr" x="432" y="122" width="24" height="18"/>
+<rect class="cellr" x="432" y="140" width="24" height="18"/>
+<rect class="cellr" x="432" y="158" width="24" height="18"/>
+<rect class="cellr" x="432" y="176" width="24" height="18"/>
+<rect class="cellr" x="432" y="194" width="24" height="18"/>
+<rect class="cellr" x="432" y="212" width="24" height="18"/>
+<rect class="cellr" x="456" y="104" width="24" height="18"/>
+<rect class="cellr" x="456" y="122" width="24" height="18"/>
+<rect class="cellr" x="456" y="140" width="24" height="18"/>
+<rect class="cellr" x="456" y="158" width="24" height="18"/>
+<rect class="cellr" x="456" y="176" width="24" height="18"/>
+<rect class="cellr" x="456" y="194" width="24" height="18"/>
+<rect class="cellr" x="456" y="212" width="24" height="18"/>
+<rect class="cellr" x="480" y="104" width="24" height="18"/>
+<rect class="cellr" x="480" y="122" width="24" height="18"/>
+<rect class="cellr" x="480" y="140" width="24" height="18"/>
+<rect class="cellr" x="480" y="158" width="24" height="18"/>
+<rect class="cellr" x="480" y="176" width="24" height="18"/>
+<rect class="cellr" x="480" y="194" width="24" height="18"/>
+<rect class="cellr" x="480" y="212" width="24" height="18"/>
+<rect class="cellr" x="504" y="104" width="24" height="18"/>
+<rect class="cellr" x="504" y="122" width="24" height="18"/>
+<rect class="cellr" x="504" y="140" width="24" height="18"/>
+<rect class="cellr" x="504" y="158" width="24" height="18"/>
+<rect class="cellr" x="504" y="176" width="24" height="18"/>
+<rect class="cellr" x="504" y="194" width="24" height="18"/>
+<rect class="cellr" x="504" y="212" width="24" height="18"/>
+<rect class="cellr" x="528" y="104" width="24" height="18"/>
+<rect class="cellr" x="528" y="122" width="24" height="18"/>
+<rect class="cellr" x="528" y="140" width="24" height="18"/>
+<rect class="cellr" x="528" y="158" width="24" height="18"/>
+<rect class="cellr" x="528" y="176" width="24" height="18"/>
+<rect class="cellr" x="528" y="194" width="24" height="18"/>
+<rect class="cellr" x="528" y="212" width="24" height="18"/>
+<rect class="cellr" x="552" y="104" width="24" height="18"/>
+<rect class="cellr" x="552" y="122" width="24" height="18"/>
+<rect class="cellr" x="552" y="140" width="24" height="18"/>
+<rect class="cellr" x="552" y="158" width="24" height="18"/>
+<rect class="cellr" x="552" y="176" width="24" height="18"/>
+<rect class="cellr" x="552" y="194" width="24" height="18"/>
+<rect class="cellr" x="552" y="212" width="24" height="18"/>
+<rect class="cellr" x="576" y="104" width="24" height="18"/>
+<rect class="cellr" x="576" y="122" width="24" height="18"/>
+<rect class="cellr" x="576" y="140" width="24" height="18"/>
+<rect class="cellr" x="576" y="158" width="24" height="18"/>
+<rect class="cellr" x="576" y="176" width="24" height="18"/>
+<rect class="cellr" x="576" y="194" width="24" height="18"/>
+<rect class="cellr" x="576" y="212" width="24" height="18"/>
+<rect x="384" y="140" width="24" height="18" fill="#1d4ed8" opacity="0.35" stroke="#1d4ed8"/>
+<text class="cap" x="264" y="256">the same rotate, the same crop and the same resize</text>
+<text class="cap" x="264" y="272">for every plane - a difference between them would</text>
+<text class="cap" x="264" y="288">show as colour fringing along every edge</text>
+<text class="dim" x="264" y="312">at 133 x 50 that is about 6,650 cells to convert,</text>
+<text class="dim" x="264" y="327">where the frame itself has 76,800 pixels</text>
+<path d="M408 158 L470 200 L536 200" fill="none" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+<text class="step" x="620" y="92">one cell of it</text>
+<rect class="pl" x="620" y="104" width="110" height="110" fill="#eff6ff"/>
+<text class="mono" x="675" y="140" text-anchor="middle" fill="#1e3a8a">Y = 120</text>
+<text class="mono" x="675" y="172" text-anchor="middle" fill="#1e3a8a">U =  90</text>
+<text class="mono" x="675" y="204" text-anchor="middle" fill="#1e3a8a">V = 200</text>
+<text class="cap" x="620" y="240">Y is the luma grid that already chose this</text>
+<text class="cap" x="620" y="256">cell's character, handed back in rather than</text>
+<text class="cap" x="620" y="272">recomputed - so the glyph and the colour it</text>
+<text class="cap" x="620" y="288">is drawn in cannot disagree</text>
+<text class="dim" x="620" y="312">the chroma is read straight off the frame the</text>
+<text class="dim" x="620" y="327">capture already copied, so nothing is fetched</text>
+<line x1="28" y1="356" x2="1152" y2="356" stroke="#e5e7eb"/>
+<text class="step" x="40" y="384">the arithmetic, per cell</text>
+<text class="mono" x="40" y="408">R = Y + 1.402 (V-128)</text>
+<text class="mono" x="40" y="428">G = Y - 0.344 (U-128) - 0.714 (V-128)</text>
+<text class="mono" x="40" y="448">B = Y + 1.772 (U-128)</text>
+<text class="mono" x="330" y="384" fill="#111827">= 220, 81, 52</text>
+<rect x="330" y="396" width="86" height="52" fill="rgb(220,81,52)" stroke="#9ca3af"/>
+<line x1="450" y1="366" x2="450" y2="456" stroke="#e5e7eb"/>
+<text class="step" x="482" y="384">then the two displays part company</text>
+<rect x="482" y="396" width="70" height="24" fill="rgb(220,81,52)" stroke="#9ca3af"/>
+<text class="cap" x="562" y="413">the panel takes the RGB as computed</text>
+<rect x="482" y="428" width="70" height="24" fill="rgb(215,95,95)" stroke="#9ca3af"/>
+<text class="cap" x="562" y="445">the terminal takes xterm 167, its nearest</text>
+<line x1="850" y1="366" x2="850" y2="456" stroke="#e5e7eb"/>
+<text class="dim" x="882" y="384">The terminal has a 6 x 6 x 6 cube at palette entries 16 to</text>
+<text class="dim" x="882" y="399">231 and nothing between its steps, so every colour it is</text>
+<text class="dim" x="882" y="414">given lands on one of 216.</text>
+<text class="dim" x="882" y="436">Quantising is therefore free there, while the panel, which</text>
+<text class="dim" x="882" y="451">has no such limit, has to posterise the RGB itself.</text>
+</svg>

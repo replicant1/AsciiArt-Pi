@@ -31,6 +31,24 @@ pixels, so the black-screen case — which is greyscale and the live scheme, and
 therefore most of the time — is special-cased into a plain modulate that stays
 in `uint16` and skips an `int32` promotion. It is worth about 7 ms a frame.
 
+![The path from glyphs to bytes: ten ramp characters each rasterised into a
+5 by 10 pixel tile, a grid of ramp positions, those positions gathering tiles
+into a four-dimensional array of cell rows, cell columns and the pixel rows and
+columns inside each, a transpose turning that into a 240 by 320 image of
+coverage, and one pixel's coverage packed into sixteen bits as five of red, six
+of green and five of blue](../images/rgb565-packing.svg)
+
+*Every stage but the last is a rearrangement rather than a calculation, which is
+the reason the drawing costs 3.7 ms against 33 ms of transfer. The four-part
+shape in the middle is the one worth looking at twice: a cell's ten pixel rows
+sit together as gathered, and `transpose(0, 2, 1, 3)` is what puts them where a
+picture's rows are. The bit strip is the worked example this document quotes —
+coverage 200 becoming `0xCE 0x59`.*
+
+Kept by hand: edit
+[`rgb565-packing.svg`](../images/rgb565-packing.svg) directly, since nothing
+regenerates it.
+
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46) | Every character of a ramp, pre-rendered into a fixed-size cell. Here it is the **type case**: [`_render`](../../src/lcd/lcd_display.py#L69) rasterises each glyph exactly once, and warns about any the font lacks rather than letting them come out blank |
