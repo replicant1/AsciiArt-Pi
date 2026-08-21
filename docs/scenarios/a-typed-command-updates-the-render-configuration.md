@@ -2,32 +2,34 @@
 
 **Priority: `HIGH`** — every route by which a setting changes converges on this one, so it runs on every change the app ever makes. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-Somebody types `contrast 2.4 invert on` at a shell and the picture changes on
-both displays. The value is that this works against a process with no terminal
-of its own — the boot service, in the enclosure — where no key can be pressed;
-and that it gets there without the render loop ever waiting on whoever typed it.
+Somebody types `contrast 2.4 invert on`[^invert] at a shell and the picture
+changes on both displays. The value is that this works against a process with
+no terminal of its own — the boot service[^systemd], in the enclosure — where
+no key can be pressed; and that it gets there without the render loop ever
+waiting on whoever typed it.
 
-The collaboration turns on one division. `CommandServer` runs on its own thread
-and owns the socket, but it does not understand a single setting: it splits
-lines, hands each to the render loop, and blocks its own client for the answer.
-`MainRenderLooper` understands the line but never touches the socket. Between
-them is a queue, drained once per frame in the same place keys and the knob are
-read — so a typed setting lands exactly where a keypress would, and cannot
-arrive halfway through a frame.
+The collaboration turns on one division. `CommandServer` runs on its own
+thread and owns the socket[^socket], but it does not understand a single
+setting: it splits lines, hands each to the render loop, and blocks its own
+client for the answer. `MainRenderLooper` understands the line but never
+touches the socket. Between them is a queue, drained once per frame in the
+same place keys and the knob[^detent] are read — so a typed setting lands
+exactly where a keypress would, and cannot arrive halfway through a frame.
 
 The other division is that `commands.parse` turns text into typed values and
-stops. It is deliberately forgiving about syntax — `scheme=green` and
+stops. It is deliberately forgiving about syntax — `scheme=green`[^scheme] and
 `scheme green` both work — and not forgiving at all about names and values,
-because deciding what is *allowed* belongs to `RenderConfig` one layer down.
-That is why `rotation 45` parses cleanly and is then refused, in the same words
-a keypress would have earned. A front end that could accept more than the
-validated path would let a phrase work by hand and fail through the parser.
+because deciding what is *allowed* belongs to `RenderConfig`[^config] one
+layer down. That is why `rotation 45` parses cleanly and is then refused, in
+the same words a keypress would have earned. A front end that could accept
+more than the validated path would let a phrase work by hand and fail through
+the parser.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`CommandServer`](../../src/control/command_server.py#L80) | A `threading.Thread` owning the Unix socket, with a thread per connected client. Here it is the **courier**: it splits lines, offers each to the resolver, puts it on the inbox and blocks its own client for the answer. It understands not one setting, which is exactly what keeps the socket's concerns out of the render loop |
 | [`commands`](../../src/control/commands.py) | A module of functions rather than a class — its only class is [`CommandError`](../../src/control/commands.py#L49), the exception. Here it is the **translator and the dispatcher**: [`parse`](../../src/control/commands.py#L53) turns a line into typed values and stops, holding no opinion about what is allowed so that exactly one place does, while [`run_command`](../../src/control/commands.py#L352) decides what each kind of line means and words every answer |
-| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the whole process is hung off, and the only thread a setting may be changed on. Here it is the **applier**: it [drains the inbox once per frame](../../ascii_camera.py#L455), binds this run's own state to the dispatcher, and is the only thing that pushes an adopted config out to the terminal and the panel worker |
+| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the whole process is hung off, and the only thread a setting may be changed on. Here it is the **applier**: it [drains the inbox once per frame](../../ascii_camera.py#L455), binds this run's own state to the dispatcher, and is the only thing that pushes an adopted config out to the terminal and the panel[^panel] worker |
 | [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen so that it is replaced rather than mutated. Here it is both **validator and diff**: [`with_changes`](../../src/control/render_config.py#L141) returns the new config, and [`describe_changes`](../../src/control/render_config.py#L191) produces the text the person gets back |
 
 ## From the command socket to the render loop
@@ -77,7 +79,7 @@ sequenceDiagram
 | 1 | `contrast 2.4 invert on` | Two settings in one line. Syntax is forgiving — `contrast=2.4` works too — and names and values are not, which is the distinction that stops this front end accepting anything the validated path would refuse |
 | 2 | the line, over the Unix socket | The socket is created mode 0600, so it is unreachable from the network and only the user running the app can connect. `--no-commands` switches it off entirely |
 | 3 | [`_serve`](../../src/control/command_server.py#L189) splits on newline | Reads from one client until it goes away. Anything past [4 KB](../../src/control/command_server.py#L47) is refused rather than buffered: nothing legitimate comes close, and it stops a stuck client growing memory without limit |
-| 4 | [`_prepare`](../../src/control/command_server.py#L214) gives the resolver first refusal<br>(None for a typed line — see the ask scenarios) | The hook where anything slow belongs. A typed line comes back `None` and passes straight through. The natural-language path instead returns an [`Ask`](../../src/control/command_server.py#L55) here — a delta already worked out, on this thread — which is why a four-second model call never reaches the render loop as a wait. A resolver that raises is contained here: the client is told, the loop never hears about it, and the connection stays up |
+| 4 | [`_prepare`](../../src/control/command_server.py#L214) gives the resolver first refusal<br>(None for a typed line — see the ask scenarios) | The hook where anything slow belongs. A typed line comes back `None` and passes straight through. The natural-language path instead returns an [`Ask`](../../src/control/command_server.py#L55) here — a delta[^delta] already worked out, on this thread — which is why a four-second model call never reaches the render loop as a wait. A resolver that raises is contained here: the client is told, the loop never hears about it, and the connection stays up |
 | 5 | [`_ask`](../../src/control/command_server.py#L236) puts (line, answer queue) on the inbox | The handover. Each request carries its own single-slot answer queue, so replies cannot be crossed between clients |
 | 6 | waits on the answer queue, 5 s limit | The loop [drains the inbox once per frame](../../ascii_camera.py#L455), so [five seconds](../../src/control/command_server.py#L43) is generous by two orders of magnitude. It exists to stop a client hanging for ever against an app that has wedged — on a timeout the client is told the app did not answer, which on this hardware is a real possibility worth being able to see |
 | 7 | [`take`](../../src/control/command_server.py#L258)`()` — everything waiting, never blocks | Drained on this thread rather than the socket's, because applying a setting repaints the window, rebuilds the ASCII generator and talks to the panel worker, none of which is safe elsewhere. Called in the same place [keys](../../ascii_camera.py#L608) and [the knob](../../src/control/scheme_cycle.py#L86) are read, so a typed setting lands exactly where a keypress would and cannot arrive halfway through a frame |
@@ -115,3 +117,62 @@ see below.
   — what happens in place of the `_adopt` and `describe_changes` exchange when a
   name or value is rejected. Same cast, same reply channel, different outcome,
   which is why it is drawn separately rather than as a branch here.
+
+### Footnotes
+
+[^invert]: The **invert** setting reverses the ramp, so bright pixels get the
+    dark end of it — white-on-black becomes black-on-white in effect. It
+    reverses the characters and deliberately leaves the position table alone,
+    which is how both displays stay in agreement about which glyph a brightness
+    deserves.
+
+[^systemd]: The Linux service manager. It is what starts this app at boot,
+    with `--lcd --encoder --no-terminal`, and what restarts it if it dies —
+    which is why a claim left behind on the way out matters: the next start is
+    seconds away and automatic.
+
+[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
+    one machine — the same read-and-write as a network socket, with no network.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
+    which is how a shell, a phone or a script reaches a running camera without
+    the app ever opening a port.
+
+[^detent]: A **detent** is one click of the knob — the position it settles
+    into, felt as a notch. Electrically it is one full cycle of the two
+    switches, which is what [`QuadratureDecoder`](../../src/control/encoder.py#L88)
+    counts. **Quadrature** is the arrangement: two switches a quarter-cycle
+    apart, so which one changes first says which way the knob turned, and
+    contact bounce that does not complete a cycle emits nothing.
+
+[^scheme]: A **colour scheme** is one of the nine named looks in
+    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
+    of the render configuration. `grey` is the default, and is what "greyscale
+    mode" means: characters only, drawn from the luma plane and nothing else.
+    `live` is the only scheme that reads the chroma planes, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
+    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
+    the same greyscale picture from two fixed colours.
+
+[^config]: The **render configuration** is the complete live state of how the
+    picture is drawn — scheme, ramp, contrast, rotation and the rest. It is
+    frozen: nothing assigns to it, and every change produces a whole new
+    [`RenderConfig`](../../src/control/render_config.py#L118) through
+    [`with_changes`](../../src/control/render_config.py#L141), which is also
+    the only code that decides whether a value is allowed. What the settings
+    are, and what each accepts, is
+    [`SPECS`](../../src/control/render_config.py#L74) — one table that the
+    validator, the `help` text, the command-line arguments and the model's
+    tool schema are all built from.
+
+[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
+    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
+    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
+    kernel driver behind it. In the sealed enclosure it is the only display
+    there is. One full frame is 153,600 bytes, sent in
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
+    the driver's buffer holds.
+
+[^delta]: A **delta** is a plain dict of the settings a change means to alter —
+    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
+    hands it to the configuration; none of them assigns a setting directly.
+    That is what keeps validation in one place no matter who asked.

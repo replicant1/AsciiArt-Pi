@@ -329,6 +329,12 @@ link, and gives every note a `↩` back to where it was referenced.
   at *greyscale mode* — and GitHub gives both markers one number and the note
   two back-links, `↩` and `↩2`.
 - **Order the definitions by first use**, which is the order they render in.
+- **One term, one note, word for word.** `ISP`, the character grid and the
+  colour schemes are explained in a dozen documents each. Copy the wording
+  rather than writing it again: a reader who has met the note before should
+  recognise it and move on, and two notes that drift apart are two claims to
+  keep true. All 25 scenarios draw on one set of 56, and the commonest — the panel, the
+  colour schemes, the character grid — carry half the documents each.
 - **Head the block `### Footnotes`, at level three.** GitHub's own footnotes
   heading exists but is screen-reader-only, so without one the notes arrive
   on the page with nothing naming them — and the level matters, because
@@ -368,6 +374,16 @@ print("orphan refs:", set(refs) - set(defs), " unused defs:", set(defs) - set(re
 CHECK
 ```
 
+The harder question is not whether the notes are wired up but whether a term
+was missed, and the answer is not to re-read looking for them — the terms a
+writer misses are exactly the ones that look ordinary to them. Extract the
+candidates from the prose instead, the way
+[`check_glossary.py`](../tools/docs/check_glossary.py) does for the build
+guides: take the terms already glossed anywhere in `docs/scenarios/`, and for
+each document report the ones it uses without a note. That sweep is what added
+the last 40-odd markers across the 25 documents, including every mention of the
+character grid in the two documents named after it.
+
 Everything else applies as it does in the body: `#L` anchors inside a footnote
 are checked like any other, so link into `src/` freely, and **measure the
 claims**. The stride note says the stride comes back equal to the width because
@@ -381,9 +397,8 @@ built-in preview, `[^isp]` shows as literal text — that preview needs the
 `bierner.markdown-footnotes` extension before it renders them at all. Worth
 knowing before concluding a document is broken.
 
-Twelve notes in the capture-thread scenario is the most any document carries,
-and that one is unusually dense in hardware terms. One per term, at first use,
-and only for terms.
+Thirteen notes is the most any document carries and four the least, against a
+median of nine. One per term, at first use, and only for terms.
 
 ## Getting the facts right
 

@@ -2,27 +2,27 @@
 
 **Priority: `MEDIUM`** — the guard every route meets, but only on input that is wrong - the picture is never at risk while it runs. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-Somebody asks for `rotation 45`, and is told `rotation must be one of 0, 90,
-180, 270, not 45`. The value is that they are told *that*, in those words,
-whoever they are — a key, the knob, a typed line, a phone, or a language model
-proposing a delta. There is no route to the hardware that can accept something
-the others would refuse, which is the only thing that makes comparing those
-routes meaningful.
+Somebody asks for `rotation 45`, and is told `rotation must be one of 0,
+90, 180, 270, not 45`. The value is that they are told *that*, in those words,
+whoever they are — a key, the knob[^detent], a typed line, a phone, or a
+language model proposing a delta[^delta]. There is no route to the hardware
+that can accept something the others would refuse, which is the only thing
+that makes comparing those routes meaningful.
 
 That property is bought by a rule about what each layer is allowed to decide.
 `commands.parse` settles a word's **type** and nothing else: `rotation 45`
 becomes the integer 45 and is handed on untouched, because whether 45 is an
-allowed rotation is not its question. `RenderConfig` decides what is
+allowed rotation is not its question. `RenderConfig`[^config] decides what is
 **allowed**. The first version of the parser did refuse bad choices itself,
-which put "must be one of" in two modules and meant `rotation 45` never reached
-the validator at all — `tests/control/commands_test.py` caught it.
+which put "must be one of" in two modules and meant `rotation 45` never
+reached the validator at all — `tests/control/commands_test.py` caught it.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the whole process is hung off, and the only thread a setting may be changed on. Here it is the **caller**: it holds the live config, offers every delta to the validator through [`apply`](../../ascii_camera.py#L235), and adds the single check the validator is not in a position to make — whether this run actually has the display a `target` names |
 | [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen so that it is replaced rather than mutated. Here it is the **judge**: [`with_changes`](../../src/control/render_config.py#L141) is the only code in the app that decides whether a value is allowed, and it answers identically whoever asked |
-| [`Spec`](../../src/control/render_config.py#L63) | What one setting accepts and what it is for — its `kind`, and either its `choices` or its `low` and `high`. Here it supplies the rule each value is tested against by [`_coerce`](../../src/control/render_config.py#L211), and the wording of the complaint when a value misses. The [twelve of them](../../src/control/render_config.py#L74) are also the source of the `help` text and the model's tool schema, so all three agree by construction |
-| [`ConfigError`](../../src/control/render_config.py#L49) | A delta that could not be applied. Here it is the **vehicle for every reason at once** rather than the first one found, which is what lets a caller — or the eval harness — fix a whole delta in a single pass |
+| [`Spec`](../../src/control/render_config.py#L63) | What one setting accepts and what it is for — its `kind`, and either its `choices` or its `low` and `high`. Here it supplies the rule each value is tested against by [`_coerce`](../../src/control/render_config.py#L211), and the wording of the complaint when a value misses. The [twelve of them](../../src/control/render_config.py#L74) are also the source of the `help` text and the model's tool schema[^toolschema], so all three agree by construction |
+| [`ConfigError`](../../src/control/render_config.py#L49) | A delta that could not be applied. Here it is the **vehicle for every reason at once** rather than the first one found, which is what lets a caller — or the eval harness[^eval] — fix a whole delta in a single pass |
 
 ## A value RenderConfig does not allow
 
@@ -46,14 +46,14 @@ sequenceDiagram
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | [`apply`](../../ascii_camera.py#L235)`({rotation: 45, target: "speaker"})` | Every route in arrives here — a key, the knob, a line off the socket, a delta a model proposed. What arrives is a plain dict of field name to value, and nothing about who asked survives the call. That is precisely why the answer can be the same for all of them |
+| 1 | [`apply`](../../ascii_camera.py#L235)`({rotation: 45, target: "speaker"})` | Every route in arrives here — a key, the knob, a line off the socket[^socket], a delta a model proposed. What arrives is a plain dict of field name to value, and nothing about who asked survives the call. That is precisely why the answer can be the same for all of them |
 | 2 | [`with_changes`](../../src/control/render_config.py#L141)`(delta)` | The validator, and the only code that decides what a value may *be*. It is asked for a **new** config rather than told to change this one, so the live config is never at risk while its replacement is being checked |
 | 3 | [`BY_NAME`](../../src/control/render_config.py#L114) gives the [`Spec`](../../src/control/render_config.py#L63) for each named field | `BY_NAME` is built from [`SPECS`](../../src/control/render_config.py#L74) — twelve `Spec` records that are also the source of the [`help` text](../../src/control/commands.py#L176), the command-line arguments and the model's [tool schema](../../src/language/parser.py#L204), which is why a setting cannot exist and be undocumented. A name absent from it is a problem in its own right. A typed line would have been stopped earlier by [`commands.parse`](../../src/control/commands.py#L53) consulting the same dict; a delta from the model arrives here without that head start |
 | 4 | [`_coerce`](../../src/control/render_config.py#L211)`(rotation spec, 45)`<br>`"rotation must be one of 0, 90, 180, 270, not 45"` | `rotation` is a `choice` spec, so 45 is compared against `(0, 90, 180, 270)` and misses. Note what happens *before* that comparison: `bool` is excluded first, because `bool` subclasses `int`, so `False in (0, 90, 180, 270)` is otherwise `True` and a stray `freeze=False` sent to `rotation` would be accepted as "no rotation". The problem is **collected, not raised** |
 | 5 | [`_coerce`](../../src/control/render_config.py#L211)`(target spec, "speaker")`<br>`"target must be one of 'both', 'terminal', 'lcd', not 'speaker'"` | The second field is checked even though the first has already failed. That is the whole point of collecting: a caller correcting a delta one fault at a time learns nothing about how many are left, and the [eval harness](../../tests/language/parser_eval.py) scoring the model's proposals wants the entire list |
 | 6 | raises [`ConfigError`](../../src/control/render_config.py#L49) carrying both problems | `ConfigError.problems` is the list of reasons, and the exception's own message joins them, so code that prints only the exception still shows all of them. Nothing has been assigned along the way — [`with_changes`](../../src/control/render_config.py#L141) builds a replacement, and this delta never produced one, so there is no half-applied state and nothing to unwind |
 | 7 | [`apply`](../../ascii_camera.py#L235) returns (`False`, both problems) | The flag alone would be ambiguous, because a delta asking for what is already set returns `False` too. The reason is what separates "refused" from "no-op", and it is why a caller answering on a channel of its own can say *why* rather than only "nothing changed". It used to be left on a `self.refusal` attribute for the caller to collect afterwards, because this slot held a bare bool — a return value wearing a disguise, and read by exactly one caller in the whole app |
-| 8 | both lines, verbatim | How they arrive depends on who asked. `note=True` — what a key or the knob passes — calls [`_note`](../../ascii_camera.py#L337), which puts the text in the status line **and** on the SPI panel, because in the enclosure the panel is the only output there is. The command socket [passes `note=False`](../../ascii_camera.py#L477) and puts the returned reason down the connection instead, its reply already being on its way to whoever typed the line |
+| 8 | both lines, verbatim | How they arrive depends on who asked. `note=True` — what a key or the knob passes — calls [`_note`](../../ascii_camera.py#L337), which puts the text in the status line[^statusline] **and** on the SPI panel[^panel], because in the enclosure the panel is the only output there is. The command socket [passes `note=False`](../../ascii_camera.py#L477) and puts the returned reason down the connection instead, its reply already being on its way to whoever typed the line |
 
 No thread bands on this diagram, unlike the typed-line scenario: it all happens
 on the render loop's own thread, and a band with nothing on the other side of it
@@ -121,3 +121,63 @@ ceiling rather than an error.
 - [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md) — the case this validator exists
   to make safe: a delta from a language model is judged by exactly this code,
   in exactly these words.
+
+### Footnotes
+
+[^detent]: A **detent** is one click of the knob — the position it settles
+    into, felt as a notch. Electrically it is one full cycle of the two
+    switches, which is what [`QuadratureDecoder`](../../src/control/encoder.py#L88)
+    counts. **Quadrature** is the arrangement: two switches a quarter-cycle
+    apart, so which one changes first says which way the knob turned, and
+    contact bounce that does not complete a cycle emits nothing.
+
+[^delta]: A **delta** is a plain dict of the settings a change means to alter —
+    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
+    hands it to the configuration; none of them assigns a setting directly.
+    That is what keeps validation in one place no matter who asked.
+
+[^config]: The **render configuration** is the complete live state of how the
+    picture is drawn — scheme, ramp, contrast, rotation and the rest. It is
+    frozen: nothing assigns to it, and every change produces a whole new
+    [`RenderConfig`](../../src/control/render_config.py#L118) through
+    [`with_changes`](../../src/control/render_config.py#L141), which is also
+    the only code that decides whether a value is allowed. What the settings
+    are, and what each accepts, is
+    [`SPECS`](../../src/control/render_config.py#L74) — one table that the
+    validator, the `help` text, the command-line arguments and the model's
+    tool schema are all built from.
+
+[^toolschema]: A **tool schema** is the machine-readable description of what
+    the model is allowed to hand back — the setting names, their types and
+    their permitted values. [`tools`](../../src/language/parser.py#L204) builds
+    it from `SPECS`, so a setting cannot exist in the app and be invisible to
+    the model, or be offered to the model in a form the validator would
+    refuse.
+
+[^eval]: An **eval** is a stored request paired with the answer a person
+    judged correct, run against the model to score a change to the prompt.
+    [`as_case`](../../src/language/asklog.py#L182) can turn a real record into
+    a *candidate* one, but only a candidate: its `expect` field holds what the
+    model actually said, which is the thing under test, so promoting it
+    unlooked-at would build a suite that only checks the model still does what
+    it did before.
+
+[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
+    one machine — the same read-and-write as a network socket, with no network.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
+    which is how a shell, a phone or a script reaches a running camera without
+    the app ever opening a port.
+
+[^statusline]: The **status line** is the single line of readouts under the
+    picture — scheme, ramp, frame rate, grid size — built by
+    [`status_line`](../../src/hdmi/status_line.py#L76). It is also where a
+    refusal or a notice is shown on the terminal, since there is nowhere else
+    to put one.
+
+[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
+    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
+    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
+    kernel driver behind it. In the sealed enclosure it is the only display
+    there is. One full frame is 153,600 bytes, sent in
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
+    the driver's buffer holds.

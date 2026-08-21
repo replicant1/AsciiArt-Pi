@@ -19,13 +19,13 @@ would accumulate a backlog it could never clear. So
 before putting the new one in, and both operations are the `_nowait`
 kind[^nowait] that cannot block.
 
-One copy is made per frame, in [`_wrap`](../../src/capture/camera.py#L151), and
-it earns its place twice over. It drops the row padding the ISP[^isp] may have
-added — without which the picture comes out sheared — and it detaches the frame
-from the driver's recycled buffers, which is what makes the result safe to hand
-to the LCD worker's thread[^lcd] without copying it again. Keeping the chroma
-planes[^yuv] in that copy costs 38 KB more than the luma alone at 320x240, and
-saves a second copy later when a colour scheme is on.
+One copy is made per frame, in [`_wrap`](../../src/capture/camera.py#L151),
+and it earns its place twice over. It drops the row padding the ISP[^isp] may
+have added — without which the picture comes out sheared — and it detaches the
+frame from the driver's recycled buffers, which is what makes the result safe
+to hand to the LCD worker's thread[^lcd] without copying it again. Keeping the
+chroma planes[^yuv] in that copy costs 38 KB more than the luma alone at
+320x240, and saves a second copy later when a colour scheme is on.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
