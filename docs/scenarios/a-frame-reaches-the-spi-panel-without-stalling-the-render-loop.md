@@ -127,11 +127,13 @@ of it may be slow. Nothing to the left of it ever waits.
     validator, the `help` text, the command-line arguments and the model's
     tool schema are all built from.
 
-[^atlas]: A **glyph atlas** is every character of the font drawn once, in
-    advance, into one array — [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46).
-    A frame is then assembled by copying the right rectangles out of it rather
-    than by drawing text, which at 64 by 24 is one array operation instead of
-    1,536 calls into the font renderer.
+[^atlas]: A **glyph atlas** is every character of the *ramp* — ten of them for
+    the default ramp, not the whole font — drawn once, in advance, into one
+    array: [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46). A frame is then
+    assembled by copying the right rectangles out of it rather than by drawing
+    text, which at 64 by 24 is one array operation instead of 1,536 calls into
+    the font renderer. That it holds the ramp and not the font is why changing
+    the ramp rebuilds it.
 
 [^pil]: The Python Imaging Library, as maintained in Pillow. It is what
     rasterises the glyphs and what the panel's slower path uses to convert an

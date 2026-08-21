@@ -1,10 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 470" width="1180" height="470"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 600" width="1180" height="600"
      font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
   <title>The 256-entry brightness table, and the two answers it gives</title>
-  <desc>A bar of all 256 brightness values divided into ten bands, each band
-        showing the ramp character and the ramp position it maps to, with the
-        boundary values marked. Below, the terminal takes the characters and the
-        panel takes the positions, both from the same table.</desc>
+  <desc>A bar of all 256 brightness values, divided where one ramp character
+        gives way to the next. Under each division, the character the terminal
+        draws for it and, on a separate labelled row, the ramp position the
+        panel uses to pick a tile. A fourth row gives the brightness at which
+        each character takes over, and a strip at the foot shows the panel's
+        atlas: the ten characters drawn as tiles and numbered, which is what
+        those positions select.</desc>
   <defs>
     <style>
       .card  { fill: #ffffff; stroke: #e5e7eb; }
@@ -12,81 +15,121 @@
       .step  { font-size: 13px; font-weight: 700; fill: #1d4ed8; }
       .cap   { font-size: 11.5px; fill: #374151; }
       .dim   { font-size: 11px; fill: #6b7280; }
+      .rowlab{ font-size: 12px; font-weight: 700; fill: #1d4ed8; }
+      .rowsub{ font-size: 10.5px; fill: #6b7280; }
       .mono  { font-family: ui-monospace, Menlo, Consolas, monospace; }
-      .tick  { stroke: #cbd5e1; stroke-width: 1; }
     </style>
   </defs>
-  <rect class="card" x="0.5" y="0.5" width="1179" height="469" rx="8"/>
+  <rect class="card" x="0.5" y="0.5" width="1179" height="599" rx="8"/>
   <text class="title" x="28" y="34">One table, two answers</text>
-  <text class="dim"   x="28" y="53">Brightness picks a position on the ramp. The terminal asks for the character there; the panel asks for the position itself.</text>
-<text class="step" x="40" y="92">the table: 256 entries, built once per ramp, invert or colour-levels change</text>
-<rect x="40.0" y="106" width="111.7" height="44" fill="rgb(12,12,12)" stroke="#94a3b8" stroke-width="0.7"/>
-<rect x="84.9" y="168" width="22" height="22" fill="none" stroke="#cbd5e1" stroke-dasharray="3 2"/>
-<text class="dim" x="95.9" y="205" text-anchor="middle">space</text>
-<text class="mono" x="95.9" y="224" font-size="12" text-anchor="middle" fill="#6b7280">0</text>
-<rect x="151.7" y="106" width="111.7" height="44" fill="rgb(38,38,38)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="207.6" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">.</text>
-<text class="mono" x="207.6" y="224" font-size="12" text-anchor="middle" fill="#6b7280">1</text>
-<rect x="263.4" y="106" width="107.4" height="44" fill="rgb(64,64,64)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="317.1" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">:</text>
-<text class="mono" x="317.1" y="224" font-size="12" text-anchor="middle" fill="#6b7280">2</text>
-<rect x="370.9" y="106" width="111.7" height="44" fill="rgb(89,89,89)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="426.7" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">-</text>
-<text class="mono" x="426.7" y="224" font-size="12" text-anchor="middle" fill="#6b7280">3</text>
-<rect x="482.6" y="106" width="107.4" height="44" fill="rgb(115,115,115)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="536.3" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">=</text>
-<text class="mono" x="536.3" y="224" font-size="12" text-anchor="middle" fill="#6b7280">4</text>
-<rect x="590.0" y="106" width="111.7" height="44" fill="rgb(140,140,140)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="645.9" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">+</text>
-<text class="mono" x="645.9" y="224" font-size="12" text-anchor="middle" fill="#6b7280">5</text>
-<rect x="701.7" y="106" width="111.7" height="44" fill="rgb(166,166,166)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="757.6" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">*</text>
-<text class="mono" x="757.6" y="224" font-size="12" text-anchor="middle" fill="#6b7280">6</text>
-<rect x="813.4" y="106" width="107.4" height="44" fill="rgb(192,192,192)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="867.1" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">#</text>
-<text class="mono" x="867.1" y="224" font-size="12" text-anchor="middle" fill="#6b7280">7</text>
-<rect x="920.9" y="106" width="111.7" height="44" fill="rgb(217,217,217)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="976.7" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">%</text>
-<text class="mono" x="976.7" y="224" font-size="12" text-anchor="middle" fill="#6b7280">8</text>
-<rect x="1032.6" y="106" width="107.4" height="44" fill="rgb(243,243,243)" stroke="#94a3b8" stroke-width="0.7"/>
-<text class="mono" x="1086.3" y="188" font-size="22" text-anchor="middle" fill="#1e3a8a">@</text>
-<text class="mono" x="1086.3" y="224" font-size="12" text-anchor="middle" fill="#6b7280">9</text>
-<line class="tick" x1="40.0" y1="150" x2="40.0" y2="158"/>
-<text class="dim" x="40.0" y="248" text-anchor="middle">0</text>
-<line class="tick" x1="151.7" y1="150" x2="151.7" y2="158"/>
-<text class="dim" x="151.7" y="248" text-anchor="middle">26</text>
-<line class="tick" x1="263.4" y1="150" x2="263.4" y2="158"/>
-<text class="dim" x="263.4" y="248" text-anchor="middle">52</text>
-<line class="tick" x1="370.9" y1="150" x2="370.9" y2="158"/>
-<text class="dim" x="370.9" y="248" text-anchor="middle">77</text>
-<line class="tick" x1="482.6" y1="150" x2="482.6" y2="158"/>
-<text class="dim" x="482.6" y="248" text-anchor="middle">103</text>
-<line class="tick" x1="590.0" y1="150" x2="590.0" y2="158"/>
-<text class="dim" x="590.0" y="248" text-anchor="middle">128</text>
-<line class="tick" x1="701.7" y1="150" x2="701.7" y2="158"/>
-<text class="dim" x="701.7" y="248" text-anchor="middle">154</text>
-<line class="tick" x1="813.4" y1="150" x2="813.4" y2="158"/>
-<text class="dim" x="813.4" y="248" text-anchor="middle">180</text>
-<line class="tick" x1="920.9" y1="150" x2="920.9" y2="158"/>
-<text class="dim" x="920.9" y="248" text-anchor="middle">205</text>
-<line class="tick" x1="1032.6" y1="150" x2="1032.6" y2="158"/>
-<text class="dim" x="1032.6" y="248" text-anchor="middle">231</text>
-<text class="dim" x="1140.0" y="248" text-anchor="end">255</text>
-<text class="dim" x="40" y="272">levels * 10 // 256, clamped - so the boundaries land where the arithmetic puts them, and the darkest cells are left empty</text>
-<line x1="28" y1="292" x2="1152" y2="292" stroke="#e5e7eb"/>
-<text class="step" x="40" y="320">the terminal asks for the character</text>
-<text class="mono" x="40" y="352" font-size="17" fill="#1e3a8a">@%#*+=-.  %#*+=-.   #*+=-.</text>
-<text class="cap" x="40" y="380">one string per row, from a single tobytes() and decode()</text>
-<text class="dim" x="40" y="400">a Python loop over cells would be 26,700 interpreter round trips a frame at 267 x 100,</text>
-<text class="dim" x="40" y="415">which is more than everything else in the pipeline put together</text>
-<line x1="596" y1="304" x2="596" y2="424" stroke="#e5e7eb"/>
-<text class="step" x="628" y="320">the panel asks for the position</text>
-<text class="mono" x="628" y="352" font-size="17" fill="#1e3a8a">9 7 7 4 2 0 0 1 8 9 6 3 1 0</text>
-<text class="cap" x="628" y="380">an index into the glyph atlas, which holds tiles and not text</text>
-<text class="dim" x="628" y="400">both answers come out of one build, so a brightness that is # on the terminal</text>
-<text class="dim" x="628" y="415">is the # tile on the panel - including after an invert, by construction</text>
-<line x1="28" y1="436" x2="1152" y2="436" stroke="#e5e7eb"/>
-<text class="cap" x="40" y="458">invert reverses the characters and leaves the position table untouched:</text>
-<text class="mono" x="512" y="458" font-size="13" fill="#1e3a8a">@%#*+=-.  becomes  .-=+*#%@</text>
-<text class="dim" x="792" y="458">while 0 to 9 still means darkest to brightest</text>
+  <text class="dim"   x="28" y="53">Brightness picks a position on the ramp. The terminal asks that table for the character there; the panel asks it for the position itself.</text>
+<line x1="340.4" y1="104" x2="340.4" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<line x1="430.8" y1="104" x2="430.8" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<line x1="517.7" y1="104" x2="517.7" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<line x1="608.1" y1="104" x2="608.1" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<line x1="695.0" y1="104" x2="695.0" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<line x1="785.4" y1="104" x2="785.4" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<line x1="875.8" y1="104" x2="875.8" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<line x1="962.7" y1="104" x2="962.7" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<line x1="1053.1" y1="104" x2="1053.1" y2="262" stroke="#e5e7eb" stroke-dasharray="2 3"/>
+<text class="rowlab" x="40" y="128">brightness</text>
+<text class="rowsub" x="40" y="144">0 to 255, one byte a cell</text>
+<rect x="250.0" y="104" width="90.4" height="46" fill="rgb(12,12,12)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="340.4" y="104" width="90.4" height="46" fill="rgb(38,38,38)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="430.8" y="104" width="86.9" height="46" fill="rgb(64,64,64)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="517.7" y="104" width="90.4" height="46" fill="rgb(89,89,89)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="608.1" y="104" width="86.9" height="46" fill="rgb(115,115,115)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="695.0" y="104" width="90.4" height="46" fill="rgb(140,140,140)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="785.4" y="104" width="90.4" height="46" fill="rgb(166,166,166)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="875.8" y="104" width="86.9" height="46" fill="rgb(192,192,192)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="962.7" y="104" width="90.4" height="46" fill="rgb(217,217,217)" stroke="#94a3b8" stroke-width="0.7"/>
+<rect x="1053.1" y="104" width="86.9" height="46" fill="rgb(243,243,243)" stroke="#94a3b8" stroke-width="0.7"/>
+<text class="rowlab" x="40" y="190">the terminal draws</text>
+<text class="rowsub" x="40" y="206">this character</text>
+<rect x="284.2" y="174" width="22" height="22" fill="none" stroke="#cbd5e1" stroke-dasharray="3 2"/>
+<text class="rowsub" x="295.2" y="209" text-anchor="middle">a space</text>
+<text class="mono" x="385.6" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">.</text>
+<text class="mono" x="474.2" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">:</text>
+<text class="mono" x="562.9" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">-</text>
+<text class="mono" x="651.5" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">=</text>
+<text class="mono" x="740.2" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">+</text>
+<text class="mono" x="830.6" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">*</text>
+<text class="mono" x="919.2" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">#</text>
+<text class="mono" x="1007.9" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">%</text>
+<text class="mono" x="1096.5" y="196" font-size="24" text-anchor="middle" fill="#1e3a8a">@</text>
+<text class="rowlab" x="40" y="246">the panel draws</text>
+<text class="rowsub" x="40" y="262">the tile at this position,</text>
+<text class="rowsub" x="40" y="276">from the strip at the foot</text>
+<rect x="282.2" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="295.2" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">0</text>
+<rect x="372.6" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="385.6" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">1</text>
+<rect x="461.2" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="474.2" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">2</text>
+<rect x="549.9" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="562.9" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">3</text>
+<rect x="638.5" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="651.5" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">4</text>
+<rect x="727.2" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="740.2" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">5</text>
+<rect x="817.6" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="830.6" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">6</text>
+<rect x="906.2" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="919.2" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">7</text>
+<rect x="994.9" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="1007.9" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">8</text>
+<rect x="1083.5" y="232" width="26" height="22" rx="3" fill="#eff6ff" stroke="#93c5fd"/>
+<text class="mono" x="1096.5" y="248" font-size="13" text-anchor="middle" fill="#1e3a8a">9</text>
+<line x1="28" y1="316" x2="1152" y2="316" stroke="#e5e7eb"/>
+<text class="step" x="40" y="344">a whole row, as the terminal takes it</text>
+<text class="mono" x="40" y="376" font-size="17" fill="#1e3a8a">@%#*+=-.  %#*+=-.   #*+=-.</text>
+<text class="cap" x="40" y="404">one string per row, from a single tobytes() and decode()</text>
+<text class="dim" x="40" y="424">a Python loop over cells would be 26,700 interpreter round trips a frame at 267 x 100,</text>
+<text class="dim" x="40" y="439">which is more than everything else in the pipeline put together</text>
+<line x1="596" y1="328" x2="596" y2="448" stroke="#e5e7eb"/>
+<text class="step" x="628" y="344">the same row, as the panel takes it</text>
+<text class="mono" x="628" y="376" font-size="17" fill="#1e3a8a">9 7 7 4 2 0 0 1 8 9 6 3 1 0</text>
+<text class="cap" x="628" y="404">positions, because the panel blits tiles and never draws text</text>
+<text class="dim" x="628" y="424">both rows come out of one build, so a brightness that is # on the terminal is</text>
+<text class="dim" x="628" y="439">the # tile on the panel - including after an invert, by construction</text>
+<line x1="28" y1="464" x2="1152" y2="464" stroke="#e5e7eb"/>
+<text class="rowlab" x="40" y="500">the panel's atlas</text>
+<text class="rowsub" x="40" y="516">what those positions</text>
+<text class="rowsub" x="40" y="530">actually index</text>
+<rect x="250" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="rowsub" x="267" y="506" text-anchor="middle">blank</text>
+<text class="mono" x="267" y="540" font-size="12" text-anchor="middle" fill="#6b7280">0</text>
+<rect x="288" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="305" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">.</text>
+<text class="mono" x="305" y="540" font-size="12" text-anchor="middle" fill="#6b7280">1</text>
+<rect x="326" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="343" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">:</text>
+<text class="mono" x="343" y="540" font-size="12" text-anchor="middle" fill="#6b7280">2</text>
+<rect x="364" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="381" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">-</text>
+<text class="mono" x="381" y="540" font-size="12" text-anchor="middle" fill="#6b7280">3</text>
+<rect x="402" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="419" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">=</text>
+<text class="mono" x="419" y="540" font-size="12" text-anchor="middle" fill="#6b7280">4</text>
+<rect x="440" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="457" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">+</text>
+<text class="mono" x="457" y="540" font-size="12" text-anchor="middle" fill="#6b7280">5</text>
+<rect x="478" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="495" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">*</text>
+<text class="mono" x="495" y="540" font-size="12" text-anchor="middle" fill="#6b7280">6</text>
+<rect x="516" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="533" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">#</text>
+<text class="mono" x="533" y="540" font-size="12" text-anchor="middle" fill="#6b7280">7</text>
+<rect x="554" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="571" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">%</text>
+<text class="mono" x="571" y="540" font-size="12" text-anchor="middle" fill="#6b7280">8</text>
+<rect x="592" y="480" width="34" height="42" rx="2" fill="#eff6ff" stroke="#1d4ed8" stroke-width="1.2"/>
+<text class="mono" x="609" y="510" font-size="19" text-anchor="middle" fill="#1e3a8a">@</text>
+<text class="mono" x="609" y="540" font-size="12" text-anchor="middle" fill="#6b7280">9</text>
+<text class="cap" x="660" y="492">every character of the ramp, drawn once into a fixed-size tile</text>
+<text class="cap" x="660" y="508">- 5 x 10 pixels at the default font size</text>
+<text class="dim" x="660" y="530">Rebuilt only when the ramp, the invert or the font size changes. A frame</text>
+<text class="dim" x="660" y="545">is then a copy of tiles rather than 1,536 text calls, which is why the panel</text>
+<text class="dim" x="660" y="560">wants a number and has no use for a character.</text>
+<text class="cap" x="40" y="580">invert reverses the characters and leaves the positions untouched, so both displays flip together</text>
 </svg>

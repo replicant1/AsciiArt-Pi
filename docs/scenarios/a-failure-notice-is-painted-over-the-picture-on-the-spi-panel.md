@@ -151,11 +151,13 @@ model rather than from this codebase.
     are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
     the same greyscale picture from two fixed colours.
 
-[^atlas]: A **glyph atlas** is every character of the font drawn once, in
-    advance, into one array — [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46).
-    A frame is then assembled by copying the right rectangles out of it rather
-    than by drawing text, which at 64 by 24 is one array operation instead of
-    1,536 calls into the font renderer.
+[^atlas]: A **glyph atlas** is every character of the *ramp* — ten of them for
+    the default ramp, not the whole font — drawn once, in advance, into one
+    array: [`GlyphAtlas`](../../src/lcd/lcd_display.py#L46). A frame is then
+    assembled by copying the right rectangles out of it rather than by drawing
+    text, which at 64 by 24 is one array operation instead of 1,536 calls into
+    the font renderer. That it holds the ramp and not the font is why changing
+    the ramp rebuilds it.
 
 [^ramp]: A **ramp** is the string of characters the picture is drawn with,
     ordered from lightest to darkest — ` .:-=+*#%@` is one. Brightness picks a
