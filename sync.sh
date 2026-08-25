@@ -46,7 +46,7 @@ SRC_FILES=(version.py
            language/asklog.py language/resolver.py)
 TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             capture/capture_reference.py capture/orientation_test.py
-            art/__init__.py art/palette_test.py
+            art/__init__.py art/palette_test.py art/window_plan_test.py
             hdmi/__init__.py hdmi/display_modes_test.py
             hdmi/status_line_test.py
             lcd/__init__.py lcd/lcd_selftest.py lcd/lcd_render_bench.py
