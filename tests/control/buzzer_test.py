@@ -153,15 +153,15 @@ def test_hello_drives_the_pin_in_the_right_order():
           fake.events,
           [("open", 0),
            ("claim", 13, 0),
-           ("tone", 13, 440, 50, 110), ("write", 13, 0),
-           ("tone", 13, 880, 50, 220), ("write", 13, 0),
+           ("tone", 13, 440, 50, 110),
+           ("tone", 13, 880, 50, 220),
            ("write", 13, 0), ("free", 13), ("close",)])
-    # Deadlines from the start of the tune, not one sleep after another, so a
-    # note that woke late does not push every note after it further out. With a
-    # sleep that returns instantly the second wait is the whole 0.5 s, which is
-    # exactly what "wait until 0.5 s after the tune began" means.
-    check("and waits to a deadline rather than by adding up sleeps",
-          [round(x, 2) for x in slept], [0.25, 0.5])
+    # Each note waited out for its own length, from when it started. A shared
+    # deadline was tried and cut notes short: time already lost came out of the
+    # next note's wait, the wait reached zero, and the pin went low the instant
+    # the note began. [0.25, 0.5] here would be that bug.
+    check("and each note is waited out for its own length",
+          [round(x, 2) for x in slept], [0.25, 0.25])
 
 
 def test_the_note_length_is_lgpios_job_not_pythons():
@@ -186,6 +186,34 @@ def test_the_note_length_is_lgpios_job_not_pythons():
     for frequency, count in cycles:
         check(f"and {count} cycles at {frequency} Hz really is a quarter second",
               round(count / frequency, 4), 0.25)
+
+
+def test_a_late_wake_up_does_not_cut_the_next_note_short():
+    """
+    The second timing bug, and the one this test was previously blind to.
+
+    The note's end is a cycle count in C, so nothing in python needs to stop
+    it - and anything in python that *does* stop it can only stop it early. The
+    first version wrote the pin low after each note as a belt-and-braces
+    silence. When the thread woke late, `remaining` went negative, the sleep
+    was skipped, and that write landed immediately after tx_pwm: the note was
+    cut before a single cycle of it sounded. At boot, where the pi is at its
+    busiest and the thread is descheduled for longer than a note lasts, the
+    two-note tune came out as one note.
+
+    `without_sleeping` makes every wait return instantly, which is the extreme
+    of that lateness - so if a write can cut a note, it does it here.
+
+    The old expected-events list asserted a write after each note, which is to
+    say it asserted the bug. That is the trap this file is otherwise careful
+    about: a test written from the behaviour rather than from the requirement
+    passes for as long as the behaviour stays wrong.
+    """
+    fake = FakeGpio()
+    without_sleeping(lambda: buzzer.hello(gpio=fake))
+    check("no write ever lands between two notes",
+          [kind for kind, *_ in fake.events],
+          ["open", "claim", "tone", "tone", "write", "free", "close"])
 
 
 def test_a_note_that_fails_still_hands_the_pin_back():
@@ -221,9 +249,8 @@ def test_a_zero_frequency_is_never_asked_for():
     frequencies = [e[2] for e in fake.events if e[0] == "tone"]
     check("every frequency handed to tx_pwm is a real one", frequencies,
           [440, 880])
-    check("and silence is a write, not a zero-frequency tone",
-          [e for e in fake.events if e[0] == "write"],
-          [("write", 13, 0)] * 3)
+    check("and the pin is driven low exactly once, on the way out",
+          [e for e in fake.events if e[0] == "write"], [("write", 13, 0)])
 
 
 def test_play_takes_any_tune():
@@ -236,8 +263,7 @@ def test_play_takes_any_tune():
           [(100, 50), (200, 50), (300, 50)])
     check("each with its own cycle count",
           [e[4] for e in fake.events if e[0] == "tone"], [10, 40, 90])
-    check("and its own deadline", [round(x, 2) for x in slept],
-          [0.1, 0.3, 0.6])
+    check("and its own wait", [round(x, 2) for x in slept], [0.1, 0.2, 0.3])
 
 
 def test_start_up_does_not_wait_for_the_tune():
@@ -292,8 +318,13 @@ def test_the_shutdown_waits_for_its_tune():
 
     Gated the same way round as the start-up check, and asserting the opposite:
     there, the caller had control back while the note was sounding; here it must
-    still be inside `_say_goodbye` until the tune is done. Timing would not
-    settle this - a fast machine finishes the tune before anyone can look.
+    still be inside `goodbye` until the tune is done. Timing would not settle
+    this - a fast machine finishes the tune before anyone can look.
+
+    The app no longer calls this; deploy/asciiart.shutdown does, after systemd
+    has stopped everything else. The blocking behaviour still has to hold,
+    because a shutdown hook that returns before its tune has played would let
+    the kernel halt over the top of it.
     """
     sounding = threading.Event()
     release = threading.Event()
@@ -318,62 +349,6 @@ def test_the_shutdown_waits_for_its_tune():
           returned.is_set(), False)
     release.set()
     check("it returns once the tune is done", returned.wait(5), True)
-
-
-def test_a_shutdown_is_never_held_up_by_the_buzzer():
-    """
-    The bound on the wait, which is what stops a farewell becoming a hang.
-
-    `_say_goodbye` joins with a timeout. A tune that never ends must cost the
-    shutdown that timeout and no more, because the alternative is systemd's
-    SIGKILL at fifteen seconds - and that leaves claimed exactly the camera and
-    GPIO pins that the rest of _shut_down exists to release, which is the worse
-    failure by a distance.
-    """
-    sys.path.insert(0, str(ROOT))
-    try:
-        import ascii_camera                            # noqa: E402
-    except ModuleNotFoundError as e:
-        print(f"  [SKIP] a tune that never ends does not hold up the shutdown "
-              f"-- needs the Pi ({e.name} is not installed here)")
-        skipped.append("a tune that never ends does not hold up the shutdown")
-        return
-
-    never_ends = threading.Event()
-
-    class Sticky:
-        """A buzzer whose tune never finishes, which is the case that matters."""
-        GOODBYE = buzzer.GOODBYE
-        duration = staticmethod(buzzer.duration)
-
-        @staticmethod
-        def in_background(notes=None, **kw):
-            # **kw rather than a fixed signature: the app passes `name=` now,
-            # and the first version of this fake did not take it. The call
-            # raised, _say_goodbye swallowed it, and the wait this test exists
-            # to measure was never entered - it reported 0.00 s and went red,
-            # which is the only reason the mismatch was noticed at all.
-            thread = threading.Thread(target=lambda: never_ends.wait(30),
-                                      daemon=True)
-            thread.start()
-            return thread
-
-    real = ascii_camera.buzzer
-    ascii_camera.buzzer = Sticky
-    began = time.perf_counter()
-    try:
-        ascii_camera.MainRenderLooper._say_goodbye(object())
-    finally:
-        ascii_camera.buzzer = real
-        never_ends.set()
-    waited = time.perf_counter() - began
-
-    # The bound is the tune's own length plus a second. Checked as a range so
-    # this measures the timeout being honoured rather than restating it: too
-    # short and it never waited, too long and the join is unbounded.
-    check("it gives up on the tune rather than hanging the shutdown",
-          1.4 < waited < 3.0, True)
-    print(f"        (waited {waited:.2f} s for a tune that never ends)")
 
 
 def test_the_app_survives_a_buzzer_that_is_not_there():
@@ -423,12 +398,12 @@ def main():
     test_goodbye_plays_the_notes_the_other_way_up()
     test_hello_drives_the_pin_in_the_right_order()
     test_the_note_length_is_lgpios_job_not_pythons()
+    test_a_late_wake_up_does_not_cut_the_next_note_short()
     test_a_note_that_fails_still_hands_the_pin_back()
     test_a_zero_frequency_is_never_asked_for()
     test_play_takes_any_tune()
     test_start_up_does_not_wait_for_the_tune()
     test_the_shutdown_waits_for_its_tune()
-    test_a_shutdown_is_never_held_up_by_the_buzzer()
     test_a_failure_on_the_thread_stays_on_the_thread()
     test_the_app_survives_a_buzzer_that_is_not_there()
 

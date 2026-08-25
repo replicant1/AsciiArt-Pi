@@ -36,7 +36,6 @@ because there is no longer a picture whose frame rate could suffer.
 | [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | The panel's thread. Here it is **the one that must be woken**: [`stop`](../../src/lcd/lcd_worker.py#L450) puts `None` in the inbox, because the thread may be sitting in a timed `get` and joining a sleeping thread only waits out its timeout |
 | [`RotaryEncoder`](../../src/control/encoder.py#L123) | The knob[^detent] on three GPIO pins, reached through [`SchemeCycle`](../../src/control/scheme_cycle.py#L37). Here it is **the quietest claim**: nothing visible depends on it, and its pins are exactly as unusable to the next run as the panel's would be |
 | [`CommandServer`](../../src/control/command_server.py#L80) | The Unix socket and a thread per client. Here it is **the one that leaves a file behind**: [`stop`](../../src/control/command_server.py#L273) closes the socket, joins, and unlinks the path |
-| [`buzzer`](../../src/control/buzzer.py) | Two notes on GPIO 13. Here it is **the farewell**, and the only part of this scenario that is not releasing anything: [`goodbye`](../../src/control/buzzer.py#L127) is the greeting's notes the other way up, and the process waits for it so that the sound means the box is finished rather than nearly |
 
 ## Four claims, given back in order
 
@@ -49,7 +48,6 @@ sequenceDiagram
     participant W as LcdWorker
     participant Enc as RotaryEncoder<br/>through SchemeCycle
     participant CS as CommandServer
-    participant Bz as buzzer<br/>GPIO 13, waited for
 
     Sig->>App: SIGTERM, and the handler only clears is_running
     App->>App: the loop ends and finally reaches _shut_down
@@ -61,14 +59,12 @@ sequenceDiagram
     App->>Enc: stop, releasing three GPIO pins
     App->>CS: stop, closing the socket and unlinking the file
     App->>App: the run is logged - frames, seconds, average fps, timeouts
-    App->>Bz: the goodbye tune, 880 Hz then 440 Hz
-    Bz-->>App: joined within a second and a half, or given up on
 ```
 
 | Step | Message | What is going on |
 |---:|---|---|
 | 1 | SIGTERM, and the handler only clears is_running | The handler does the least it possibly can. Releasing hardware inside a signal handler would run it on whichever thread took the signal, at whatever point it interrupted — so it sets a flag and returns, and the ordinary path does the work. `SIGINT` is handled the same way, and installing them can fail off the main thread, which is caught and logged rather than raised |
-| 2 | the loop ends and finally reaches [`_shut_down`](../../ascii_camera.py#L765) | A `finally`, not the end of [`run`](../../ascii_camera.py#L841), so an exception nobody predicted still gives the hardware back. This is exactly what Python's default `SIGTERM` handling skips — it exits without unwinding, and that is how the panel was once left lit with its pins claimed |
+| 2 | the loop ends and finally reaches [`_shut_down`](../../ascii_camera.py#L765) | A `finally`, not the end of [`run`](../../ascii_camera.py#L811), so an exception nobody predicted still gives the hardware back. This is exactly what Python's default `SIGTERM` handling skips — it exits without unwinding, and that is how the panel was once left lit with its pins claimed |
 | 3 | [`stop`](../../src/capture/camera.py#L182), which joins the capture thread for two seconds | First, because it is the only claim with a thread that may be mid-capture. The join is bounded: a capture wedged inside libcamera must not be able to hold the shutdown open, and the thread is a daemon[^daemon] precisely so that abandoning it is survivable |
 | 4 | picam2 stopped and closed, whatever the join did | `close()` sits in a `finally` after `stop()`, so a camera that fails to stop is still closed. Half-releasing a device is worse than not trying: the next run inherits a handle nobody owns |
 | 5 | [`stop`](../../src/lcd/lcd_worker.py#L450), which puts None in the inbox to wake it | The sentinel[^sentinel] is the point. The worker spends its idle time in a timed `get`, so joining it without waking it would simply wait out the timeout first. `None` is a value the run loop recognises as "leave", distinct from every frame |
@@ -77,8 +73,6 @@ sequenceDiagram
 | 8 | [`stop`](../../src/control/scheme_cycle.py#L104), releasing three GPIO pins | Through `SchemeCycle`, which owns the encoder if there is one and does nothing if there is not — so the shutdown path does not need to know whether `--encoder` was given. The quietest of the four claims and the easiest to forget, which is why it is in the same list as the rest |
 | 9 | [`stop`](../../src/control/command_server.py#L273), closing the socket and unlinking the file | Last, so a client connecting during shutdown meets a live socket and gets an answer rather than a stale path left by a process that is gone. The `unlink` is what stops the *next* run finding a socket file it must decide whether to trust — it logs "removing stale command socket" when it does |
 | 10 | the run is logged - frames, seconds, average fps, timeouts | The only output of the whole scenario, and the one thing that survives it. `dropped` here counts camera timeouts, so a run that ended after a stall says so in its own last line |
-| 11 | the goodbye tune, 880 Hz then 440 Hz | The greeting backwards, and the only step here that is *waited* for. Everything above releases something; this one says out loud that the releasing is done, which is worth nothing if the process exits while it is still sounding. Played last for that reason: by the time it is audible the camera and the panel are already back |
-| 12 | joined within a second and a half, or given up on | [`_say_goodbye`](../../ascii_camera.py#L790) joins with a timeout rather than waiting on the tune. A driver that never returns would otherwise meet `TimeoutStopSec=15` and SIGKILL, which leaves claimed exactly the camera and GPIO pins the ten steps above exist to release - the worse failure by a distance |
 
 No thread bands, and their absence is the point: every message above happens on
 the render loop's own thread. The other threads are not being *talked to*, they

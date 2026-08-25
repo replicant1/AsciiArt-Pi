@@ -71,8 +71,6 @@ def play(notes, pin=PIN, chip=CHIP, duty=DUTY, gpio=None):
     handle = gpio.gpiochip_open(chip)
     try:
         gpio.gpio_claim_output(handle, pin, 0)
-        started = time.perf_counter()
-        elapsed = 0.0
         for frequency, seconds in notes:
             # The note's length is handed to lgpio as a cycle count, not kept
             # in python. Measured in the app: a thread that asks for 250 ms and
@@ -86,18 +84,17 @@ def play(notes, pin=PIN, chip=CHIP, duty=DUTY, gpio=None):
             # than a first note two thirds longer than the second.
             gpio.tx_pwm(handle, pin, frequency, duty, 0,
                         max(1, round(frequency * seconds)))
-            # Deadlines from the start of the tune rather than one sleep after
-            # another, so a late wake-up costs that note alone and does not
-            # push everything after it further out.
-            elapsed += seconds
-            remaining = started + elapsed - time.perf_counter()
-            if remaining > 0:
-                time.sleep(remaining)
-            # NOT tx_pwm(..., 0, 0): lgpio raises "bad PWM micros" on a zero
-            # frequency, which would abandon the pin mid-tune and then raise a
-            # second time on the way out. The cycle count has almost certainly
-            # ended the note already; this is what makes "almost" not matter.
-            gpio.gpio_write(handle, pin, 0)
+            time.sleep(seconds)
+            # Each note is waited out for its own length, measured from the
+            # moment it started - not to a deadline set at the top of the tune.
+            # Deadlines were tried and were wrong: when the thread wakes late,
+            # the time already spent is subtracted from the *next* note's wait,
+            # the wait becomes zero, and the pin is driven low the instant the
+            # note begins. The tune came out as one note, twice, at boot and
+            # under load. Nothing in python needs to end a note - the cycle
+            # count does that - so the only thing a wait has to guarantee is
+            # that the note is not cut short. Waking late now costs a gap
+            # before the next note, which is audible but honest.
     finally:
         gpio.gpio_write(handle, pin, 0)
         gpio.gpio_free(handle, pin)
