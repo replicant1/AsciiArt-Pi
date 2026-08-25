@@ -44,7 +44,7 @@ directly, since nothing regenerates it.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the process is hung off. Here it is the **supplier**: it builds the lines and the colours, decides the status line[^statusline], and hands all three over — it never positions anything on the screen itself |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off. Here it is the **supplier**: it builds the lines and the colours, decides the status line[^statusline], and hands all three over — it never positions anything on the screen itself |
 | [`NcursesDisplay`](../../src/hdmi/ncurses_display.py#L34) | The HDMI terminal, and the owner of the screen while curses holds it. Here it is the **compositor**: [`render`](../../src/hdmi/ncurses_display.py#L185) centres the picture, pads every row, and writes colour as runs rather than per character |
 
 ## One frame onto the terminal
@@ -72,8 +72,8 @@ sequenceDiagram
 |---:|---|---|
 | 1 | [`refresh_size`](../../src/hdmi/ncurses_display.py#L167)`()`, in case the window was resized | Asked every frame rather than waited for as an event, because a resize arrives as a keypress and the two would race. A `RESIZE` key also arrives and clears the cached grid, so the two paths agree |
 | 2 | whether the geometry changed | True invalidates the cached grid, and the picture is refitted on the next pass. The panel[^panel]'s grid is untouched by any of this, which is what lets the window be dragged about without the panel changing |
-| 3 | [`_build_picture`](../../ascii_camera.py#L737) gives lines, and colours or None | `None` for greyscale is the cheap path, not a missing value. In `--no-terminal` this step builds nothing at all, and the saving is the entire point of that flag |
-| 4 | [`_status`](../../ascii_camera.py#L570) builds the settings line for the bottom row | Every live setting and the key that changes it, trimmed to what fits. It is a function of its arguments, so it can be tested without a terminal |
+| 3 | [`_build_picture`](../../ascii_camera.py#L738) gives lines, and colours or None | `None` for greyscale is the cheap path, not a missing value. In `--no-terminal` this step builds nothing at all, and the saving is the entire point of that flag |
+| 4 | [`_status`](../../ascii_camera.py#L571) builds the settings line for the bottom row | Every live setting and the key that changes it, trimmed to what fits. It is a function of its arguments, so it can be tested without a terminal |
 | 5 | [`render`](../../src/hdmi/ncurses_display.py#L185)`(ascii_lines, status, colours)` | Everything the display needs, in one call. The looper never addresses a cell: where the picture sits is the display's business, which is what lets the headless stand-in accept the identical call and do nothing |
 | 6 | centre the picture in the rows above the status line | The window is almost never exactly the grid's shape, so the remainder is split above and below. The status line is reserved first, which is why the canvas is one row short |
 | 7 | each row padded to full width, so no clear is needed | The alternative is `clear()` then redraw, which flashes. Padding costs the same writes and leaves nothing of the previous frame behind. `fill`[^fill] is the exception that forces a real clear, because letterboxing leaves cells the picture stops writing to |

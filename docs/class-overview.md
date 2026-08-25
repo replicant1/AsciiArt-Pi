@@ -336,7 +336,7 @@ anyone having to remember to add it in a second place.
 - [The SPI panel shows a start-up screen before the first camera frame](scenarios/the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md)
 - [The camera, panel, encoder and socket are released on shutdown](scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
 
-#### [`MainRenderLooper`](../ascii_camera.py#L98)
+#### [`MainRenderLooper`](../ascii_camera.py#L99)
 
 *ascii_camera.py* — Capture -> process -> ASCII -> terminal, once per frame.
 

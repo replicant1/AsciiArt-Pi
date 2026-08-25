@@ -31,7 +31,7 @@ chroma planes[^yuv] in that copy costs 38 KB more than the luma alone at
 |---|---|
 | [`CameraCapture`](../../src/capture/camera.py#L61) | The camera and the thread that reads it. Here it is the **producer**, and the only party allowed to discard: [`_capture_loop`](../../src/capture/camera.py#L123) evicts the frame nobody collected before offering a newer one, so the queue's single slot always holds the most recent capture rather than the oldest uncollected one |
 | [`YuvFrame`](../../src/capture/camera.py#L22) | One YUV420 frame, exposing its planes as views[^view] rather than copies. Here it is the **parcel**: [`luma`](../../src/capture/camera.py#L47) is a slice of the buffer and not a conversion, which is why greyscale costs nothing to extract and why two threads can read one frame at once |
-| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the process is hung off. Here it is the **consumer**, and a deliberately patient one: [`_next_frame`](../../ascii_camera.py#L690) waits a whole second before concluding anything is wrong, because the camera takes far longer than a frame interval to warm up |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off. Here it is the **consumer**, and a deliberately patient one: [`_next_frame`](../../ascii_camera.py#L691) waits a whole second before concluding anything is wrong, because the camera takes far longer than a frame interval to warm up |
 
 ## One frame, from the sensor to the loop
 

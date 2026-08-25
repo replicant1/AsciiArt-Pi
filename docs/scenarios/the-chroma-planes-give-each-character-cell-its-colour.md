@@ -71,7 +71,7 @@ sequenceDiagram
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | the scheme's kind is live, so colour is wanted | Decided in [`_colours_for`](../../ascii_camera.py#L498). Greyscale returns `None`, which is not a missing value but the cheapest instruction there is — draw in the terminal's own foreground colour. A tinted scheme takes a third path and never touches the chroma either |
+| 1 | the scheme's kind is live, so colour is wanted | Decided in [`_colours_for`](../../ascii_camera.py#L499). Greyscale returns `None`, which is not a missing value but the cheapest instruction there is — draw in the terminal's own foreground colour. A tinted scheme takes a third path and never touches the chroma either |
 | 2 | [`colour_grid`](../../src/capture/image_processor.py#L187)`(frame, processed, cols, rows)` | The whole frame goes in, because the chroma is still on it, and so does the **already processed** luma grid. Passing that back in rather than recomputing it is what guarantees the colour and the character come from one brightness |
 | 3 | [`chroma`](../../src/capture/camera.py#L51) | Offsets into the buffer the capture already copied: the flat region below the luma is split in half and each half reshaped. No decoding, and no second copy |
 | 4 | u and v, half resolution on both axes | A quarter of the pixels each — 19,200 bytes apiece at 320x240, against 76,800 for the luma. **U before V**, which was settled by capturing a reference RGB888[^rgb888] of the same scene rather than read off a diagram: the wrong order swaps blue and red, which looks plausible enough to survive a glance |

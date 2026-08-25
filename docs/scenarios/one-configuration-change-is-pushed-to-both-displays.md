@@ -11,7 +11,7 @@ letterboxing leaves cells the picture no longer writes to and they would keep
 the previous frame's characters for good.
 
 The value is that this knowledge lives in **one place**. Before
-[`_adopt`](../../ascii_camera.py#L282), "invert also has to rebuild the ASCII
+[`_adopt`](../../ascii_camera.py#L283), "invert also has to rebuild the ASCII
 generator" and "fill also has to invalidate the grid" were spread across the
 key handler, and every new setting had to remember them all — a list nobody
 holds completely, which is the kind of thing that is wrong for months before
@@ -28,12 +28,12 @@ set to make one happen.
 
 Nothing here is conditional on which route asked. A key, the knob[^detent], a
 typed line, a phone and a language model all arrive as a plain dict at
-[`apply`](../../ascii_camera.py#L235), and by the time this runs there is
+[`apply`](../../ascii_camera.py#L236), and by the time this runs there is
 nothing left that could tell them apart.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the process is hung off, and the only thread a setting may change on. Here it is the **distributor**: [`_adopt`](../../ascii_camera.py#L282) is the single place that knows what each setting costs to change, and it works from a **set of changed names** rather than from the values |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off, and the only thread a setting may change on. Here it is the **distributor**: [`_adopt`](../../ascii_camera.py#L283) is the single place that knows what each setting costs to change, and it works from a **set of changed names** rather than from the values |
 | [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen and replaced rather than mutated. Here it is the **diff**: `changes_from` says which fields actually moved, so a delta[^delta] that asks for what is already set costs nothing at all |
 | [`NcursesDisplay`](../../src/hdmi/ncurses_display.py#L34) | The HDMI terminal. Here it is the **pushed** one: it is told about a scheme, cleared when the picture's shape changes, and does so synchronously on this thread |
 | [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | The panel's thread. Here it is the **not pushed** one, and deliberately: it reads the whole config out of the next frame it is handed, so the only thing this code does for it is make sure a next frame exists |

@@ -55,7 +55,7 @@ nothing regenerates it.
 | [`QuadratureDecoder`](../../src/control/encoder.py#L88) | Pin levels in, detents out. Here it is the **arbiter of what counts as movement**, and it is deliberately free of hardware, threads and clocks: [`feed`](../../src/control/encoder.py#L100) is a table lookup, so the part that can be subtly wrong is testable on a machine with no encoder attached |
 | [`RotaryEncoder`](../../src/control/encoder.py#L123) | A KY-040 on three GPIO[^gpio] pins, read through lgpio's edge callbacks. Here it is the **accumulator**: callbacks arrive on lgpio's thread, so [`take`](../../src/control/encoder.py#L246) hands over the net balance under a lock and resets it |
 | [`SchemeCycle`](../../src/control/scheme_cycle.py#L37) | The `s` key and the knob, walked by one piece of code. Here it is the **policy**: [`poll`](../../src/control/scheme_cycle.py#L86) decides that a press beats a turn, and [`step`](../../src/control/scheme_cycle.py#L133) walks the whole move before changing anything |
-| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the process is hung off. Here it is the **only thread a setting may change on**, and it does nothing else in this scenario but call `poll` once a frame |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off. Here it is the **only thread a setting may change on**, and it does nothing else in this scenario but call `poll` once a frame |
 
 ## One click, from the contacts to the picture
 
@@ -98,7 +98,7 @@ sequenceDiagram
 | 7 | the net balance since the last frame | Zero almost always. On a slow frame it may be several, which is the case the rest of this scenario exists to handle |
 | 8 | a press beats a turn, and the turn is dropped rather than added | Only counts survive, not order, so a turn and a press in one frame gap are indistinguishable from a press and a turn. The press wins because its answer — jump home to grey — is the same wherever the knob had got to, and it costs one repaint rather than two |
 | 9 | [`step`](../../src/control/scheme_cycle.py#L133) walks the whole move, skipping schemes this display cannot show | The walk is arithmetic, not a series of changes: it finds the destination and changes the display **once**. A whole lap is the identity, so the move reduces modulo the scheme count — clamping instead would land a lap off. Schemes a monochrome terminal cannot show are skipped on the way past rather than settled on |
-| 10 | apply({scheme: the destination}), one change for the whole move | One [`apply`](../../ascii_camera.py#L235), so a five-detent spin is one repaint of some 27,000 cells rather than five. It used to be five, and it fed on itself: a slower frame banks more detents, which made the next frame slower still. The check that this still holds is that a two-detent move writes a single `Scheme:` line to the log |
+| 10 | apply({scheme: the destination}), one change for the whole move | One [`apply`](../../ascii_camera.py#L236), so a five-detent spin is one repaint of some 27,000 cells rather than five. It used to be five, and it fed on itself: a slower frame banks more detents, which made the next frame slower still. The check that this still holds is that a two-detent move writes a single `Scheme:` line to the log |
 
 The boundary is crossed once and in one direction, by an integer. Nothing on
 lgpio's thread ever touches a setting, and nothing on the render loop's thread

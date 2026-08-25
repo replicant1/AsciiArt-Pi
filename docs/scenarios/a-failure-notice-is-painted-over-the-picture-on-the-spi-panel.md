@@ -77,7 +77,7 @@ sequenceDiagram
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | [`notice`](../../src/lcd/lcd_worker.py#L143)`("the API key was refused", 4.0)` | Called from [`_note`](../../ascii_camera.py#L337), which says the same sentence on every display the run actually has. The terminal gets a status line; the panel gets this. In the enclosure only the second one exists |
+| 1 | [`notice`](../../src/lcd/lcd_worker.py#L143)`("the API key was refused", 4.0)` | Called from [`_note`](../../ascii_camera.py#L338), which says the same sentence on every display the run actually has. The terminal gets a status line; the panel gets this. In the enclosure only the second one exists |
 | 2 | store the text and monotonic now plus four seconds | Under a [lock](../../src/lcd/lcd_worker.py#L143), because the caller is the render loop's thread and everything below is the panel's. The expiry is stored, not a timer — nothing has to be cancelled if a second notice arrives |
 | 3 | `run` wakes after [`IDLE_TICK`](../../src/lcd/lcd_worker.py#L43) with no frame waiting | A fifth of a second. This is the path that matters: no frame is coming, because the thing being reported is often the reason no frame is coming |
 | 4 | [`_tick_notice`](../../src/lcd/lcd_worker.py#L297) asks what should be shown, and what is | The comparison is against `_notice_shown`, which records what was last **put on the glass** rather than what was last asked for. Those differ the moment a notice expires, and the difference is the whole trigger |
