@@ -223,12 +223,10 @@ def classes_in(path):
             "attrs": sorted(attrs),
             "name": node.name,
             "module": path.name,
-            # Where it is written, so the heading can link to it. Kept as a
-            # path relative to the repository root and turned into a link in
-            # section(); the line is the `class` statement itself, not the
-            # docstring, so the link lands on the declaration.
+            # Which file it is written in, so the heading can link to it.
+            # Relative to the repository root; section() makes it relative to
+            # docs/. No line number - see source_link for why.
             "path": path.relative_to(ROOT).as_posix(),
-            "line": node.lineno,
             "bases": bases or decorators or [],
             "methods": methods,
             "properties": properties,
@@ -403,14 +401,21 @@ def paragraph(text, width=76):
 
 def source_link(row):
     """
-    The class's heading link: its file, at the line the class starts on.
+    The class's heading link: the file, and deliberately not the line.
 
-    Relative to docs/, which is where the page is written, and in the same
-    shape the scenarios already use - `path.py#L12`. The line number is the
-    `class` statement rather than anything inside it, and it is read from the
-    same parse as everything else on the page, so it cannot drift on its own.
+    The scenarios link to `path.py#L12` and that suits them - a scenario points
+    at one specific call in a method, and the line is most of the information.
+    A class heading is not that: the file is the whole answer, because the
+    class is what the file is for.
+
+    So no line number, which is a fragility this page does not have to carry.
+    Every edit that changes the length of a file moves every anchor below it,
+    and nothing warns at the time - twice in one afternoon an edit to
+    ascii_camera.py silently invalidated seventy-six anchors in the scenarios,
+    and only a test found them. Thirty-one more of the same, regenerated on a
+    page nobody was editing, is a cost with nothing bought by it.
     """
-    return f"../{row['path']}#L{row['line']}"
+    return f"../{row['path']}"
 
 
 def section(row, cast):
@@ -480,9 +485,11 @@ def render():
         "`tests/docs/class_map_test.py` fails if the page is stale, if a class",
         "has no synopsis, or if a synopsis outlives its class.",
         "",
-        "**Each class heading is a link to the class in the source**, at the",
-        "line it is declared on. Those line numbers come from the same parse as",
-        "the rest of the page, so they move when the code does.",
+        "**Each class heading is a link to the file the class is written in.**",
+        "The file rather than the line: a class is what its file is for, so the",
+        "line number would add nothing and would go stale on every edit above",
+        "it. The scenarios do link to lines, because there the line is most of",
+        "what is being pointed at.",
         "",
         "**Each class also lists the scenarios that cast it**, read from those",
         "documents' own cast tables rather than from a search for the name - a",
