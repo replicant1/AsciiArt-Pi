@@ -40,18 +40,19 @@ def check(name, got, want):
         print(f"  FAIL  {name}\n          got  {got!r}\n          want {want!r}")
 
 
-# A class heading, which is a link to the class in the source:
+# A class heading, which is a link to the file the class is written in:
 #
-#     #### [`LcdWorker`](../src/lcd/lcd_worker.py#L61) — `threading.Thread`
+#     #### [`LcdWorker`](../src/lcd/lcd_worker.py) — `threading.Thread`
 #
-# Matched rather than sliced, so that a heading which stopped being a link -
-# or lost its line number - fails here instead of quietly reading as a class
-# named "[".
-HEADING = re.compile(r"^#### \[`([^`]+)`\]\((\S+?\.py)#L(\d+)\)(.*)$")
+# Matched rather than sliced, so a heading that stopped being a link fails here
+# instead of quietly reading as a class named "[". No line number: the page
+# deliberately links the file only, so an edit above a class cannot rot its
+# heading - see source_link in class_map.py.
+HEADING = re.compile(r"^#### \[`([^`]+)`\]\((\S+?\.py)\)(.*)$")
 
 
 def headings(body):
-    """Every class heading on the page, as (name, path, line, tail)."""
+    """Every class heading on the page, as (name, path, tail)."""
     return [m.groups() for m in
             (HEADING.match(line) for line in body.splitlines()) if m]
 
@@ -79,7 +80,7 @@ for path in sorted(list((ROOT / "src").rglob("*.py")) + [ROOT / "ascii_camera.py
 # summary - "wraps `Forwarder`" would vouch for a Forwarder row that is not
 # there - which is a completeness check that cannot detect the one thing it
 # exists to detect.
-rows = {name for name, _, _, _ in headings(page)}
+rows = {name for name, _, _ in headings(page)}
 missing = sorted(name for name in found if name not in rows)
 check("every class in the app has its own section", missing, [])
 check("and no section is for something that no longer exists",
@@ -90,31 +91,38 @@ check("the committed page exists", class_map.OUTPUT.exists(), True)
 check("and is what the tool produces right now",
       class_map.OUTPUT.read_text(encoding="utf-8") == page, True)
 
-# The headings are links now, and a link is the one thing on this page that can
-# be wrong while the page still reads perfectly - a stale line number points at
-# the middle of some other class and nobody reading the markdown can tell.
-# Follow every one and require the line it names to be that class's `class`
-# statement, which is checkable because it is one grep.
+# The headings are links, and a link is the one thing on this page that can be
+# wrong while the page still reads perfectly. Follow every one and require the
+# file it names to actually define that class - parsed rather than grepped, so
+# a class named in a comment or a docstring cannot vouch for a link.
+
+
+def defines(path, name):
+    """Does this file define a top-level class of that name?"""
+    if not path.exists():
+        return False
+    return any(isinstance(n, ast.ClassDef) and n.name == name
+               for n in ast.parse(path.read_text(encoding="utf-8")).body)
+
+
 wrong = []
-for name, target, line, _ in headings(page):
+for name, target, _ in headings(page):
     path = class_map.OUTPUT.parent / target
     if not path.exists():
         wrong.append(f"{name} -> {target} (no such file)")
-        continue
-    source = path.read_text(encoding="utf-8").splitlines()
-    at = source[int(line) - 1] if int(line) <= len(source) else ""
-    if not at.startswith(f"class {name}"):
-        wrong.append(f"{name} -> {target}#L{line} is {at.strip()!r}")
-check("every class heading links to the line its class is declared on",
-      wrong, [])
+    elif not defines(path, name):
+        wrong.append(f"{name} -> {target} (which does not define it)")
+check("every class heading links to a file that defines that class", wrong, [])
 check("and every class on the page has one", len(headings(page)), len(found))
+check("and no heading carries a line number, which an edit above it would rot",
+      [h for h in page.splitlines() if h.startswith("#### [") and ".py#L" in h],
+      [])
 
-# and prove that check can fail: the line after a declaration is not one.
-name, target, line, _ = headings(page)[0]
-after = (class_map.OUTPUT.parent / target).read_text(
-    encoding="utf-8").splitlines()[int(line)]
-check("and a link one line out would be caught",
-      after.startswith(f"class {name}"), False)
+# and prove that check can fail: some other module does not define this class.
+name, target, _ = headings(page)[0]
+elsewhere = class_map.OUTPUT.parent / "../src/art/palettes.py"
+check("the check would notice a heading pointed at the wrong file",
+      defines(elsewhere.resolve(), name), False)
 
 # --- the scenarios each class is cast in -------------------------------------
 #
@@ -180,7 +188,7 @@ print(f"        ({_most} is cast in {len(cast_on_page[_most])} of "
 # The bases column is the reason this page says more than the module map, so
 # it has to be right about the ones that matter most: what runs on its own
 # thread is a fact about how the program behaves.
-bases = {name: tail.strip() for name, _, _, tail in headings(page)}
+bases = {name: tail.strip() for name, _, tail in headings(page)}
 check("the threads are shown as threads",
       sorted(n for n in ("LcdWorker", "CommandServer")
              if bases.get(n) != "— `threading.Thread`"), [])
@@ -440,7 +448,7 @@ described, out_of_order, twice = [], [], []
 for title, _, _ in DIAGRAMS:
     after = page.split(f"## {title}", 1)[1]
     block = after.split("\n## ", 1)[0]
-    names = [name for name, _, _, _ in headings(block)]
+    names = [name for name, _, tail in headings(block)]
     if names != sorted(names):
         out_of_order.append(f"{title}: {names}")
     twice += [n for n in names if n in described]

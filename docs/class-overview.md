@@ -12,9 +12,11 @@ judgement about the design rather than a fact recoverable from it.
 `tests/docs/class_map_test.py` fails if the page is stale, if a class
 has no synopsis, or if a synopsis outlives its class.
 
-**Each class heading is a link to the class in the source**, at the
-line it is declared on. Those line numbers come from the same parse as
-the rest of the page, so they move when the code does.
+**Each class heading is a link to the file the class is written in.**
+The file rather than the line: a class is what its file is for, so the
+line number would add nothing and would go stale on every edit above
+it. The scenarios do link to lines, because there the line is most of
+what is being pointed at.
 
 **Each class also lists the scenarios that cast it**, read from those
 documents' own cast tables rather than from a search for the name - a
@@ -208,7 +210,7 @@ classDiagram
 
 ### The classes in this diagram
 
-#### [`AsciiArt`](../src/art/ascii_art.py#L81)
+#### [`AsciiArt`](../src/art/ascii_art.py)
 
 *ascii_art.py* — Generates ASCII art from a greyscale array.
 
@@ -224,7 +226,7 @@ brightness deserves.
 - [Pixel brightness is mapped to ramp characters](scenarios/pixel-brightness-is-mapped-to-ramp-characters.md)
 - [The chroma planes give each character cell its colour](scenarios/the-chroma-planes-give-each-character-cell-its-colour.md)
 
-#### [`CameraCapture`](../src/capture/camera.py#L61)
+#### [`CameraCapture`](../src/capture/camera.py)
 
 *camera.py* — Captures greyscale frames from the Pi Camera Module 2.
 
@@ -241,7 +243,7 @@ current colour scheme is.
 - [One YUV420 capture carries greyscale and colour without converting either](scenarios/one-yuv420-capture-carries-greyscale-and-colour-without-converting-either.md)
 - [The camera, panel, encoder and socket are released on shutdown](scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
 
-#### [`GlyphAtlas`](../src/lcd/lcd_display.py#L46)
+#### [`GlyphAtlas`](../src/lcd/lcd_display.py)
 
 *lcd_display.py* — Every character of a ramp, pre-rendered into a fixed-size cell.
 
@@ -254,7 +256,7 @@ panel keeping up and falling behind.
 
 - [The character grid is packed into RGB565 pixels for the ILI9341](scenarios/the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md)
 
-#### [`HeadlessDisplay`](../src/hdmi/headless_display.py#L40)
+#### [`HeadlessDisplay`](../src/hdmi/headless_display.py)
 
 *headless_display.py* — Draws nothing, but still carries the settings and reads the keyboard.
 
@@ -265,7 +267,7 @@ a scattering of checks for whether a screen exists.
 
 **Cast in no scenario yet.**
 
-#### [`ILI9341`](../src/lcd/lcd.py#L47)
+#### [`ILI9341`](../src/lcd/lcd.py)
 
 *lcd.py* — Drives the panel over SPI, taking whole frames as PIL images.
 
@@ -281,7 +283,7 @@ all the kernel's SPI buffer will accept.
 - [The SPI panel shows a start-up screen before the first camera frame](scenarios/the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md)
 - [The character grid is packed into RGB565 pixels for the ILI9341](scenarios/the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md)
 
-#### [`ImageProcessor`](../src/capture/image_processor.py#L49)
+#### [`ImageProcessor`](../src/capture/image_processor.py)
 
 *image_processor.py* — Turns a raw greyscale camera frame into an ASCII-grid-sized array.
 
@@ -298,7 +300,7 @@ fringe along every edge in the picture.
 - [Pixel brightness is mapped to ramp characters](scenarios/pixel-brightness-is-mapped-to-ramp-characters.md)
 - [The chroma planes give each character cell its colour](scenarios/the-chroma-planes-give-each-character-cell-its-colour.md)
 
-#### [`LcdDisplay`](../src/lcd/lcd_display.py#L98)
+#### [`LcdDisplay`](../src/lcd/lcd_display.py)
 
 *lcd_display.py* — Draws an ASCII grid onto the ILI9341, filling the panel.
 
@@ -317,7 +319,7 @@ not being redrawn.
 - [Pixel brightness is mapped to ramp characters](scenarios/pixel-brightness-is-mapped-to-ramp-characters.md)
 - [The character grid is packed into RGB565 pixels for the ILI9341](scenarios/the-character-grid-is-packed-into-rgb565-pixels-for-the-ili9341.md)
 
-#### [`LcdWorker`](../src/lcd/lcd_worker.py#L61) — `threading.Thread`
+#### [`LcdWorker`](../src/lcd/lcd_worker.py) — `threading.Thread`
 
 *lcd_worker.py* — Renders camera frames to the LCD without blocking the main loop.
 
@@ -336,7 +338,7 @@ anyone having to remember to add it in a second place.
 - [The SPI panel shows a start-up screen before the first camera frame](scenarios/the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md)
 - [The camera, panel, encoder and socket are released on shutdown](scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
 
-#### [`MainRenderLooper`](../ascii_camera.py#L99)
+#### [`MainRenderLooper`](../ascii_camera.py)
 
 *ascii_camera.py* — Capture -> process -> ASCII -> terminal, once per frame.
 
@@ -362,7 +364,7 @@ single place that knows what each setting costs to change.
 - [The camera, panel, encoder and socket are released on shutdown](scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
 - [The character grid is drawn on the HDMI terminal](scenarios/the-character-grid-is-drawn-on-the-hdmi-terminal.md)
 
-#### [`NcursesDisplay`](../src/hdmi/ncurses_display.py#L34)
+#### [`NcursesDisplay`](../src/hdmi/ncurses_display.py)
 
 *ncurses_display.py* — Renders ASCII art frames to the terminal.
 
@@ -378,7 +380,7 @@ may write to standard output or standard error, or the picture is corrupted.
 - [Pixel brightness is mapped to ramp characters](scenarios/pixel-brightness-is-mapped-to-ramp-characters.md)
 - [The character grid is drawn on the HDMI terminal](scenarios/the-character-grid-is-drawn-on-the-hdmi-terminal.md)
 
-#### [`Scheme`](../src/art/palettes.py#L69) — `NamedTuple`
+#### [`Scheme`](../src/art/palettes.py) — `NamedTuple`
 
 *palettes.py* — One display look.
 
@@ -391,7 +393,7 @@ schemes be an ordinary list, which the `s` key and the knob step through.
 
 - [A colour scheme is compiled into a per-cell lookup table](scenarios/a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md)
 
-#### [`SplashScreen`](../src/lcd/lcd_splash.py#L55)
+#### [`SplashScreen`](../src/lcd/lcd_splash.py)
 
 *lcd_splash.py* — Renders the start-up screen as a PIL image, ready for the panel.
 
@@ -404,7 +406,7 @@ hardware.
 
 - [The SPI panel shows a start-up screen before the first camera frame](scenarios/the-spi-panel-shows-a-start-up-screen-before-the-first-camera-frame.md)
 
-#### [`YuvFrame`](../src/capture/camera.py#L22)
+#### [`YuvFrame`](../src/capture/camera.py)
 
 *camera.py* — One YUV420 frame, exposing its planes as views rather than copies.
 
@@ -559,7 +561,7 @@ classDiagram
 
 ### The classes in this diagram
 
-#### [`Ask`](../src/control/command_server.py#L55) — `NamedTuple`
+#### [`Ask`](../src/control/command_server.py) — `NamedTuple`
 
 *command_server.py* — A delta already worked out, on its way to the render loop.
 
@@ -570,7 +572,7 @@ does, and by then nothing about it reveals which it was.
 
 **Cast in no scenario yet.**
 
-#### [`AskLog`](../src/language/asklog.py#L75)
+#### [`AskLog`](../src/language/asklog.py)
 
 *asklog.py* — Append-only record of asks, one JSON object per line.
 
@@ -586,7 +588,7 @@ estimated.
 - [A spoken phrase is turned into a config delta by the language model](scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md)
 - [Every ask is recorded with its source, its cost and its elapsed time](scenarios/every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md)
 
-#### [`AskResolver`](../src/language/resolver.py#L33)
+#### [`AskResolver`](../src/language/resolver.py)
 
 *resolver.py* — Turns "ask <words>" into a delta, on whatever thread called it.
 
@@ -603,7 +605,7 @@ asking is never all or nothing.
 - [Every ask is recorded with its source, its cost and its elapsed time](scenarios/every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md)
 - [The language model declines a request it cannot satisfy](scenarios/the-language-model-declines-a-request-it-cannot-satisfy.md)
 
-#### [`CommandError`](../src/control/commands.py#L49) — `ValueError`
+#### [`CommandError`](../src/control/commands.py) — `ValueError`
 
 *commands.py* — A line that could not be turned into a delta, with a reason to print.
 
@@ -614,7 +616,7 @@ allowed is a separate question, answered elsewhere.
 
 **Cast in no scenario yet.**
 
-#### [`CommandServer`](../src/control/command_server.py#L80) — `threading.Thread`
+#### [`CommandServer`](../src/control/command_server.py) — `threading.Thread`
 
 *command_server.py* — Accepts typed lines on a Unix socket and queues them for the app.
 
@@ -630,7 +632,7 @@ takes several seconds therefore costs the picture nothing.
 - [Text typed on a phone reaches the render loop over the LAN](scenarios/text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md)
 - [The camera, panel, encoder and socket are released on shutdown](scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
 
-#### [`ConfigError`](../src/control/render_config.py#L49) — `ValueError`
+#### [`ConfigError`](../src/control/render_config.py) — `ValueError`
 
 *render_config.py* — A delta that could not be applied, carrying every reason rather than one.
 
@@ -643,7 +645,7 @@ proposals, which wants the entire list.
 
 - [A render configuration change is refused](scenarios/a-render-configuration-change-is-refused.md)
 
-#### [`ParseError`](../src/language/parser.py#L270) — `RuntimeError`
+#### [`ParseError`](../src/language/parser.py) — `RuntimeError`
 
 *parser.py* — The parse could not be completed - network, key, or a refusal.
 
@@ -655,7 +657,7 @@ something useful on a 240x320 panel, not to tell those three apart.
 
 - [A model parse fails and the panel says which kind of failure it was](scenarios/a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md)
 
-#### [`Parsed`](../src/language/parser.py#L274)
+#### [`Parsed`](../src/language/parser.py)
 
 *parser.py* — What one utterance came back as.
 
@@ -669,7 +671,7 @@ settings cannot express, which is not the same as being refused.
 - [A spoken phrase is turned into a config delta by the language model](scenarios/a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md)
 - [The language model declines a request it cannot satisfy](scenarios/the-language-model-declines-a-request-it-cannot-satisfy.md)
 
-#### [`QuadratureDecoder`](../src/control/encoder.py#L88)
+#### [`QuadratureDecoder`](../src/control/encoder.py)
 
 *encoder.py* — Pin levels in, detents out.  No GPIO, no threads, no clock.
 
@@ -682,7 +684,7 @@ has to be testable on a machine with no encoder attached.
 
 - [A rotary encoder detent changes the colour scheme](scenarios/a-rotary-encoder-detent-changes-the-colour-scheme.md)
 
-#### [`RenderConfig`](../src/control/render_config.py#L118) — `@dataclass`
+#### [`RenderConfig`](../src/control/render_config.py) — `@dataclass`
 
 *render_config.py* — The complete live render state.
 
@@ -702,7 +704,7 @@ and a language model meaningful.
 - [A typed command updates the render configuration](scenarios/a-typed-command-updates-the-render-configuration.md)
 - [One configuration change is pushed to both displays](scenarios/one-configuration-change-is-pushed-to-both-displays.md)
 
-#### [`Reply`](../src/control/command_server.py#L74) — `NamedTuple`
+#### [`Reply`](../src/control/command_server.py) — `NamedTuple`
 
 *command_server.py* — A resolver's answer to send straight back, without troubling the loop.
 
@@ -712,7 +714,7 @@ stay off the one thread that has to keep drawing.
 
 **Cast in no scenario yet.**
 
-#### [`RotaryEncoder`](../src/control/encoder.py#L123)
+#### [`RotaryEncoder`](../src/control/encoder.py)
 
 *encoder.py* — A KY-040 on two GPIO pins, read through lgpio's edge callbacks.
 
@@ -726,7 +728,7 @@ therefore learns how far the knob moved, and not how noisily it got there.
 - [A rotary encoder detent changes the colour scheme](scenarios/a-rotary-encoder-detent-changes-the-colour-scheme.md)
 - [The camera, panel, encoder and socket are released on shutdown](scenarios/the-camera-panel-encoder-and-socket-are-released-on-shutdown.md)
 
-#### [`SchemeCycle`](../src/control/scheme_cycle.py#L37)
+#### [`SchemeCycle`](../src/control/scheme_cycle.py)
 
 *scheme_cycle.py* — Steps the colour scheme, from a key or a knob.
 
@@ -739,7 +741,7 @@ strobe through pictures nobody is on screen long enough to see.
 
 - [A rotary encoder detent changes the colour scheme](scenarios/a-rotary-encoder-detent-changes-the-colour-scheme.md)
 
-#### [`Spec`](../src/control/render_config.py#L63) — `NamedTuple`
+#### [`Spec`](../src/control/render_config.py) — `NamedTuple`
 
 *render_config.py* — What one setting accepts, and what it is for.
 
@@ -801,7 +803,7 @@ classDiagram
 
 ### The classes in this diagram
 
-#### [`AskLimit`](../src/control/web_server.py#L167)
+#### [`AskLimit`](../src/control/web_server.py)
 
 *web_server.py* — A sliding window over the requests that cost money.
 
@@ -814,7 +816,7 @@ bill.
 
 - [Text typed on a phone reaches the render loop over the LAN](scenarios/text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md)
 
-#### [`Forwarder`](../src/control/web_server.py#L117)
+#### [`Forwarder`](../src/control/web_server.py)
 
 *web_server.py* — Sends one line to the app's command socket and returns its reply.
 
@@ -826,7 +828,7 @@ phone page a client of the app, rather than a second copy of it.
 
 - [Text typed on a phone reaches the render loop over the LAN](scenarios/text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md)
 
-#### [`Handler`](../src/control/web_server.py#L512) — `BaseHTTPRequestHandler`
+#### [`Handler`](../src/control/web_server.py) — `BaseHTTPRequestHandler`
 
 *web_server.py* — One request. The server instance carries the forwarder and the limit.
 
@@ -838,7 +840,7 @@ ask therefore cannot make the page unreachable for anybody else.
 
 - [Text typed on a phone reaches the render loop over the LAN](scenarios/text-typed-on-a-phone-reaches-the-render-loop-over-the-lan.md)
 
-#### [`WebServer`](../src/control/web_server.py#L636) — `ThreadingHTTPServer`
+#### [`WebServer`](../src/control/web_server.py) — `ThreadingHTTPServer`
 
 *web_server.py* — A LAN-bound listener, IPv4 only, holding the socket path it forwards to.
 
