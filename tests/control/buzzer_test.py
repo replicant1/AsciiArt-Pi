@@ -19,6 +19,7 @@ code that did that.
 
 import sys
 import threading
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -106,6 +107,35 @@ def test_the_tune_is_two_notes_an_octave_apart():
     check("the duty is 50%, the loudest a square wave gets", buzzer.DUTY, 50)
     check("and it plays on GPIO 13, the pin that reaches hardware PWM",
           buzzer.PIN, 13)
+
+
+def test_goodbye_is_hello_backwards():
+    """
+    Derived, not written out twice, so the pair cannot drift apart.
+
+    Checked as a relationship rather than as a literal: asserting
+    `((880, 0.25), (440, 0.25))` would pass just as happily if someone changed
+    the greeting and left the farewell behind, which is the one way these two
+    can go wrong.
+    """
+    check("GOODBYE is HELLO reversed", buzzer.GOODBYE,
+          tuple(reversed(buzzer.HELLO)))
+    check("so it rises on the way in and falls on the way out",
+          (buzzer.HELLO[0][0] < buzzer.HELLO[1][0],
+           buzzer.GOODBYE[0][0] > buzzer.GOODBYE[1][0]), (True, True))
+    check("and both take the same half second",
+          (buzzer.duration(buzzer.HELLO), buzzer.duration(buzzer.GOODBYE)),
+          (0.5, 0.5))
+
+
+def test_goodbye_plays_the_notes_the_other_way_up():
+    """The farewell on the wire, cycle counts and all."""
+    fake = FakeGpio()
+    without_sleeping(lambda: buzzer.goodbye(gpio=fake))
+    check("880 Hz first, then 440, each still a quarter second",
+          [(e[2], e[4]) for e in fake.events if e[0] == "tone"],
+          [(880, 220), (440, 110)])
+    check("and the pin is handed back", fake.claimed, set())
 
 
 def test_hello_drives_the_pin_in_the_right_order():
@@ -256,6 +286,96 @@ def test_a_failure_on_the_thread_stays_on_the_thread():
     check("and the pin is still handed back", fake.claimed, set())
 
 
+def test_the_shutdown_waits_for_its_tune():
+    """
+    The farewell is waited for, where the greeting is not.
+
+    Gated the same way round as the start-up check, and asserting the opposite:
+    there, the caller had control back while the note was sounding; here it must
+    still be inside `_say_goodbye` until the tune is done. Timing would not
+    settle this - a fast machine finishes the tune before anyone can look.
+    """
+    sounding = threading.Event()
+    release = threading.Event()
+
+    class GatedGpio(FakeGpio):
+        def tx_pwm(self, handle, pin, frequency, duty, offset=0, cycles=0):
+            super().tx_pwm(handle, pin, frequency, duty, offset, cycles)
+            sounding.set()
+            release.wait(5)
+
+    fake = GatedGpio()
+    returned = threading.Event()
+
+    def farewell():
+        buzzer.goodbye(gpio=fake)
+        returned.set()
+
+    caller = threading.Thread(target=farewell, daemon=True)
+    caller.start()
+    check("the first note is sounding", sounding.wait(5), True)
+    check("and the caller has NOT returned while it sounds",
+          returned.is_set(), False)
+    release.set()
+    check("it returns once the tune is done", returned.wait(5), True)
+
+
+def test_a_shutdown_is_never_held_up_by_the_buzzer():
+    """
+    The bound on the wait, which is what stops a farewell becoming a hang.
+
+    `_say_goodbye` joins with a timeout. A tune that never ends must cost the
+    shutdown that timeout and no more, because the alternative is systemd's
+    SIGKILL at fifteen seconds - and that leaves claimed exactly the camera and
+    GPIO pins that the rest of _shut_down exists to release, which is the worse
+    failure by a distance.
+    """
+    sys.path.insert(0, str(ROOT))
+    try:
+        import ascii_camera                            # noqa: E402
+    except ModuleNotFoundError as e:
+        print(f"  [SKIP] a tune that never ends does not hold up the shutdown "
+              f"-- needs the Pi ({e.name} is not installed here)")
+        skipped.append("a tune that never ends does not hold up the shutdown")
+        return
+
+    never_ends = threading.Event()
+
+    class Sticky:
+        """A buzzer whose tune never finishes, which is the case that matters."""
+        GOODBYE = buzzer.GOODBYE
+        duration = staticmethod(buzzer.duration)
+
+        @staticmethod
+        def in_background(notes=None, **kw):
+            # **kw rather than a fixed signature: the app passes `name=` now,
+            # and the first version of this fake did not take it. The call
+            # raised, _say_goodbye swallowed it, and the wait this test exists
+            # to measure was never entered - it reported 0.00 s and went red,
+            # which is the only reason the mismatch was noticed at all.
+            thread = threading.Thread(target=lambda: never_ends.wait(30),
+                                      daemon=True)
+            thread.start()
+            return thread
+
+    real = ascii_camera.buzzer
+    ascii_camera.buzzer = Sticky
+    began = time.perf_counter()
+    try:
+        ascii_camera.MainRenderLooper._say_goodbye(object())
+    finally:
+        ascii_camera.buzzer = real
+        never_ends.set()
+    waited = time.perf_counter() - began
+
+    # The bound is the tune's own length plus a second. Checked as a range so
+    # this measures the timeout being honoured rather than restating it: too
+    # short and it never waited, too long and the join is unbounded.
+    check("it gives up on the tune rather than hanging the shutdown",
+          1.4 < waited < 3.0, True)
+    print(f"        (waited {waited:.2f} s for a tune that never ends)")
+
+
 def test_the_app_survives_a_buzzer_that_is_not_there():
     """
     A missing buzzer must not stop the picture.
@@ -281,7 +401,7 @@ def test_the_app_survives_a_buzzer_that_is_not_there():
 
     class Broken:
         @staticmethod
-        def in_background():
+        def in_background(*a, **kw):
             raise OSError("no such device")
 
     ascii_camera.buzzer = Broken
@@ -299,12 +419,16 @@ def main():
     print("the start-up tune")
     print("=" * 66)
     test_the_tune_is_two_notes_an_octave_apart()
+    test_goodbye_is_hello_backwards()
+    test_goodbye_plays_the_notes_the_other_way_up()
     test_hello_drives_the_pin_in_the_right_order()
     test_the_note_length_is_lgpios_job_not_pythons()
     test_a_note_that_fails_still_hands_the_pin_back()
     test_a_zero_frequency_is_never_asked_for()
     test_play_takes_any_tune()
     test_start_up_does_not_wait_for_the_tune()
+    test_the_shutdown_waits_for_its_tune()
+    test_a_shutdown_is_never_held_up_by_the_buzzer()
     test_a_failure_on_the_thread_stays_on_the_thread()
     test_the_app_survives_a_buzzer_that_is_not_there()
 
