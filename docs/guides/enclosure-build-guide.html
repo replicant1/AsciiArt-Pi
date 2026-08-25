@@ -584,11 +584,12 @@
   <section>
     <h2>Inside the HAT</h2>
     <p>This is the part you actually solder. Every wire in the drawing above stops at a JST-XH socket — here is what has to happen underneath it, from each outgoing socket position back to the header pin it belongs on.</p>
-    <p>Three sockets, not two. The panel’s eight and the encoder’s four are the ones Fig. 2 accounts for; the third is a 4-way for the <strong>shutdown button</strong>, which is a feature of the box rather than of any peripheral and so has no place in a drawing of the bench assembly. It is four wires — the switch pair and the LED pair, because the button lights up — and this is the board they land on.</p>
+    <p>Four sockets, not two. The panel’s eight and the encoder’s four are the ones Fig. 2 accounts for; the third is a 4-way for the <strong>shutdown button</strong>, which is a feature of the box rather than of any peripheral and so has no place in a drawing of the bench assembly. It is four wires — the switch pair and the LED pair, because the button lights up — and this is the board they land on.</p>
+    <p>The fourth is a 2-way for the <strong>buzzer</strong>, and it is on the board for the same reason: it says nothing about the camera and everything about the box, announcing the two moments the box has no other way to announce — that it has started coming up, and that the press you just made is being obeyed. Two wires do it, on <strong>GPIO 13 (pin 33)</strong> and the ground beside it on <strong>pin 34</strong>. The part is a <strong>TDK PS1240</strong>, a bare two-pin piezo transducer rather than a breakout module — which is what makes it two wires and no driver. <a href="#buzzer">Why that part and not the obvious one</a> is a section of its own, because the obvious one was tried first and was wrong.</p>
 
     <figure>
       <div class="scroll">
-        <svg viewBox="0 0 1000 500" class="svg-xwide" role="img" aria-label="Plan view of the perfboard HAT from above with the Pi underneath and its microSD slot to the left. The 2 by 20 header has the even-numbered row outermost and the odd row inboard, pin 1 at the left of the inner row. Sixteen coloured wires run down to three JST-XH sockets. To the panel socket: red 3V3 from pin 1, black ground from pin 6, orange MOSI from pin 19, yellow SCK from pin 23, dark blue chip select from pin 24, dark green data-command from pin 22, white reset from pin 13 and dark grey backlight from pin 12. To the encoder socket: yellow quadrature A from pin 35, dark green B from pin 37, dark blue switch from pin 31 and black ground from pin 39. A third, four-way socket at the far left of the board carries the illuminated shutdown button: violet from GPIO 3 on pin 5 for the switch, black ground from pin 9, and pink from GPIO 4 on pin 7 for the button&#8217;s built-in LED through a 220 ohm resistor. The socket has two ground positions, joined on the board and fed by the one wire from pin 9, so the switch and the LED each get their own return to the button. A 100 nanofarad capacitor sits across the switch pair.">
+        <svg viewBox="0 0 1000 740" class="svg-xwide" role="img" aria-label="Plan view of the perfboard HAT from above with the Pi underneath and its microSD slot to the left. The 2 by 20 header has the even-numbered row outermost and the odd row inboard, pin 1 at the left of the inner row. Eighteen coloured wires run down to four JST-XH sockets. To the panel socket: red 3V3 from pin 1, black ground from pin 6, orange MOSI from pin 19, yellow SCK from pin 23, dark blue chip select from pin 24, dark green data-command from pin 22, white reset from pin 13 and dark grey backlight from pin 12. To the encoder socket: yellow quadrature A from pin 35, dark green B from pin 37, dark blue switch from pin 31 and black ground from pin 39. A third, four-way socket at the far left of the board carries the illuminated shutdown button: violet from GPIO 3 on pin 5 for the switch, black ground from pin 9, and pink from GPIO 4 on pin 7 for the button&#8217;s built-in LED through a 220 ohm resistor. The socket has two ground positions, joined on the board and fed by the one wire from pin 9, so the switch and the LED each get their own return to the button. A 100 nanofarad capacitor sits across the switch pair. A fourth, two-way socket in the empty middle of the board carries a TDK PS1240 piezo transducer: orange from GPIO 13 on pin 33 to one of its two pins, and black from the ground on pin 34 to the other. Both buzzer wires cross the encoder&#8217;s switch wire on their way across, since GPIO 13 sits inside the encoder&#8217;s run of pins. Below the board, an enlarged view of the transducer shows a round 12 millimetre case with two pins and no circuit board, and notes that the two pins are interchangeable because a piezo has no polarity.">
           <text x="60" y="80" class="d-txt" font-size="13">Looking down on the HAT from above — component side up, Pi underneath,</text>
           <text x="60" y="98" class="d-txt" font-size="13">its pins pointing up into the header. Pi’s microSD slot to the left.</text>
           <rect x="60" y="118" width="880" height="282" class="d-box"/>
@@ -624,8 +625,8 @@
           <rect x="664" y="194" width="12" height="12" class="pad-off"/>
           <rect x="704" y="144" width="12" height="12" class="pad-off"/>
           <rect x="704" y="194" width="12" height="12" class="pad-on"/>
-          <rect x="744" y="144" width="12" height="12" class="pad-off"/>
-          <rect x="744" y="194" width="12" height="12" class="pad-off"/>
+          <rect x="744" y="144" width="12" height="12" class="pad-on"/>
+          <rect x="744" y="194" width="12" height="12" class="pad-on"/>
           <rect x="784" y="144" width="12" height="12" class="pad-off"/>
           <rect x="784" y="194" width="12" height="12" class="pad-on"/>
           <rect x="824" y="144" width="12" height="12" class="pad-off"/>
@@ -641,6 +642,7 @@
           <rect x="190" y="352" width="240" height="44" class="d-part"/>
           <rect x="680" y="352" width="150" height="44" class="d-part"/>
           <rect x="60" y="352" width="110" height="44" class="d-part"/>
+          <rect x="580" y="352" width="70" height="44" class="d-part"/>
           <path d="M 110 206 L 110 210 L 205 210 L 205 352" class="wc-case"/>
           <path d="M 110 206 L 110 210 L 205 210 L 205 352" class="wc wc-red"/>
           <text x="110" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">1</text>
@@ -689,6 +691,17 @@
           <path d="M 870 206 L 870 328 L 808 328 L 808 352" class="wc wc-black"/>
           <text x="870" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">39</text>
           <text x="808" y="380" text-anchor="middle" class="d-txt" font-size="11.5">C</text>
+          <!-- Buzzer. Ground leaves pin 34 on the outer row and slips down through
+               the gap left of the pads, so that the two wires never share a column
+               and never cross each other on the way to the socket. -->
+          <path d="M 750 156 L 750 170 L 726 178 L 726 266 L 600 266 L 600 352" class="wc-case"/>
+          <path d="M 750 156 L 750 170 L 726 178 L 726 266 L 600 266 L 600 352" class="wc wc-black"/>
+          <text x="750" y="136" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">34</text>
+          <text x="600" y="380" text-anchor="middle" class="d-txt" font-size="11.5">GND</text>
+          <path d="M 750 206 L 750 282 L 630 282 L 630 352" class="wc-case"/>
+          <path d="M 750 206 L 750 282 L 630 282 L 630 352" class="wc wc-orange"/>
+          <text x="750" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">33</text>
+          <text x="630" y="380" text-anchor="middle" class="d-txt" font-size="11.5">SIG</text>
           <path d="M 190 206 L 190 244 L 152 244 L 152 352" class="wc-case"/>
           <path d="M 190 206 L 190 244 L 152 244 L 152 352" class="wc wc-violet"/>
           <text x="190" y="186" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">5</text>
@@ -714,16 +727,41 @@
           <text x="310" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 8 — to panel</text>
           <text x="755" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 4 — encoder</text>
           <text x="115" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 4 — button</text>
+          <text x="615" y="414" text-anchor="middle" class="d-acc-txt" font-size="13" font-weight="650">XH 2 — buzzer</text>
           <text x="70" y="440" class="d-warn-txt" font-size="12" font-weight="650">Flip the board to solder its underside and this view mirrors left-to-right.</text>
-          <text x="70" y="462" class="d-dim" font-size="11">Only the fifteen pins in use are filled; the other twenty-five stay bare. Colours are listed below.</text>
+          <text x="70" y="462" class="d-dim" font-size="11">Only the seventeen pins in use are filled; the other twenty-three stay bare. Colours are listed below.</text>
+
+          <!-- The buzzer end. Drawn here rather than in its own figure because
+               the thing worth seeing is that there is no module and no third
+               pin - the part is the transducer itself. -->
+          <line x1="60" y1="492" x2="940" y2="492" class="d-div"/>
+          <text x="60" y="522" class="d-acc-txt" font-size="13" font-weight="650">What plugs into XH 2 — a TDK PS1240, externally driven</text>
+          <text x="60" y="542" class="d-dim" font-size="11">No breakout board and no third pin. Two pins straight off a 12.2 mm case, and they are interchangeable.</text>
+          <circle cx="150" cy="616" r="52" class="d-box"/>
+          <circle cx="150" cy="616" r="26" class="d-thin"/>
+          <path d="M 196 592 L 262 592" class="d-line"/>
+          <path d="M 196 640 L 262 640" class="d-line"/>
+          <rect x="262" y="585" width="14" height="14" class="pad-on"/>
+          <rect x="262" y="633" width="14" height="14" class="pad-on"/>
+          <text x="150" y="694" text-anchor="middle" class="d-txt" font-size="12" font-weight="650">PS1240</text>
+          <text x="150" y="712" text-anchor="middle" class="d-dim" font-size="11">12.2 mm · no oscillator</text>
+          <path d="M 284 592 L 388 592" class="wc-case"/>
+          <path d="M 284 592 L 388 592" class="wc wc-black"/>
+          <text x="402" y="596" class="d-txt" font-size="12">black — ground, from header pin 34</text>
+          <path d="M 284 640 L 388 640" class="wc-case"/>
+          <path d="M 284 640 L 388 640" class="wc wc-orange"/>
+          <text x="402" y="644" class="d-txt" font-size="12">orange — the square wave, GPIO 13 from header pin 33</text>
+          <text x="402" y="672" class="d-dim" font-size="11">Swap the two and nothing changes: a piezo is a symmetric capacitor with no polarity.</text>
+          <text x="402" y="694" class="d-warn-txt" font-size="11" font-weight="650">Open circuit at DC. Before anything drives it, check GPIO 13 still reads HIGH on a pull-up —</text>
+          <text x="402" y="710" class="d-warn-txt" font-size="11" font-weight="650">a part that reads low has a coil in it and will draw ten times what the pin can give.</text>
         </svg>
       </div>
-      <figcaption><b>Fig. 3 &mdash; The HAT from above, and every wire you have to solder.</b> The sixteen wires on the HAT, drawn in the colour of the wire you actually cut. Colours are unique within each socket, so nothing is ambiguous while you solder. Pin numbering is as <code>pinout</code> reports it on this board: pin 1 sits on the <em>inner</em> row, so the even-numbered row is the outer one. Sixteen wires but only fifteen header pins: the button&#8217;s switch return and its LED return are both ground, so they share pin 9 and are joined on the board rather than run twice. Twenty-five of the forty pins are never touched. The crossings are all the button&rsquo;s three wires getting past the panel&rsquo;s power and ground on their way to the left edge &mdash; unavoidable, since GPIO 3, GPIO 4 and the ground they use sit inside the panel&rsquo;s own run of pins. The plain rectangle on the pink wire is the 220 &#937; LED resistor; the two plates across the switch pair are the 100 nF. Where the button&rsquo;s ground crosses the panel&rsquo;s, the drawing hops it: two black wires meeting at right angles would otherwise read as a joint.</figcaption>
+      <figcaption><b>Fig. 3 &mdash; The HAT from above, and every wire you have to solder.</b> The eighteen wires on the HAT, drawn in the colour of the wire you actually cut. Colours are unique within each socket, so nothing is ambiguous while you solder. Pin numbering is as <code>pinout</code> reports it on this board: pin 1 sits on the <em>inner</em> row, so the even-numbered row is the outer one. Eighteen wires but only seventeen header pins: the button&#8217;s switch return and its LED return are both ground, so they share pin 9 and are joined on the board rather than run twice. Twenty-three of the forty pins are never touched. The crossings are the button&rsquo;s three wires getting past the panel&rsquo;s power and ground on their way to the left edge, and the buzzer&rsquo;s two getting past the encoder&rsquo;s switch on their way to the middle &mdash; unavoidable in both cases, and for the same reason: GPIO 3, GPIO 4 and the ground they use sit inside the panel&rsquo;s own run of pins, and GPIO 13 sits inside the encoder&rsquo;s. The plain rectangle on the pink wire is the 220 &#937; LED resistor; the two plates across the switch pair are the 100 nF. Where the button&rsquo;s ground crosses the panel&rsquo;s, the drawing hops it: two black wires meeting at right angles would otherwise read as a joint. The buzzer&rsquo;s two crossings need no such treatment: black over blue and orange over blue can only be read one way. <b>The buzzer socket is a plain 2-way and its two positions are interchangeable</b>, because the part on the end of it is a bare piezo transducer rather than a module: a symmetric capacitor with two identical pins, no polarity, no third pin and nothing on a board to get wrong. An earlier draft of this drawing had a 3-way socket with a dead middle position, for a KY-006 breakout that turned out to be the wrong part entirely &mdash; see below.</figcaption>
     </figure>
 
 
     <h3>Cut list</h3>
-    <p>Colours repeat between the three harnesses but never within one, so a wire is never ambiguous at the socket you are soldering. The one exception to that economy is the button’s signal wire, which is violet — a colour used nowhere else on the board. The panel harness already spends all eight of the usual ones, and the button’s socket is soldered right beside it.</p>
+    <p>Colours repeat between the four harnesses but never within one, so a wire is never ambiguous at the socket you are soldering. The one exception to that economy is the button’s signal wire, which is violet — a colour used nowhere else on the board. The panel harness already spends all eight of the usual ones, and the button’s socket is soldered right beside it.</p>
     <div class="scroll">
       <table>
         <thead>
@@ -767,7 +805,18 @@
         </tbody>
       </table>
     </div>
-    <p><strong>Red for 3V3 and black for ground</strong> in all three harnesses, because that convention is worth more than any drawing — anyone opening this box later will read those two correctly without a legend.</p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Wire</th><th>Carries</th><th class="pin">Header pin</th><th class="pin">Buzzer pad</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="sw sw-orange"></span>orange</td><td>GPIO 13 — tone, PWM1</td><td class="pin">33</td><td class="pin">SIG</td></tr>
+          <tr><td><span class="sw sw-black"></span>black</td><td>GND</td><td class="pin">34</td><td class="pin">GND</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>Red for 3V3 and black for ground</strong> in all four harnesses, because that convention is worth more than any drawing — anyone opening this box later will read those two correctly without a legend.</p>
 
     <h3>What the button’s two wires are doing</h3>
     <p><strong>Four wires, because the button lights up.</strong> An <a href="https://core-electronics.com.au/16mm-illuminated-pushbutton-red-momentary.html">Adafruit 16 mm illuminated momentary pushbutton</a> (~$3 AUD) has four lugs: two for the switch and two for a built-in LED. Its plastic body matters — the panel connectors guide chose plastic over a metal anti-vandal switch precisely because metal offers an ESD path into a high-impedance GPIO that a human touches. Note it needs a <strong>16 mm hole</strong>, not the 6.35 mm bushing of the plain switch, and it is 29.4 mm deep, so check it against the parting plane before cutting.</p>
@@ -776,6 +825,33 @@
     <p>Put <code>dtoverlay=gpio-shutdown</code> in <code>/boot/firmware/config.txt</code> and the switch half, across <strong>GPIO 3 (pin 5)</strong> and ground, halts the Pi cleanly — and, uniquely to GPIO 3, wakes it again from halt while power is still applied. That is a power button for the price of a $2 switch. Nothing else is needed at the HAT: the Pi already carries a 1k8 pull-up on that line, so fitting your own resistor is wrong rather than merely redundant.</p>
     <p>The <strong>100 nF ceramic goes on the HAT</strong>, soldered directly across the two socket pins, and that is where the drawing puts it. Its job is to shunt noise picked up along the whole run out to a panel-mounted switch, which it cannot do from the switch end. It debounces the contacts for free, and because it dumps its charge into them on every press it keeps a dry-circuit contact wetted — this line switches microamps, which is exactly the regime where cheap silver contacts grow an oxide film that never breaks down. Run the pair as twisted wire, under 150 mm, crossing the SPI harness at right angles rather than lying alongside it.</p>
     <p>One thing that is settled rather than open: <strong>GPIO 3 is permanent.</strong> It was contested once — GPIO 2 and 3 are the I²C bus, which is exactly where a PiSugar 3 would have talked to the Pi — but this build is externally powered and no battery is coming, so nothing competes for it. Keep it that way. Shutdown works on any GPIO; waking a halted Pi does not, and with no battery module there is no other way to switch this box on.</p>
+
+    <h3 id="buzzer">What the buzzer’s two wires are doing</h3>
+    <p><strong>Two wires, because the transducer is a capacitor with a voice.</strong> A <a href="https://core-electronics.com.au/piezo-buzzer-ps1240.html">TDK PS1240</a> (about A$3) is a piezo disc in a 12 mm case with two pins and nothing else — no board, no oscillator, no transistor. Distributors classify it as a <em>transducer, externally driven</em>, and TDK’s own catalogue calls the PS series a buzzer <em>without oscillator circuit</em>. That phrase is the whole reason it is here: nothing inside it decides the pitch, so it sounds at whatever frequency you drive it at, which is what a two-note tune needs. Rated 3 V, usable 0–30 V, so 3.3 V logic drives it directly.</p>
+    <p>It draws almost nothing because it is a capacitor: no DC path at all, and an AC current of well under a milliamp at these frequencies, against the 16 mA a GPIO will source. So <strong>it hangs straight off the pin</strong> — no transistor, no base resistor, no flyback diode, no series resistor.</p>
+
+    <p><strong>The part matters more than any of the wiring, and getting it wrong is the trap.</strong> This drawing first specified a KY-006 “passive piezo buzzer” breakout, on the strength of a reference schematic showing a bare piezo between <code>S</code> and <code>−</code> with the middle pin unconnected. Wired up on this Pi, GPIO 13 read <em>low</em> with the internal pull-up enabled, while four known-bare pins on the same board read high and <code>pinctrl</code> agreed — a DC path to ground, which a capacitor cannot produce. The module had no transistor on it and its wiring was correct. <strong>The transducer was electromagnetic</strong>: a coil of a few tens of ohms, which is what “passive buzzer” usually means in an Arduino-style kit, whatever the word piezo on the listing suggests. On 3.3 V that is 80–200 mA. It was never driven, and the pull-up check is the only reason.</p>
+    <p>So the rule that came out of it, and it is worth more than the drawing: <strong>a piezo reads open at DC and a coil reads short, and you can tell which you have before you connect anything to it.</strong> Buy the part by manufacturer number, not by the word on the listing, and prove it on the bench.</p>
+
+    <h3>Check the buzzer before anything drives it</h3>
+    <p>Wire the transducer to pins 33 and 34, then — without configuring any output — set GPIO 13 as an input with the internal pull-up on and read it. Do the same on a free pin with nothing attached, as a control; if the control does not go high, the pull-up is not doing what you think and the result means nothing.</p>
+    <ul>
+      <li><strong>GPIO 13 HIGH</strong>, matching the bare control pin — the transducer is open at DC. It is a piezo, and it is safe to drive.</li>
+      <li><strong>GPIO 13 low</strong> while the control reads high — there is a coil or a short on the pin. <em>Stop.</em> Do not drive it: at a few tens of ohms the pad would source ten times its rating.</li>
+    </ul>
+    <p>Only once that passes is it worth asking what it sounds like. Drive it at 1 kHz and then at 2 kHz: the pitch should follow. A fixed pitch that ignores the drive frequency means an active buzzer, with its own oscillator, and no two-note tune is possible with it whatever you do to the wiring.</p>
+    <p>An earlier version of this guide had the frequency test and not the pull-up test, which is backwards — it drives an unknown load to find out what the load is. The measurement that costs nothing goes first.</p>
+
+    <h3>Why GPIO 13 and not GPIO 12</h3>
+    <p><strong>GPIO 13 rather than any other free pin, and this one is worth not re-deciding.</strong> It is the only free pin on this board that reaches <em>hardware</em> PWM without taking something else’s. The Pi has two PWM channels: PWM0 comes out on GPIO 12 or GPIO 18, PWM1 on GPIO 13 or GPIO 19. GPIO 19 is the encoder’s A phase and GPIO 18 is the backlight, which leaves 12 and 13 — and 12 is the wrong one of those two, because it shares <em>channel</em> 0 with GPIO 18. The backlight is on RPi.GPIO’s software PWM today (<code>src/lcd/lcd.py</code>), so nothing collides this afternoon; put the buzzer on GPIO 12 and you have quietly spent the channel that moving the backlight to hardware PWM would want. GPIO 13 costs nothing anyone else is owed.</p>
+    <p>The reason to insist on hardware PWM at all is <strong>the shutdown tune specifically</strong>. A bit-banged tone from a Python thread on a Zero 2 warbles when the scheduler looks away, and worse, it stops when the process does — and the shutdown tune has to play at exactly the moment the system is killing processes. The PWM peripheral has no such loyalty: write a period and a duty cycle into <code>/sys/class/pwm/…</code> and the tone continues with nothing running at all, which is the property that makes a two-note farewell possible after the app is already gone.</p>
+    <p>Two things about the pin itself, both checked on this Pi rather than reasoned from a table. <code>pinctrl get 13</code> reports it as an input reading <em>low</em> before anything configures it, so <strong>the buzzer is silent from the instant the rail comes up</strong> — the same argument that put the encoder’s switch on GPIO 6, run the other way round. And pin 33 has the ground of pin 34 directly beside it on the outer row, so the pair leaves the header as a pair and can be twisted for the run out to the transducer.</p>
+    <p><strong>One line in <code>config.txt</code> is not enough, and the missing one is easy to miss.</strong> Hardware PWM wants <code>dtoverlay=pwm,pin=13,func=4</code> — but this Pi currently carries <code>dtparam=audio=on</code>, and the onboard analogue audio driver claims the same PWM block. Set <code>dtparam=audio=off</code> alongside it. Nothing here loses anything by that: a Zero 2 W has no headphone jack to drive, and HDMI audio goes out through <code>vc4-kms-v3d</code>, which is a different peripheral entirely. Confirm which sysfs channel the overlay actually exports rather than assuming — <code>/sys/class/pwm/</code> is empty on this box today, so there is nothing yet to read the numbering off.</p>
+    <h3>Pick both buzzer notes high</h3>
+    <p>A piezo transducer is <strong>sharply resonant</strong>. The PS1240 peaks at <strong>4 kHz</strong>, where it gives about 60 dB at 10 cm on 3 V, and it works usefully from roughly 2 kHz to 10 kHz. Away from that band it goes quiet fast, so a tune built from low notes will barely be heard — a 400 Hz “low note” is close to inaudible on this part. Put both notes inside 2–10 kHz and let the tunes differ by <em>direction</em> rather than by distance: rising for power-up, falling for shutdown. Same two notes, opposite order, and no confusion about which one you just heard.</p>
+    <p>If it turns out too quiet, there is one upgrade that costs no parts. GPIO 12 on pin 32 is free and is the other hardware PWM channel; driving the second leg from it in antiphase rather than tying it to ground doubles the swing across the disc to 6.6 V peak-to-peak, worth about 6 dB. Both the supplier and Adafruit suggest differential drive for exactly this. It is <em>untested here</em> — whether the Pi’s two PWM channels hold a stable 180° relationship has not been checked — so wire it to ground first and treat this as an experiment, not a plan.</p>
+
+    <p><strong>The order of the shutdown tune against the latch is the thing that will actually bite.</strong> Fig. 4 and Fig. 5 below have <code>gpio-poweroff</code> pulse GPIO 17 as the kernel’s last act, and the Pololu latch cuts the supply the moment it does — so a tune that has not finished by then is a tune nobody hears the end of. It also cannot belong to the camera app, at either end: the app is roughly 25 s into boot before it draws anything, which is far too late to say “I am starting”, and on the way down it takes an ordinary <code>SIGTERM</code> well before the kernel gets to the poweroff pulse. Both tunes want to be their own small unit, ordered against the shutdown rather than against the app. That is code and not wiring, and none of it is written yet.</p>
 
     <h3>Turning it properly off</h3>
     <p><strong>Press the button and the panel goes dark, then lights up again and stays lit.</strong> Not showing its last frame — uniformly, blankly lit, for as long as the box is plugged in. It is the one part of this build that looks broken while every piece of it works as designed, and chasing it is what found the mistake in the design.</p>

@@ -31,6 +31,7 @@ understand, which is not always where the code happens to live.
 
 import argparse
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -40,6 +41,52 @@ from module_map import ENTRY, ROOT, packages, summary   # noqa: E402
 from class_synopses import SYNOPSES, HIGHLIGHTS, DIAGRAMS  # noqa: E402
 
 OUTPUT = ROOT / "docs" / "class-overview.md"
+SCENARIOS = ROOT / "docs" / "scenarios"
+
+# The header row of a scenario's cast table, which docs/how-to-write-scenario-docs.md
+# specifies and all twenty-five documents use verbatim.
+CAST_HEADER = "| Class | What it represents, and its part in this scenario |"
+
+
+def scenarios_by_class():
+    """
+    Which scenarios cast which class, read from their own cast tables.
+
+    A cast table is the honest answer to "does this scenario involve that
+    class". Searching a document's prose for the name is not: a scenario that
+    mentions `LcdWorker` once in passing would claim it, and the difference
+    matters most for `MainRenderLooper`, which is named in nearly every
+    document and cast in thirteen.
+
+    Column one of a cast row is the class, linked to its own `class` line, so
+    the first cell is where to look and nothing in column two can be mistaken
+    for a member of the cast.
+
+    Raises rather than returning less than everything. If the header were ever
+    reworded, a parser that shrugged would empty this map, and all thirty-one
+    classes would quietly claim to be in no scenario at all - which reads on
+    the page as a fact about the app rather than as a broken tool.
+    """
+    pages = sorted(p for p in SCENARIOS.glob("*.md")
+                   if p.name != "SCENARIO_INDEX.md" and not p.name.startswith("."))
+    if not pages:
+        raise SystemExit(f"no scenario documents in {SCENARIOS}")
+    found = {}
+    for page in pages:
+        lines = page.read_text(encoding="utf-8").splitlines()
+        if CAST_HEADER not in lines:
+            raise SystemExit(f"{page.name} has no cast table: class_map.py "
+                             f"looks for the row {CAST_HEADER!r}")
+        title = next((l[2:].strip() for l in lines if l.startswith("# ")), page.stem)
+        for line in lines[lines.index(CAST_HEADER) + 2:]:
+            if not line.startswith("|"):
+                break
+            named = re.match(r"\[`([\w.]+)`\]\(", line.split("|")[1].strip())
+            if named:
+                found.setdefault(named.group(1), []).append((title, page.name))
+    # By title, which is the order a reader can predict - the same reason the
+    # classes themselves are alphabetical rather than in package order.
+    return {name: sorted(rows) for name, rows in found.items()}
 
 
 def _name(node):
@@ -176,6 +223,12 @@ def classes_in(path):
             "attrs": sorted(attrs),
             "name": node.name,
             "module": path.name,
+            # Where it is written, so the heading can link to it. Kept as a
+            # path relative to the repository root and turned into a link in
+            # section(); the line is the `class` statement itself, not the
+            # docstring, so the link lands on the declaration.
+            "path": path.relative_to(ROOT).as_posix(),
+            "line": node.lineno,
             "bases": bases or decorators or [],
             "methods": methods,
             "properties": properties,
@@ -348,20 +401,49 @@ def paragraph(text, width=76):
     return lines
 
 
-def section(row):
+def source_link(row):
     """
-    One class: its heading, its own first docstring line, and its synopsis.
+    The class's heading link: its file, at the line the class starts on.
+
+    Relative to docs/, which is where the page is written, and in the same
+    shape the scenarios already use - `path.py#L12`. The line number is the
+    `class` statement rather than anything inside it, and it is read from the
+    same parse as everything else on the page, so it cannot drift on its own.
+    """
+    return f"../{row['path']}#L{row['line']}"
+
+
+def section(row, cast):
+    """
+    One class: its heading, its own first docstring line, its synopsis, and
+    the scenarios that cast it.
+
+    The heading is a link to the class in the source, because a reader who
+    wants more than the synopsis wants the code, and the page otherwise makes
+    them guess which of twenty-one modules it is in. GitHub anchors the text of
+    a linked heading and not its URL, so `#mainrenderlooper` still reaches it.
 
     No member lists. They were here and in the diagram both, and keeping two
     renderings of one fact in step was work with nothing to show for it. The
     diagram carries the whole public surface now, and this is prose.
     """
     base = ", ".join(f"`{n}`" for n in row["bases"])
-    heading = f"#### `{row['name']}`"
+    heading = f"#### [`{row['name']}`]({source_link(row)})"
     if base:
         heading += f" — {base}"
-    return ([heading, "", f"*{row['module']}* — {row['summary']}", ""]
-            + paragraph(SYNOPSES.get(row["name"], "(no synopsis)")) + [""])
+    out = ([heading, "", f"*{row['module']}* — {row['summary']}", ""]
+           + paragraph(SYNOPSES.get(row["name"], "(no synopsis)")) + [""])
+    # A class with no scenario says so rather than showing nothing. Silence
+    # here would be ambiguous - it reads the same as a list that failed to
+    # render - and the scenario index takes the same line about its own empty
+    # categories: saying where the gaps are is most of the point.
+    if cast:
+        out += ["**Cast in these scenarios:**", ""]
+        out += [f"- [{title}](scenarios/{name})" for title, name in cast]
+        out += [""]
+    else:
+        out += ["**Cast in no scenario yet.**", ""]
+    return out
 
 
 def render():
@@ -381,6 +463,7 @@ def render():
         row["uses"] = {n for n in row["named"]
                        if n in known and n != row["name"]} - row["holds"]
     by_name = {row["name"]: row for row in every}
+    cast = scenarios_by_class()
 
     out = [
         "# Class overview",
@@ -396,6 +479,16 @@ def render():
         "judgement about the design rather than a fact recoverable from it.",
         "`tests/docs/class_map_test.py` fails if the page is stale, if a class",
         "has no synopsis, or if a synopsis outlives its class.",
+        "",
+        "**Each class heading is a link to the class in the source**, at the",
+        "line it is declared on. Those line numbers come from the same parse as",
+        "the rest of the page, so they move when the code does.",
+        "",
+        "**Each class also lists the scenarios that cast it**, read from those",
+        "documents' own cast tables rather than from a search for the name - a",
+        "scenario that merely mentions a class in passing does not claim it. A",
+        "class no scenario has reached yet says so, because a gap in the",
+        "coverage is worth seeing.",
         "",
         "A synopsis is deliberately not an inventory of the members listed above",
         "it. It is meant to be small enough to hold in mind while reading a",
@@ -452,7 +545,7 @@ def render():
             out += [f"{names} appears here too, and is described above.", ""]
         out += ["### The classes in this diagram", ""]
         for name in fresh:
-            out += section(by_name[name])
+            out += section(by_name[name], cast.get(name, []))
             described.add(name)
 
     out += ["---", "", f"{len(every)} classes.", ""]

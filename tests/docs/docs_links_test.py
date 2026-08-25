@@ -36,8 +36,18 @@ def check(name, got, want):
 
 
 def anchor(heading):
-    """GitHub's own rule: lower case, punctuation dropped, spaces to hyphens."""
-    text = heading.strip().lstrip("#").strip().lower()
+    """
+    GitHub's own rule: lower case, punctuation dropped, spaces to hyphens.
+
+    A heading may itself be a link - every class heading in the class overview
+    links to the class in the source - and GitHub anchors the text of one, not
+    its URL. Without this the file name and its line number would be swept into
+    the anchor, and every cross-reference to such a heading would read as
+    broken here while working perfectly on the page.
+    """
+    text = heading.strip().lstrip("#").strip()
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    text = text.lower()
     text = re.sub(r"[^\w\s-]", "", text)
     return re.sub(r"\s+", "-", text)
 
