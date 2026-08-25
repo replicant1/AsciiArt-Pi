@@ -15,6 +15,7 @@ than a wrong description, but it is not a good one, and the moment to notice is
 when the class is written.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -37,6 +38,22 @@ def check(name, got, want):
     else:
         FAILED += 1
         print(f"  FAIL  {name}\n          got  {got!r}\n          want {want!r}")
+
+
+# A class heading, which is a link to the class in the source:
+#
+#     #### [`LcdWorker`](../src/lcd/lcd_worker.py#L61) — `threading.Thread`
+#
+# Matched rather than sliced, so that a heading which stopped being a link -
+# or lost its line number - fails here instead of quietly reading as a class
+# named "[".
+HEADING = re.compile(r"^#### \[`([^`]+)`\]\((\S+?\.py)#L(\d+)\)(.*)$")
+
+
+def headings(body):
+    """Every class heading on the page, as (name, path, line, tail)."""
+    return [m.groups() for m in
+            (HEADING.match(line) for line in body.splitlines()) if m]
 
 
 print("the class map")
@@ -62,9 +79,7 @@ for path in sorted(list((ROOT / "src").rglob("*.py")) + [ROOT / "ascii_camera.py
 # summary - "wraps `Forwarder`" would vouch for a Forwarder row that is not
 # there - which is a completeness check that cannot detect the one thing it
 # exists to detect.
-rows = {line[6:].split("`")[0]
-        for line in page.splitlines()
-        if line.startswith("#### `")}
+rows = {name for name, _, _, _ in headings(page)}
 missing = sorted(name for name in found if name not in rows)
 check("every class in the app has its own section", missing, [])
 check("and no section is for something that no longer exists",
@@ -75,12 +90,100 @@ check("the committed page exists", class_map.OUTPUT.exists(), True)
 check("and is what the tool produces right now",
       class_map.OUTPUT.read_text(encoding="utf-8") == page, True)
 
+# The headings are links now, and a link is the one thing on this page that can
+# be wrong while the page still reads perfectly - a stale line number points at
+# the middle of some other class and nobody reading the markdown can tell.
+# Follow every one and require the line it names to be that class's `class`
+# statement, which is checkable because it is one grep.
+wrong = []
+for name, target, line, _ in headings(page):
+    path = class_map.OUTPUT.parent / target
+    if not path.exists():
+        wrong.append(f"{name} -> {target} (no such file)")
+        continue
+    source = path.read_text(encoding="utf-8").splitlines()
+    at = source[int(line) - 1] if int(line) <= len(source) else ""
+    if not at.startswith(f"class {name}"):
+        wrong.append(f"{name} -> {target}#L{line} is {at.strip()!r}")
+check("every class heading links to the line its class is declared on",
+      wrong, [])
+check("and every class on the page has one", len(headings(page)), len(found))
+
+# and prove that check can fail: the line after a declaration is not one.
+name, target, line, _ = headings(page)[0]
+after = (class_map.OUTPUT.parent / target).read_text(
+    encoding="utf-8").splitlines()[int(line)]
+check("and a link one line out would be caught",
+      after.startswith(f"class {name}"), False)
+
+# --- the scenarios each class is cast in -------------------------------------
+#
+# The page now ends each class with the scenarios that cast it. Read back off
+# the page and compared against the scenarios' own cast tables, parsed here a
+# second way - every first-column link in the file, rather than the header row
+# and a walk down from it. A tool that stopped finding its header would agree
+# with itself, and both would describe an app in which no class is in any
+# scenario, which is exactly the failure that reads as true on the page.
+
+SCENARIO_DIR = ROOT / "docs" / "scenarios"
+FIRST_CELL = re.compile(r"^\|\s*\[`([\w.]+)`\]\(")
+LISTED = re.compile(r"^- \[([^\]]+)\]\(scenarios/([^)]+)\)$")
+
+titles, cast_in_docs = {}, {}
+for scenario in sorted(SCENARIO_DIR.glob("*.md")):
+    if scenario.name == "SCENARIO_INDEX.md" or scenario.name.startswith("."):
+        continue
+    body = scenario.read_text(encoding="utf-8").splitlines()
+    titles[scenario.name] = next(l[2:].strip() for l in body if l.startswith("# "))
+    for line in body:
+        named = FIRST_CELL.match(line)
+        if named and named.group(1) in found:
+            cast_in_docs.setdefault(named.group(1), set()).add(scenario.name)
+
+cast_on_page, says_none, wrong_title, current = {}, set(), [], None
+for line in page.splitlines():
+    at = HEADING.match(line)
+    listed = LISTED.match(line)
+    if at:
+        current = at.group(1)
+    elif line == "**Cast in no scenario yet.**":
+        says_none.add(current)
+    elif listed:
+        cast_on_page.setdefault(current, set()).add(listed.group(2))
+        if titles.get(listed.group(2)) != listed.group(1):
+            wrong_title.append(f"{listed.group(2)} linked as {listed.group(1)!r}")
+
+check("there are cast tables to read", len(cast_in_docs) > 10, True)
+check("every class lists exactly the scenarios whose cast table names it",
+      sorted(n for n in found
+             if cast_on_page.get(n, set()) != cast_in_docs.get(n, set())), [])
+check("and a class no scenario has reached says so",
+      sorted(says_none), sorted(n for n in found if n not in cast_in_docs))
+check("and each link's text is that scenario's own title",
+      sorted(set(wrong_title)), [])
+
+linked = {name for names in cast_on_page.values() for name in names}
+check("every scenario linked to is a file that exists",
+      sorted(n for n in linked
+             if not (class_map.OUTPUT.parent / "scenarios" / n).exists()), [])
+check("and every scenario document is reachable from some class",
+      sorted(set(titles) - linked), [])
+
+# and prove the comparison can fail, by dropping one from a list
+_most = max(cast_on_page, key=lambda n: len(cast_on_page[n]))
+check("the comparison would notice a scenario dropped from a list",
+      (cast_on_page[_most] - {sorted(cast_on_page[_most])[0]})
+      == cast_in_docs[_most], False)
+print(f"        ({_most} is cast in {len(cast_on_page[_most])} of "
+      f"{len(titles)} scenarios; {len(says_none)} classes are in none)")
+
 # The bases column is the reason this page says more than the module map, so
 # it has to be right about the ones that matter most: what runs on its own
 # thread is a fact about how the program behaves.
+bases = {name: tail.strip() for name, _, _, tail in headings(page)}
 check("the threads are shown as threads",
-      all(f"### `{name}` — `threading.Thread`" in page
-          for name in ("LcdWorker", "CommandServer")), True)
+      sorted(n for n in ("LcdWorker", "CommandServer")
+             if bases.get(n) != "— `threading.Thread`"), [])
 check("and their base is named", page.count("`threading.Thread`"), 2)
 
 # --- the half that is written by hand ---------------------------------------
@@ -337,8 +440,7 @@ described, out_of_order, twice = [], [], []
 for title, _, _ in DIAGRAMS:
     after = page.split(f"## {title}", 1)[1]
     block = after.split("\n## ", 1)[0]
-    names = [l[6:].split("`")[0] for l in block.splitlines()
-             if l.startswith("#### `")]
+    names = [name for name, _, _, _ in headings(block)]
     if names != sorted(names):
         out_of_order.append(f"{title}: {names}")
     twice += [n for n in names if n in described]
