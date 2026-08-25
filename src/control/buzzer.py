@@ -2,7 +2,8 @@
 """
 Tones on the PS1240 piezo, driven straight off one GPIO pin.
 
-    python3 src/control/buzzer.py          # play the start-up tune
+    python3 src/control/buzzer.py             # play the start-up tune
+    python3 src/control/buzzer.py --goodbye   # play the shutdown tune
 
 Functions rather than a class, because there is nothing to remember between
 one tune and the next.  Each call opens the chip, claims the pin, plays, and
@@ -31,6 +32,7 @@ square wave gets: above it the fundamental shrinks again, so 90% sounds like
 """
 
 import logging
+import sys
 import threading
 import time
 
@@ -43,6 +45,12 @@ DUTY = 50                # loudest a square wave gets; see the module docstring
 # 440 Hz then 880 Hz, a quarter second each: an octave apart, so the two notes
 # are unmistakably different even on a disc driven far below its resonance.
 HELLO = ((440, 0.25), (880, 0.25))
+
+# The same two notes the other way up.  Derived rather than written out, so the
+# pair cannot drift apart: changing the greeting changes the farewell to match,
+# and "the opposite order" stays true by construction rather than by anyone
+# remembering to edit both.
+GOODBYE = tuple(reversed(HELLO))
 
 
 def play(notes, pin=PIN, chip=CHIP, duty=DUTY, gpio=None):
@@ -111,7 +119,29 @@ def hello(pin=PIN, chip=CHIP, duty=DUTY, gpio=None):
     play(HELLO, pin=pin, chip=chip, duty=duty, gpio=gpio)
 
 
-def in_background(notes=HELLO, pin=PIN, chip=CHIP, duty=DUTY, gpio=None):
+def duration(notes):
+    """How long a tune runs, before anything plays it."""
+    return sum(seconds for _, seconds in notes)
+
+
+def goodbye(pin=PIN, chip=CHIP, duty=DUTY, gpio=None):
+    """
+    The farewell: the greeting backwards, as the last thing the app does.
+
+    Blocking, and that is the point rather than an oversight.  The greeting is
+    a courtesy nobody waits for; this one is the signal that the box has
+    finished with the camera and the panel and is safe to unplug, which is
+    worth nothing at all if the process exits while it is still sounding.
+
+    The caller still wants a bound on the wait - see MainRenderLooper._say_goodbye,
+    which plays it on a thread and joins with a timeout, so a buzzer that
+    somehow never returns cannot hold a shutdown open.
+    """
+    play(GOODBYE, pin=pin, chip=chip, duty=duty, gpio=gpio)
+
+
+def in_background(notes=HELLO, pin=PIN, chip=CHIP, duty=DUTY, gpio=None,
+                  name="Tune"):
     """
     Start a tune on a thread of its own and return it, without waiting.
 
@@ -128,6 +158,11 @@ def in_background(notes=HELLO, pin=PIN, chip=CHIP, duty=DUTY, gpio=None):
     happens there is no longer a caller to raise to.  The returned thread is
     for tests and for anyone who does want to wait; ignoring it is the normal
     case.
+
+    `name` is what the log calls this tune.  It exists because the first
+    version said "Start-up tune" whatever it was playing, so the farewell
+    announced itself as a greeting - which is the sort of small lie that costs
+    an hour when a log is the only witness left.
     """
     def run():
         try:
@@ -140,16 +175,17 @@ def in_background(notes=HELLO, pin=PIN, chip=CHIP, duty=DUTY, gpio=None):
     # Said out loud, because otherwise a tune that played and a tune that never
     # started look identical in the log - and on a board with no buzzer fitted
     # they sound identical too.
-    logger.info("Start-up tune: %s on GPIO %d",
+    logger.info("%s: %s on GPIO %d", name,
                 ", ".join(f"{hz} Hz for {s}s" for hz, s in notes), pin)
     return thread
 
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    hello()          # blocking here: a script with nothing else to do
-    print(f"played {len(HELLO)} notes on GPIO {PIN}: "
-          + ", ".join(f"{hz} Hz for {s}s" for hz, s in HELLO))
+    tune = GOODBYE if "--goodbye" in sys.argv else HELLO
+    play(tune)       # blocking here: a script with nothing else to do
+    print(f"played {len(tune)} notes on GPIO {PIN}: "
+          + ", ".join(f"{hz} Hz for {s}s" for hz, s in tune))
 
 
 if __name__ == "__main__":

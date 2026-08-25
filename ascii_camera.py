@@ -782,6 +782,40 @@ class MainRenderLooper:
         logger.info("Rendered %d frames in %.1fs (%.1f avg fps), "
                     "%d camera timeouts", self.frame_count, elapsed,
                     avg, self.dropped)
+        # Last, once every device is back. The tune is the signal that the box
+        # has finished with the camera and the panel and is safe to unplug, so
+        # it has to mean that by the time it sounds.
+        self._say_goodbye()
+
+    def _say_goodbye(self):
+        """
+        Two notes on the way out, and this time the process waits for them.
+
+        The opposite bargain to _say_hello. That one must not delay a start-up
+        that has twenty seconds of camera ahead of it; this one is the whole
+        point - a farewell the process talks over is not a farewell, and the
+        person listening is being told they may now pull the power.
+
+        Waited for on a bound rather than indefinitely. A blocking call here
+        would put the shutdown at the mercy of a driver that never returns, and
+        systemd's TimeoutStopSec of 15 s would answer that with SIGKILL - which
+        leaves exactly the claims on the camera and the GPIO pins that this
+        method's neighbours exist to release. A second past the tune's own
+        length is generous for half a second of sound.
+
+        Never fatal, for the same reason as the greeting: no failure of a
+        buzzer is worth a shutdown that does not finish.
+        """
+        try:
+            playing = buzzer.in_background(buzzer.GOODBYE,
+                                           name="Shutdown tune")
+        except Exception as e:                      # noqa: BLE001
+            logger.warning("No shutdown tune: %s: %s", type(e).__name__, e)
+            return
+        playing.join(buzzer.duration(buzzer.GOODBYE) + 1.0)
+        if playing.is_alive():
+            logger.warning("Shutdown tune did not finish; carrying on without "
+                           "it so the shutdown completes")
 
     def _say_hello(self):
         """
@@ -800,7 +834,7 @@ class MainRenderLooper:
         which is mostly the import of lgpio on a machine that has none.
         """
         try:
-            buzzer.in_background()
+            buzzer.in_background(name="Start-up tune")
         except Exception as e:                      # noqa: BLE001
             logger.warning("No start-up tune: %s: %s", type(e).__name__, e)
 
