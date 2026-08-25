@@ -79,7 +79,7 @@ sequenceDiagram
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | apply({scheme: "amber"}) | Arrives from a key, the knob, a typed line or the model — by the time it is here, nothing says which. A scheme change is the most expensive setting to apply, because [`_adopt`](../../ascii_camera.py#L282) ends it with a repaint of every cell |
+| 1 | apply({scheme: "amber"}) | Arrives from a key, the knob, a typed line or the model — by the time it is here, nothing says which. A scheme change is the most expensive setting to apply, because [`_adopt`](../../ascii_camera.py#L283) ends it with a repaint of every cell |
 | 2 | [`index_table`](../../src/art/palettes.py#L156)`(scheme, ramp length, invert)` | The ramp's *length* rather than its characters: a blend has one entry per position, and which glyph sits at that position is not this module's business |
 | 3 | ink and screen | The whole of what a scheme contributes here. `Scheme` has no method that computes anything, which is what lets a new one be added to `palettes.py` as a single line |
 | 4 | two RGB triples, and nothing else | Amber is ink `(255, 183, 51)` on screen `(26, 13, 0)`. The `kind` field decides whether this path runs at all — `grey` skips it and `live` reads the chroma[^yuv] instead |

@@ -50,6 +50,7 @@ from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 from control.render_config import ConfigError  # noqa: E402
 from control.args import parse_args  # noqa: E402
 from control.scheme_cycle import SchemeCycle  # noqa: E402
+from control import buzzer  # noqa: E402
 from hdmi.status_line import status_line  # noqa: E402
 from version import APP_NAME, __version__  # noqa: E402
 
@@ -782,9 +783,31 @@ class MainRenderLooper:
                     "%d camera timeouts", self.frame_count, elapsed,
                     avg, self.dropped)
 
+    def _say_hello(self):
+        """
+        Two notes on the buzzer, before anything else has started.
+
+        Never fatal. A missing buzzer, an unwired pin, a kernel without lgpio -
+        none of them is a reason to refuse to show a picture, so this is the
+        one piece of hardware whose absence is only a log line. That is the
+        opposite of the panel, which _start_lcd is allowed to give up on only
+        because the terminal can take over.
+
+        Does not wait. The tune runs on its own daemon thread while the camera
+        warms up, so start-up is no slower for having a buzzer than without
+        one. Failures inside the thread are logged by the buzzer itself; the
+        guard here is for the ones that happen before there is a thread at all,
+        which is mostly the import of lgpio on a machine that has none.
+        """
+        try:
+            buzzer.in_background()
+        except Exception as e:                      # noqa: BLE001
+            logger.warning("No start-up tune: %s: %s", type(e).__name__, e)
+
     def run(self):
         """Main loop: a frame in, a picture out, until something says stop."""
         self._install_signal_handlers()
+        self._say_hello()
         self.display.message("Starting camera, please wait...")
         if self.lcd is not None:
             self.lcd.splash("starting camera")

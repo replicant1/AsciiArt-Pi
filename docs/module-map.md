@@ -13,7 +13,7 @@ The process itself: argument parsing, the render loop, and the wiring that conne
 
 | Module | Lines | What it is for |
 |---|---:|---|
-| `ascii_camera.py` | 916 | ASCII Art Live Camera Preview for Raspberry Pi Zero 2. |
+| `ascii_camera.py` | 939 | ASCII Art Live Camera Preview for Raspberry Pi Zero 2. |
 | `src/version.py` | 19 | The one place the app's version is written down. |
 
 ## Capture
@@ -63,6 +63,7 @@ Every setting, and every way a human reaches one.
 | Module | Lines | What it is for |
 |---|---:|---|
 | `src/control/args.py` | 200 | The command line: every option the app takes, and what each one is for. |
+| `src/control/buzzer.py` | 156 | Tones on the PS1240 piezo, driven straight off one GPIO pin. |
 | `src/control/command_server.py` | 286 | A local command channel into the running app. |
 | `src/control/commands.py` | 407 | Typed commands to RenderConfig deltas. |
 | `src/control/encoder.py` | 288 | Rotary encoder input: a KY-040 knob on two GPIO pins. |
@@ -83,4 +84,4 @@ Words in, a validated settings change out.
 
 ---
 
-25 modules, 7,413 lines.
+26 modules, 7,592 lines.

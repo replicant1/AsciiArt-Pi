@@ -25,7 +25,7 @@ next frame. And contrast is *nudged* rather than set — `+` adds 0.1 and lets
 | Class | What it represents, and its part in this scenario |
 |---|---|
 | [`NcursesDisplay`](../../src/hdmi/ncurses_display.py#L34) | The HDMI terminal. Here it is the **keyboard**, and a non-blocking one: [`get_key`](../../src/hdmi/ncurses_display.py#L265) returns a character or `None` and never waits, because the render loop cannot afford to |
-| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the process is hung off. Here it is the **translator**: [`_handle_key`](../../ascii_camera.py#L608) turns a character into a delta and hands it on, and is the only code in the app that knows which key means what |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off. Here it is the **translator**: [`_handle_key`](../../ascii_camera.py#L609) turns a character into a delta and hands it on, and is the only code in the app that knows which key means what |
 | [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen and replaced rather than changed. Here it is the **judge and the reference**: a key that toggles reads the current value from it, and the delta it produces is checked by it |
 
 ## One keypress, between two frames
@@ -52,13 +52,13 @@ sequenceDiagram
 | Step | Message | What is going on |
 |---:|---|---|
 | 1 | presses i | One of about a dozen live keys. `q` is the only one that does not produce a delta — it returns `False` and stops the loop, which is the same mechanism a signal[^signals] uses rather than a second way to quit |
-| 2 | [`_drain_input`](../../ascii_camera.py#L833) runs once per frame, after the knob and the socket | All three input routes are read at the same point in the loop, so a key, a detent[^detent] and a typed line land in the same place and in a defined order. The knob is read here rather than on a timer of its own for exactly that reason |
+| 2 | [`_drain_input`](../../ascii_camera.py#L856) runs once per frame, after the knob and the socket | All three input routes are read at the same point in the loop, so a key, a detent[^detent] and a typed line land in the same place and in a defined order. The knob is read here rather than on a timer of its own for exactly that reason |
 | 3 | [`get_key`](../../src/hdmi/ncurses_display.py#L265)`()` | Non-blocking, always. A blocking read would stop the picture whenever nobody was typing, which is most of the time |
 | 4 | the character, or None when nothing is waiting | `None` ends the drain. A window resize arrives here too, as the pseudo-key `RESIZE`, which is why a resize and a keypress cannot race — they are the same queue |
 | 5 | the current value of invert, to toggle it | A toggle has to read before it can flip. Reading from the config[^config] rather than from a local copy is what stops the key and the socket disagreeing about what `invert` currently is |
 | 6 | False | The config is frozen, so this value cannot change underneath the handler between reading it and building the delta |
-| 7 | [`_handle_key`](../../ascii_camera.py#L608) builds a delta and assigns nothing | The rule the whole method is written to. A branch that assigned `self.config.invert` directly would work and would silently skip the ASCII rebuild, which is the class of bug this shape makes impossible |
-| 8 | [`apply`](../../ascii_camera.py#L235)`({invert: True})`, the same call every other route makes | The convergence point. By the time this is called, nothing distinguishes the keypress from a typed line, a knob detent or a phrase a language model turned into a delta — and `note=True` is the default here, so a refusal is drawn on the picture rather than returned to a caller |
+| 7 | [`_handle_key`](../../ascii_camera.py#L609) builds a delta and assigns nothing | The rule the whole method is written to. A branch that assigned `self.config.invert` directly would work and would silently skip the ASCII rebuild, which is the class of bug this shape makes impossible |
+| 8 | [`apply`](../../ascii_camera.py#L236)`({invert: True})`, the same call every other route makes | The convergence point. By the time this is called, nothing distinguishes the keypress from a typed line, a knob detent or a phrase a language model turned into a delta — and `note=True` is the default here, so a refusal is drawn on the picture rather than returned to a caller |
 | 9 | [`get_key`](../../src/hdmi/ncurses_display.py#L265)`()` again, until the buffer is empty | The drain. At fifteen frames a second a single read per frame would lag behind anyone typing quickly, and the lag would grow rather than settle |
 
 No thread bands: everything here is the render loop's own thread, which is the

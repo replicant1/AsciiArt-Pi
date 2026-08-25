@@ -27,7 +27,7 @@ going to announce itself.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`MainRenderLooper`](../../ascii_camera.py#L98) | The one object the process is hung off. Here it is the **hander-over**, and the ordering is its whole contribution: it calls [`submit`](../../src/lcd/lcd_worker.py#L173) *before* building anything for the terminal, so the two renders overlap instead of queueing |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off. Here it is the **hander-over**, and the ordering is its whole contribution: it calls [`submit`](../../src/lcd/lcd_worker.py#L173) *before* building anything for the terminal, so the two renders overlap instead of queueing |
 | [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | A thread with an inbox one frame deep. Here it is the **absorber**: [`submit`](../../src/lcd/lcd_worker.py#L173) never blocks and never raises, so no state of the panel — busy, blanked, stopping — can ever be felt by the loop that called it |
 | [`LcdDisplay`](../../src/lcd/lcd_display.py#L98) | An ASCII grid turned into pixels. Here it is the **compositor**: [`render`](../../src/lcd/lcd_display.py#L299) gathers glyphs from a pre-rendered atlas[^atlas] and packs RGB565 in two numpy operations, because one PIL[^pil] `draw.text` per cell would be 1,536 calls a frame |
 | [`ILI9341`](../../src/lcd/lcd.py#L47) | The panel itself, over spidev[^spidev]. Here it is the **sink**, and the reason for all of the above: [`show_packed`](../../src/lcd/lcd.py#L186) is 38 chunked writes, and it is where the 33 ms actually goes |
