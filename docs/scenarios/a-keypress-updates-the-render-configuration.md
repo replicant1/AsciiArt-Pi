@@ -52,7 +52,7 @@ sequenceDiagram
 | Step | Message | What is going on |
 |---:|---|---|
 | 1 | presses i | One of about a dozen live keys. `q` is the only one that does not produce a delta — it returns `False` and stops the loop, which is the same mechanism a signal[^signals] uses rather than a second way to quit |
-| 2 | [`_drain_input`](../../ascii_camera.py#L890) runs once per frame, after the knob and the socket | All three input routes are read at the same point in the loop, so a key, a detent[^detent] and a typed line land in the same place and in a defined order. The knob is read here rather than on a timer of its own for exactly that reason |
+| 2 | [`_drain_input`](../../ascii_camera.py#L860) runs once per frame, after the knob and the socket | All three input routes are read at the same point in the loop, so a key, a detent[^detent] and a typed line land in the same place and in a defined order. The knob is read here rather than on a timer of its own for exactly that reason |
 | 3 | [`get_key`](../../src/hdmi/ncurses_display.py#L265)`()` | Non-blocking, always. A blocking read would stop the picture whenever nobody was typing, which is most of the time |
 | 4 | the character, or None when nothing is waiting | `None` ends the drain. A window resize arrives here too, as the pseudo-key `RESIZE`, which is why a resize and a keypress cannot race — they are the same queue |
 | 5 | the current value of invert, to toggle it | A toggle has to read before it can flip. Reading from the config[^config] rather than from a local copy is what stops the key and the socket disagreeing about what `invert` currently is |

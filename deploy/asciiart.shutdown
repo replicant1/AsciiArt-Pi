@@ -1,0 +1,118 @@
+#!/usr/bin/python3
+"""
+The last thing this machine does: panel dark, LED out, then the goodbye tune.
+
+Installed as /usr/lib/systemd/system-shutdown/asciiart.shutdown.  Executables
+in that directory run after every service has stopped and every filesystem has
+been unmounted, immediately before the kernel halts - there is no later point
+in userspace, which is why the tune lives here rather than in the app.  systemd
+passes the kind of shutdown as the only argument: poweroff, halt, reboot or
+kexec.
+
+Order is the point.  The panel and the LED go out *first*, so that by the time
+the tune sounds there is nothing left to see; the tune is last so that it is
+the last thing at all.
+
+Three things here were each found the hard way, and none of them is obvious.
+
+**The shebang is an absolute path.**  systemd-shutdown runs these with a
+minimal environment, so `#!/usr/bin/env python3` has no PATH to search and the
+script never starts - silently, because by then there is nothing to log to.
+
+**The tune is bit-banged, not handed to lgpio's tx_pwm.**  tx_pwm times its
+waveform in a helper thread, and at this point in a shutdown that thread
+produces nothing at all.  It does not fail: every call returns success and the
+pin stays silent, which is the worst way for it to be wrong.  Proved by
+substituting a hand-written square wave with a busy wait, which was plainly
+audible on the same reboot where tx_pwm had reported "ok" and made no sound.
+A busy wait is the right tool here anyway: nothing else is running by now, and
+at 880 Hz a half period is 568 us, well under the granularity `sleep` can be
+trusted for.
+
+**The backlight is driven low with RPi.GPIO and never handed back.**  Releasing
+the pin makes it an input and the module's own pull-up relights the panel;
+src/lcd/lcd.py explains this at more length.  Whether it survives the *kernel*
+halting is a separate question this cannot answer - if the firmware reverts the
+pads at the very end, the panel lights again and no amount of userspace can
+stop it.  gpio-poweroff is the one overlay that could hold a pin through halt,
+and it is not an option: it disables booting by driving GPIO 3 low, which is
+this box's only power switch.
+
+Nothing here can log: the root filesystem is read only by now.  The tune is the
+diagnostic - if it plays, this ran.  Bounded by an alarm, because a shutdown
+hook that hangs is a machine that never powers down, which is far worse than a
+missing tune.
+"""
+
+import signal
+import sys
+import time
+
+BACKLIGHT = 18          # LED/BL on the ILI9341 module, active high
+BUZZER = 13
+GOODBYE = ((880, 0.25), (440, 0.25))    # the greeting's notes, the other way up
+DEADLINE = 8            # seconds for the whole script, tune included
+
+
+def hush_the_panel():
+    """Drive the backlight pin low, and deliberately do not hand it back."""
+    import RPi.GPIO as GPIO
+    GPIO.setwarnings(False)
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(BACKLIGHT, GPIO.OUT)
+    GPIO.output(BACKLIGHT, GPIO.LOW)
+    # No GPIO.cleanup(). That is the whole trick.
+
+
+def put_out_the_led():
+    """Stop the activity LED, so nothing blinks after the tune."""
+    for path, value in (("/sys/class/leds/ACT/trigger", "none"),
+                        ("/sys/class/leds/ACT/brightness", "0")):
+        with open(path, "w") as f:
+            f.write(value)
+
+
+def play_goodbye():
+    """The greeting's notes the other way up, as a hand-written square wave."""
+    import lgpio
+    handle = lgpio.gpiochip_open(0)
+    try:
+        lgpio.gpio_claim_output(handle, BUZZER, 0)
+        for frequency, seconds in GOODBYE:
+            half = 0.5 / frequency
+            end = time.perf_counter() + seconds
+            level = 0
+            while time.perf_counter() < end:
+                level ^= 1
+                lgpio.gpio_write(handle, BUZZER, level)
+                target = time.perf_counter() + half
+                while time.perf_counter() < target:
+                    pass
+            lgpio.gpio_write(handle, BUZZER, 0)
+    finally:
+        lgpio.gpio_write(handle, BUZZER, 0)
+        lgpio.gpio_free(handle, BUZZER)
+        lgpio.gpiochip_close(handle)
+
+
+def main(argv):
+    # Not on a reboot: the machine is about to say hello again, and a farewell
+    # three seconds before a greeting is noise rather than information.
+    if argv[1:2] and argv[1] not in ("poweroff", "halt"):
+        return 0
+
+    signal.alarm(DEADLINE)
+    for step in (hush_the_panel, put_out_the_led, play_goodbye):
+        try:
+            step()
+        except Exception:                          # noqa: BLE001
+            # Nothing to log to and nothing to gain by stopping: a panel that
+            # would not go dark is no reason to skip the tune, and neither is a
+            # reason to delay the halt.
+            pass
+    signal.alarm(0)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

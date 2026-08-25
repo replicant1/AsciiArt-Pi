@@ -30,7 +30,8 @@ MODE="${1:-pull}"
 
 ROOT_FILES=(ascii_camera.py run_ascii_camera.sh deploy/setup.sh requirements.txt
             README.md deploy/setup_uinput.sh
-            deploy/ascii-camera.service deploy/ascii-camera-web.service)
+            deploy/ascii-camera.service deploy/ascii-camera-web.service
+            deploy/asciiart.shutdown deploy/install_shutdown_hook.sh)
 SRC_FILES=(version.py
            capture/__init__.py capture/camera.py capture/image_processor.py
            art/__init__.py art/ascii_art.py art/palettes.py art/window_plan.py
