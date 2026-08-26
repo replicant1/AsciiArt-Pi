@@ -73,7 +73,14 @@ In this order, with no heading before the first diagram section:
 10. Repeat 6–9 if the scenario has a second diagram
 11. `## Related scenarios`
 12. `### Footnotes`, then the **footnote definitions** — one block at the end
-    of the file, below *Related scenarios*
+    of the file, below *Related scenarios
+
+
+### The Voice ###
+
+All prose that you write throughout the scenario document should be written from the point of view of a technical writer who is cognizant of the technical limitations of the target audience, and the need to cater their choice of terminology to that audience. Language should be precise and formal but not so formal as to be like a legal document. It's OK to repeat an explanation in different ways to increase the chance that one of those explanations will resonate with the reader. Make sure it is clear what you are referring to when invoking any particular party and don't assume that the reader knows terminology that is specific to the domain or the app. Target the literacy level of a smart 16 year old. Do not use colloquialisms and don't try to truncate or abbreviate. Do not use technical terminology if it can be avoided but use everyday language. Use the simplest sentence structures you can and favour multiple short sentences instead of one long sentence. The prose should read like a children's encylopedia and not a technical manual.
+
+Apply these "voice" guidelines to all sections in the scenario document.
 
 ### 3. The description
 
@@ -539,6 +546,37 @@ Prefer picking an example that **exercises the point**. `rotation 45 target
 speaker` was chosen over a simpler line because it is one of the few typed
 commands that reaches the validator carrying *two* problems, which is what
 makes "every reason, not the first" demonstrable rather than asserted.
+
+### No magic numbers
+
+**Every number a document states has to say where it came from.** A bare figure
+is unusable: the reader cannot tell an arbitrary example from a hardware
+constraint, cannot tell a measurement from an estimate, and has no way to check
+whether the claim is still true. "At 320x240 that is 76,800 bytes" asserts two
+numbers and explains neither.
+
+Numbers in these documents come from exactly four places, and each is written
+up differently:
+
+| Where it comes from | How to write it |
+|---|---|
+| **Fixed by the hardware or by a type** | Say so, and say by what. The panel is 240x320 because the panel is; a brightness has 256 possible values because it is one byte. Nobody chose these, and saying nobody chose them is the useful part |
+| **Chosen in the code** | Link the definition and give the reason the choice was made. 320x240 is `CameraCapture`'s default *because* it is the smallest size still larger than the biggest grid, and the ISP downscales free where the CPU does not |
+| **Derived from the two above** | Do the arithmetic in the text. 153,600 is 240x320x2. 38 sends is 153,600/4,096 rounded up. 38 KB of chroma is 76,800/4, twice |
+| **Measured** | Say that it was measured, and ideally on what. 33 ms, 168 ms and 93% are facts about this Pi that no amount of reading the source would produce |
+
+**Worked examples need justifying too, and this is the one that gets missed.**
+A sentence like "at an 80x30 grid that is 2,400 lookups" is picking a grid out
+of the air, and the reader cannot tell whether 80x30 is a constraint, a typical
+case or a number that made the arithmetic tidy. Prefer a configuration that
+can be defended: the panel's 64x24 is what the sealed box actually runs, and it
+derives from the panel's own dots and `DEFAULT_FONT_SIZE`. Where the worst case
+is the point, say that it is the worst case and why - 267x100 is a terminal
+filling this Pi's screen, which is where a per-cell cost hurts most.
+
+Two figures for one quantity across two documents is the same defect wearing a
+disguise, so a saving illustrated at 80x30 in one scenario and 6,650 cells in
+another was wrong in both even though each was arithmetically correct.
 
 ## Before committing
 

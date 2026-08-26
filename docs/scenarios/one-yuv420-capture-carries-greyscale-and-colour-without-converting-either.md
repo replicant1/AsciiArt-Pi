@@ -1,33 +1,74 @@
 # One YUV420 capture carries greyscale and colour without converting either
 
-**Priority: `HIGH`** — every frame passes through this, and the whole pipeline is affordable on a Zero 2[^zero2] only because it does. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `HIGH`** — every single picture the camera takes passes through this step, and the whole program is only affordable on a computer as small as this one[^zero2] because of it. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-A colour camera and a greyscale[^scheme] picture normally cost a conversion.
-This one does not, and the reason is that YUV420[^yuv] already contains both
-answers: the **Y plane is an 8-bit greyscale image**, and the two chroma
-planes beside it are everything a colour scheme needs. Greyscale mode reads a
-slice of the capture buffer and does no arithmetic at all.
+Normally, taking a colour picture from a camera and turning it into a grey
+picture costs work. The program has to look at every dot, combine its red,
+green and blue amounts into a single brightness, and write the answer down.
+That is a large amount of arithmetic to do fifteen times a second.
 
-The value is measured rather than asserted. At 320x240 the whole frame is
-115,200 bytes: 76,800 of luma and 19,200 in each of two chroma planes, which
-are half resolution on both axes and so a quarter of the pixels each. Keeping
-the chroma costs **38 KB more than the luma alone**, and buys the colour path
-for free. Converting instead — YUV to RGB to grey, at full resolution, per frame
-— was the single most expensive thing in the original pipeline.
+This program never does that work at all. The reason is the format the camera
+is asked for, which is called YUV420[^yuv]. That format already contains both
+answers side by side. It keeps brightness in one part and colour in two
+others. The brightness part, on its own and with nothing done to it, is
+already an ordinary grey picture. So drawing in grey means reading a section
+of memory and stopping there. No arithmetic happens.
 
-Two decisions make this work and neither is obvious. The first is that
-[`_wrap`](../../src/capture/camera.py#L151) makes **one** copy holding all
-three planes together, rather than one copy of the luma now and another of the
-chroma later if colour turns out to be on. The second is that the conversion,
-when a colour scheme does want RGB, happens **after** the downscale to the
-character grid[^grid] — at 133x50 that is about 6,650 pixels of arithmetic
-instead of 76,800.
+The saving can be measured rather than merely claimed, and the arithmetic is
+worth setting out in full, because several later figures depend on it.
 
-The one thing here that could not be reasoned out was the plane order. U
-before V is what this sensor delivers, and it was settled by capturing the
-same scene as reference RGB888[^rgb888] and comparing, rather than by reading
-it off a diagram — the two orders differ only by swapping blue and red, which
-is easy to look at and be wrong about.
+The program asks the camera for pictures 320 dots wide and 240 dots tall. Those
+two numbers are set in [`CameraCapture`](../../src/capture/camera.py#L61) and can
+be changed on the command line, but they were not picked at random. They are the
+smallest size that is still comfortably larger than the biggest grid of
+characters the program will ever draw. Anything smaller would throw away detail
+the grid could have used. Anything larger would pay for detail that is going to
+be discarded anyway.
+
+Multiplying 320 by 240 gives 76,800 dots, and the brightness part holds one
+value for each of them, so the brightness alone comes to 76,800 bytes. Each
+colour part is half as detailed across and half as detailed down. Half of one
+dimension multiplied by half of the other is a quarter, so each colour part holds
+a quarter as many values: 76,800 divided by four, which is 19,200 bytes. There
+are two of them, so the colour costs 38,400 bytes altogether, and that is the
+**38 kilobytes** referred to throughout this document. Adding all three parts
+together gives 76,800 plus 19,200 plus 19,200, or 115,200 bytes for one complete
+picture.
+
+So keeping the colour costs about 38 kilobytes more than keeping the brightness
+alone, and in exchange the colour picture comes free. Doing the conversion instead,
+from this format to red-green-blue and then to grey, at full detail, once per
+picture, was the most expensive single thing the program used to do.
+
+Two decisions make this work, and neither is obvious from looking at the code.
+
+The first decision is that [`_wrap`](../../src/capture/camera.py#L151) makes
+**one** copy containing all three parts together. The alternative would have
+been to copy the brightness now, and then copy the colour later if it turned
+out that a colour scheme[^scheme] was switched on. That would mean two copies
+on every picture where colour is wanted, and a more complicated piece of code
+to decide between them. One copy, always, is simpler and cheaper on average.
+
+The second decision is about *when* the colour conversion happens, in the
+cases where colour really is wanted. It happens **after** the picture has been
+shrunk down to the grid of characters[^grid] the program draws, not before. The
+amount of arithmetic is the reason, and the size of the difference depends on
+how big the grid is. Inside the sealed box, which is the arrangement this
+program is really built for, that grid is 64 cells across and 24 down, which
+comes to 1,536 cells. Shrinking first therefore means converting 1,536 values.
+Converting first would mean converting all 76,800 of them. That is fifty times
+the work for a result that looks exactly the same, so the cheaper order is
+simply the better one.
+
+One detail here could not be worked out by reasoning, and had to be tested. The
+two colour parts arrive one after the other in memory, and something has to
+decide which of the two comes first. On this camera the part called U comes
+before the part called V. That was settled by photographing a scene, capturing
+the same scene again in an ordinary red-green-blue format[^rgb888] as a
+reference, and comparing the two. It was not settled by reading a diagram. The
+reason for going to that trouble is that getting the order backwards swaps red
+and blue, and a picture with red and blue exchanged still looks like a
+reasonable picture at a glance.
 
 ![One capture buffer of 320 bytes across and 360 rows down: the top 240 rows are
 the luma plane, the 60 below them the U plane and the 60 below that the V plane,
@@ -36,145 +77,194 @@ gives a 240 by 320 greyscale picture; the rows below it flatten, split in half
 and reshape into two planes of 120 by 160. Beside them, the byte counts add up,
 and two colour swatches show what swapping the plane order does](../images/yuv420-buffer.svg)
 
-*The whole of the trick is that the greyscale picture is a **slice**, not a
-conversion — one rectangle of the buffer, taken as it is. The two blocks under
-it are where the 38 KB goes, and the reshape from 60 rows of 320 into 120 rows
-of 160 is what `chroma` does with offsets rather than with a decode. The two
-swatches are the failure that plane order buys you: red and blue exchanged,
-which is exactly plausible enough to survive a glance.*
+*The point of the drawing is that the grey picture is a **section** of the
+memory, taken exactly as it already is, rather than something calculated. The
+two blocks underneath it are where the extra 38 kilobytes go. Turning 60 rows
+of 320 values into 120 rows of 160 is done purely by counting positions, not by
+decoding anything. The two colour patches at the side show the mistake that
+choosing the wrong order would produce: red and blue exchanged, which is just
+believable enough to pass unnoticed.*
 
 Kept by hand: edit [`yuv420-buffer.svg`](../images/yuv420-buffer.svg) directly,
 since nothing regenerates it.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`YuvFrame`](../../src/capture/camera.py#L22) | One YUV420 frame, exposing its planes as views[^view] rather than copies. Here it is the **whole subject**: [`luma`](../../src/capture/camera.py#L47) is a slice and [`chroma`](../../src/capture/camera.py#L51) is arithmetic on offsets, so neither costs anything until somebody reads the pixels |
-| [`CameraCapture`](../../src/capture/camera.py#L61) | The camera and the thread that reads it. Here it is the **packer**: it asks the ISP[^isp] for YUV420 in the first place, and [`_wrap`](../../src/capture/camera.py#L151) makes the single copy that keeps all three planes together and detaches them from the driver's buffers |
-| [`ImageProcessor`](../../src/capture/image_processor.py#L49) | Rotate, crop, resize, levels. Here it is the **only reader of the chroma**: [`colour_grid`](../../src/capture/image_processor.py#L187) is the one place the U and V planes are touched, and it runs after the downscale rather than before |
+| [`YuvFrame`](../../src/capture/camera.py#L22) | One picture from the camera, held in the YUV420 format. It offers its brightness and colour parts as views[^view] rather than as copies. In this scenario it is the **whole subject**. [`luma`](../../src/capture/camera.py#L47) simply points at a section of the existing memory, and [`chroma`](../../src/capture/camera.py#L51) works out positions by counting. Neither costs anything at all until some other part of the program actually reads the values |
+| [`CameraCapture`](../../src/capture/camera.py#L61) | The camera, together with the separate thread[^thread] of work that reads pictures from it. In this scenario it is the **packer**. It is the part that asks the camera hardware[^isp] for the YUV420 format in the first place, and [`_wrap`](../../src/capture/camera.py#L151) is where it makes the single copy that keeps all three parts together and disconnects them from the memory the camera driver reuses |
+| [`ImageProcessor`](../../src/capture/image_processor.py#L49) | The part that turns, trims, shrinks and adjusts the brightness of a picture. In this scenario it is the **only reader of the colour parts**. [`colour_grid`](../../src/capture/image_processor.py#L187) is the single place in the whole program that looks at them, and it runs after the picture has been shrunk rather than before |
 
-## Two pictures in one buffer
+## Two pictures inside one piece of memory
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Pi as picamera2<br/>the ISP
-    participant Cam as CameraCapture<br/>the capture thread
-    participant F as YuvFrame<br/>views, not copies
-    participant App as MainRenderLooper<br/>the render loop's thread
-    participant Proc as ImageProcessor<br/>only in a colour scheme
+    participant Pi as picamera2<br/>the camera hardware and library
+    participant Cam as CameraCapture<br/>the camera's own thread
+    participant F as YuvFrame<br/>points at memory, never copies it
+    participant App as MainRenderLooper<br/>the drawing loop's thread
+    participant Proc as ImageProcessor<br/>used only when colour is switched on
 
     rect rgba(200, 140, 60, 0.12)
-        note over Pi, F: the capture thread - once per captured frame
-        Cam->>Pi: ask for YUV420, the sensor pipeline's native format
-        Pi-->>Cam: 360 rows of stride bytes - 240 of luma, then both chroma planes
-        Cam->>F: _wrap makes one copy of 115200 bytes, padding dropped
+        note over Pi, F: the camera's own thread, once for each picture taken
+        Cam->>Pi: ask for YUV420, the format the camera already produces
+        Pi-->>Cam: 360 rows - 240 of brightness, then both colour parts
+        Cam->>F: _wrap makes one copy of 115200 bytes and removes the padding
     end
     rect rgba(80, 140, 220, 0.12)
-        note over F, Proc: the render loop's thread - greyscale reads nothing but a slice
+        note over F, Proc: the drawing loop's thread, where grey reads a section and stops
         App->>F: luma
-        F-->>App: a 240x320 view of the same buffer, no conversion
-        App->>Proc: colour_grid(frame, grey, cols, rows), only if the scheme is live
+        F-->>App: a 240 by 320 view of the same memory, nothing converted
+        App->>Proc: colour_grid(frame, grey, cols, rows), only when the scheme is live
         Proc->>F: chroma
-        F-->>Proc: u and v, 120x160 each, a quarter of the pixels
-        Proc->>Proc: to_grid both planes to the character grid first
-        Proc->>Proc: YUV to RGB on 6650 cells, not on 76800 pixels
+        F-->>Proc: u and v, 120 by 160 each, a quarter of the values
+        Proc->>Proc: to_grid shrinks both colour parts to the character grid first
+        Proc->>Proc: convert to red green blue on 1536 cells, not on 76800 dots
     end
 ```
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | ask for YUV420, the sensor pipeline's native format | Asking for the format the ISP already produces avoids a conversion *inside* the ISP as well as one here. Requesting RGB would have moved the same arithmetic somewhere less visible rather than removing it |
-| 2 | 360 rows of stride bytes - 240 of luma, then both chroma planes | The buffer is `height * 3 // 2` rows: the luma plane, then U and V packed together beneath it. `stride`[^stride] may exceed the width, which is why a copy is needed at all — a buffer read at its stride rather than its width comes out sheared |
-| 3 | [`_wrap`](../../src/capture/camera.py#L151) makes one copy of 115200 bytes, padding dropped | One `ascontiguousarray`[^contig] doing two jobs: dropping the padding and detaching the frame from the driver's recycled buffers. Keeping the chroma in it is the 38 KB decision — one copy now against a second copy later, taken once for every frame whether colour is on or not |
-| 4 | [`luma`](../../src/capture/camera.py#L47) | A property that returns `self._buf[:height, :width]`. There is no method here that converts anything, because there is nothing to convert |
-| 5 | a 240x320 view of the same buffer, no conversion | 76,800 bytes that were already in the copy. This is the entire greyscale path: the Y plane of YUV420 *is* an 8-bit greyscale image, and the app never learns that from a conversion because there never is one |
-| 6 | [`colour_grid`](../../src/capture/image_processor.py#L187)`(frame, grey, cols, rows)`, only if the scheme is live | Reached only from [`_colours_for`](../../ascii_camera.py#L499), and only when the scheme's kind is `live`. Greyscale and the tinted schemes never touch the chroma, so the 38 KB sits unread — paid for on every frame and used on some |
-| 7 | [`chroma`](../../src/capture/camera.py#L51) | Offsets into the same buffer, not a decode: the flat region below the luma is split in half and each half reshaped. Half resolution on both axes, so a quarter of the pixels each |
-| 8 | u and v, 120x160 each, a quarter of the pixels | **U before V**, which was checked against a reference RGB888 capture of the same scene rather than assumed. Getting it the wrong way round swaps blue and red, which looks plausible enough to survive a glance |
-| 9 | [`to_grid`](../../src/capture/image_processor.py#L172) both planes to the character grid first | The same rotate-crop-resize the luma went through, which is why it is a shared method: any difference in rotation or cropping between the planes would show as colour fringing along every edge |
-| 10 | YUV to RGB on 6650 cells, not on 76800 pixels | The order is the optimisation. `grey` is passed back in as the Y term rather than being recomputed, so the colour of a cell is derived from exactly the brightness that chose its character — the two cannot disagree |
+| 1 | ask for YUV420, the format the camera already produces | The request is made through the Raspberry Pi's camera library[^picamera2]. Asking for the format the camera hardware makes anyway avoids one conversion inside that hardware as well as one in the program. Asking for red-green-blue instead would not have removed the arithmetic. It would only have moved it somewhere harder to see |
+| 2 | 360 rows - 240 of brightness, then both colour parts | The memory holds one and a half times as many rows as the picture is tall. The brightness fills the top, and the two colour parts are packed in underneath it. The distance from one row to the next, called the stride[^stride], may be larger than the picture is wide. That possibility is the reason a copy is needed at all, because reading a picture using the wrong row distance produces a slanted image |
+| 3 | [`_wrap`](../../src/capture/camera.py#L151) makes one copy of 115200 bytes and removes the padding | A single call to `ascontiguousarray`[^contig] does two jobs at once. It removes the unused space at the end of each row, and it disconnects the picture from the memory the camera driver intends to reuse. Keeping the colour parts inside that copy is the 38 kilobyte decision described above: one copy now, rather than a second copy later, paid on every picture whether colour is switched on or not |
+| 4 | [`luma`](../../src/capture/camera.py#L47) | This is a property that hands back `self._buf[:height, :width]`. There is no code here that converts anything, for the simple reason that there is nothing to convert |
+| 5 | a 240 by 320 view of the same memory, nothing converted | These 76,800 bytes were already inside the copy made in the previous step. This is the entire grey picture path. The brightness part of YUV420 *is* an ordinary grey image, and the program never has to discover that by calculating, because no calculation ever takes place |
+| 6 | [`colour_grid`](../../src/capture/image_processor.py#L187)`(frame, grey, cols, rows)`, only when the scheme is live | This step is reached only from [`_colours_for`](../../ascii_camera.py#L499), and only when the chosen colour scheme is the one called `live`. The grey scheme and the seven tinted schemes never look at the colour parts at all. For those schemes the extra 38 kilobytes sit unread. They are paid for on every picture and used on some |
+| 7 | [`chroma`](../../src/capture/camera.py#L51) | This works out positions within the same piece of memory rather than decoding anything. The flat region below the brightness is divided in half, and each half is treated as a rectangle. Each colour part is half as detailed across and half as detailed down, so each holds a quarter as many values as the brightness does |
+| 8 | u and v, 120 by 160 each, a quarter of the values | **U comes before V.** That order was checked against a reference photograph of the same scene in an ordinary red-green-blue format, rather than being assumed. Taking the two the wrong way round exchanges blue and red, and the result still looks plausible enough that a quick glance would not catch it |
+| 9 | [`to_grid`](../../src/capture/image_processor.py#L172) shrinks both colour parts to the character grid first | This is the same turning, trimming and shrinking that the brightness part already went through, which is why one shared piece of code does it. If the colour parts were turned or trimmed even slightly differently from the brightness, the difference would appear as coloured edges around every object in the picture |
+| 10 | convert to red green blue on 1536 cells, not on 76800 dots | The saving comes entirely from doing this last, and the two figures in the message are the 1,536 cells of the panel's grid against the 76,800 dots of the camera picture. The already-calculated brightness is passed back in and reused rather than worked out a second time, which means the colour of a character cell is derived from exactly the same brightness that chose which character to draw there. The two therefore cannot disagree with one another |
 
-No thread bands would be wrong here and one band would be misleading: the
-frame is built on the capture thread and read on the render loop's, and later
-read again on the LCD worker[^lcd]'s. That is safe for the reason established
-in the capture scenario — the copy detached it from the driver, and every
-reader only reads — but it is the reason the planes are exposed as views
-rather than handed out as arrays somebody might modify.
+Thread bands are worth explaining rather than leaving to be noticed. The
+picture is built on the camera's thread and read on the drawing loop's thread,
+and later read a third time on the thread that drives the small attached
+screen[^lcd]. That is safe, for the reason set out in the scenario about the
+one-slot holding place: the copy disconnected the picture from the camera
+driver's memory, and every part of the program that touches it afterwards only
+reads it. Nothing ever writes to it. That is also precisely why the brightness
+and colour parts are offered as views onto memory rather than handed out as
+arrays that somebody might be tempted to change.
 
 ## Related scenarios
 
 - [A capture thread hands the render loop its newest frame through a one-slot queue](a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md)
-  — how the frame described here reaches the loop, and why one copy is made.
+  — how the picture described here travels from the camera to the drawing loop,
+  and why exactly one copy is made on the way.
 - [Pixel brightness is mapped to ramp characters](pixel-brightness-is-mapped-to-ramp-characters.md)
-  — what the luma plane becomes.
-- [The chroma planes give each character cell its colour](the-chroma-planes-give-each-character-cell-its-colour.md) — the arithmetic of
-  the last message here, drawn in full.
-- [A colour scheme is compiled into a per-cell lookup table](a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md) — the other
-  colour path, which never reads the chroma at all.
+  — what the brightness part becomes once the drawing loop has it.
+- [The chroma planes give each character cell its colour](the-chroma-planes-give-each-character-cell-its-colour.md)
+  — the arithmetic behind the very last step above, set out in full.
+- [A colour scheme is compiled into a per-cell lookup table](a-colour-scheme-is-compiled-into-a-per-cell-lookup-table.md)
+  — the other way of producing colour, which never reads the camera's colour
+  parts at all.
 
 ### Footnotes
 
-[^zero2]: The Raspberry Pi Zero 2 W: the machine this app is built for and
-    deployed on, with about 416 MB of usable RAM and no graphics acceleration
-    to call on. Every timing in these documents was measured there.
+[^zero2]: The **Raspberry Pi Zero 2 W** is the small, inexpensive computer that
+    this program is written for and runs on. It has roughly 416 megabytes of
+    usable memory and no separate graphics hardware to hand work to. Every
+    timing figure quoted in these documents was measured on that machine, which
+    is why a single library taking six seconds to load is a fact worth writing
+    down.
 
-[^scheme]: A **colour scheme** is one of the nine named looks in
-    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
-    of the render configuration. `grey` is the default, and is what "greyscale
-    mode" means: characters only, drawn from the luma plane and nothing else.
-    `live` is the only scheme that reads the chroma planes, through
-    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
-    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
-    the same greyscale picture from two fixed colours.
+[^yuv]: **YUV420** is a way of storing a picture that keeps brightness and
+    colour separately, instead of storing a colour for every dot. The brightness
+    part, called the luma, holds one brightness value for every dot in the
+    picture. The two colour parts, called the chroma, hold colour information at
+    half the detail across and half the detail down, so each of them holds a
+    quarter as many values as the brightness part does. All three parts arrive
+    together in one piece of memory: the brightness first, then the two colour
+    parts packed in after it. That arrangement is what
+    [`chroma`](../../src/capture/camera.py#L51) knows how to take apart. At 320
+    by 240 the brightness part is 76,800 bytes and the two colour parts together
+    are 38,400 bytes.
 
-[^yuv]: **YUV420** keeps a frame as brightness and colour separately rather
-    than as pixels. The **luma** plane, Y, carries one brightness byte per
-    pixel; the two **chroma** planes, U and V, carry colour at half resolution
-    on each axis, so a quarter of the samples each. All three arrive in one
-    buffer of `height * 3 / 2` rows — Y first, then U and V packed together —
-    which is the layout [`chroma`](../../src/capture/camera.py#L51) unpacks. At
-    320x240 that is 76,800 bytes of luma and 38,400 of chroma.
+[^scheme]: A **colour scheme** is one of the nine named looks listed in
+    [`SCHEMES`](../../src/art/palettes.py#L79). Which one is currently in use is
+    part of the program's render configuration, and the knob, a key press or a
+    typed command can all change it. The scheme called `grey` is the one the
+    program starts with, and it is what the phrase "greyscale mode" refers to:
+    characters only, worked out from the brightness part of the picture and
+    nothing else. Only the scheme called `live` reads the colour parts, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The remaining
+    seven are tints, such as green phosphor, amber CRT and e-ink on paper. A
+    tint recolours the same greyscale picture using two fixed colours, so it
+    never looks at the colour parts either.
 
-[^grid]: The **character grid** is the picture as this app holds it: `rows` by
-    `cols` character **cells** rather than pixels, each cell one character
-    chosen from the brightness of the patch of camera frame it covers.
-    [`to_grid`](../../src/capture/image_processor.py#L172) is what resizes a
-    plane to it. How big it is depends on where the picture is going — 64 by 24
-    on the SPI panel at the default font size, and whatever the window holds on
-    the HDMI terminal.
+[^grid]: The **character grid** is how this program holds a picture: as a
+    rectangle of character cells rather than of dots. Each cell is one
+    character, chosen according to how bright the patch of camera picture behind
+    it happens to be. [`to_grid`](../../src/capture/image_processor.py#L172) is
+    the code that reduces a picture to that grid. How many cells there are
+    depends on where the picture is being sent — 64 across and 24 down on the
+    small attached panel at the usual text size, and whatever fits the window
+    when the picture goes to an ordinary monitor instead.
 
-[^rgb888]: **RGB888** is the ordinary uncompressed form — one byte each of red,
-    green and blue per pixel — as opposed to the panel's packed RGB565 or the
-    camera's YUV420. Here it is used only as a reference capture to check
-    something against.
+[^rgb888]: **RGB888** is the ordinary, straightforward way of storing a colour
+    picture: one byte for red, one for green and one for blue, for every single
+    dot. It is written that way because each of the three colours gets eight
+    bits of memory. It is mentioned here only because a photograph stored in
+    that form was used as a reference to check something against. The small
+    attached panel uses a more tightly packed arrangement, and the camera uses
+    YUV420, so this ordinary form appears nowhere else in the program.
 
-[^view]: A numpy **view** is a second array object pointing into the first
-    one's memory. Slicing copies no bytes, which is why
-    [`luma`](../../src/capture/camera.py#L47) costs nothing to take — and why
-    every reader of a frame is a reader only: several views of one buffer are
-    safe to share across threads exactly as long as nothing writes through any
-    of them.
+[^view]: A **view** is a second way of looking at memory that already exists,
+    rather than a copy of it. When the program takes the brightness part out of
+    a picture using [`luma`](../../src/capture/camera.py#L47), no bytes are
+    copied and no new memory is used. This is also the reason every part of this
+    scenario only ever reads. Several views of one piece of memory are perfectly
+    safe to share between threads, for exactly as long as nothing writes through
+    any of them.
 
-[^isp]: **Image signal processor**: the fixed-function hardware between the
-    sensor and memory that turns the sensor's raw output into a frame in a
-    named format, and resizes it on the way. Work it does costs this CPU
-    nothing, which is why the size and the format are asked for in
-    [`start`](../../src/capture/camera.py#L82) rather than fixed up in numpy
-    afterwards.
+[^thread]: A **thread** is a separate line of work inside one running program.
+    Several threads can be making progress at what appears to be the same time,
+    and each keeps its own place in its own instructions. Two threads matter in
+    this scenario: one belongs to the camera and does nothing but collect
+    pictures, and one belongs to the drawing loop. Giving the camera its own
+    thread means the drawing loop never has to stop and wait for a picture to
+    arrive.
 
-[^stride]: The **stride** is the distance in bytes from the start of one row of
-    the buffer to the start of the next, which can be larger than a row's worth
-    of pixels when the hardware prefers a round number. It is read back from
-    the camera's own configuration rather than assumed — and on this Pi at
-    320x240 it comes back equal to the width, which the service records as
-    `Camera started: 320x240 stride=320 @ 15 fps`.
+[^isp]: **Image signal processor**, usually shortened to those three words'
+    initials. It is a piece of fixed-purpose hardware sitting between the camera
+    sensor and the computer's memory. Its job is to turn the sensor's raw
+    output into a finished picture in a named format, and it can resize the
+    picture on the way through. Asking it for a 320 by 240 YUV420 picture in
+    [`start`](../../src/capture/camera.py#L82) costs this computer's main
+    processor nothing at all, which is why both the size and the format are
+    settled there rather than being adjusted afterwards. The unused space at the
+    end of each row, described below, is also this hardware's doing.
 
-[^contig]: numpy's `ascontiguousarray` returns an array whose rows sit end to
-    end with no gaps, copying only when the input is not already like that. A
-    slice taken across padded rows is not, and is copied; a slice off a buffer
-    that was never padded already is, and is returned untouched.
+[^picamera2]: **picamera2** is the Python library for the Raspberry Pi's camera,
+    built on top of a lower-level piece of software called libcamera. It is the
+    replacement for an older library that was simply called picamera. It owns
+    the camera sensor, the settings given to the camera hardware, and the memory
+    that this loop reads its pictures from.
 
-[^lcd]: The **LCD worker**, [`LcdWorker`](../../src/lcd/lcd_worker.py#L61), is
-    the thread that owns the SPI panel. It exists so that the render loop never
-    waits on the bus: pushing one frame takes about 33 ms, and the loop has
-    other work to do in that time.
+[^stride]: The **stride** is the distance, measured in bytes, from the start of
+    one row of a picture to the start of the next row. It can be larger than a
+    row of picture actually needs, because the hardware sometimes prefers each
+    row to begin at a convenient position in memory. The program reads this
+    distance back from the camera's own settings rather than assuming it. On
+    this particular computer at 320 by 240 the distance comes back exactly equal
+    to the width, which the running program records in its log as
+    `Camera started: 320x240 stride=320 @ 15 fps`. So in the arrangement
+    actually deployed there is no unused space to remove, and the trimming step
+    inside [`_wrap`](../../src/capture/camera.py#L151) is protection against a
+    picture size where there would be.
+
+[^contig]: **`ascontiguousarray`** is a numpy function that returns a version of
+    an array whose rows sit directly end to end in memory with no gaps between
+    them. It copies the data only when the array it was given is not already
+    arranged that way. A picture taken from rows with unused space at the end is
+    not arranged that way, so it is copied. A picture whose rows never had unused
+    space already is, so it is handed back untouched.
+
+[^lcd]: The **LCD worker** is the part of the program, represented by the class
+    [`LcdWorker`](../../src/lcd/lcd_worker.py#L61), that owns the second screen.
+    That screen is a small panel measuring 2.4 inches across the diagonal, 240
+    by 320 dots, connected by a simple wiring arrangement called SPI. In the
+    sealed box this program is built for, that small panel is the only screen
+    there is. It is given a thread of its own because sending one picture down
+    the wire to it takes about 33 milliseconds, and the drawing loop must not
+    spend that time waiting.
