@@ -50,7 +50,7 @@ from capture.image_processor import ImageProcessor, fit_grid  # noqa: E402
 from control.render_config import ConfigError  # noqa: E402
 from control.args import parse_args  # noqa: E402
 from control.scheme_cycle import SchemeCycle  # noqa: E402
-from control import buzzer  # noqa: E402
+from control import buzzer, power_led  # noqa: E402
 from hdmi.status_line import status_line  # noqa: E402
 from version import APP_NAME, __version__  # noqa: E402
 
@@ -808,9 +808,32 @@ class MainRenderLooper:
         except Exception as e:                      # noqa: BLE001
             logger.warning("No start-up tune: %s: %s", type(e).__name__, e)
 
+    def _light_the_power_led(self):
+        """
+        Light the LED on GPIO 4, at the same moment the greeting sounds.
+
+        Never fatal, for the same reason the tune is not: an unwired pin, a
+        missing LED or a kernel without lgpio is no reason to refuse to show a
+        picture. This is hardware whose absence is a log line and nothing more.
+
+        Set and forgotten, and that is the design rather than an omission. The
+        pad keeps its level after the call returns, so the LED is not this
+        process's to hold up - it stays lit through the app being restarted or
+        killed, which is exactly what a power LED should do. Putting it out
+        belongs to deploy/asciiart.shutdown, which systemd runs once every
+        service has stopped, so the light lasts as long as the machine does
+        rather than as long as this program does.
+        """
+        try:
+            power_led.on()
+            logger.info("Power LED lit on GPIO %d", power_led.PIN)
+        except Exception as e:                      # noqa: BLE001
+            logger.warning("No power LED: %s: %s", type(e).__name__, e)
+
     def run(self):
         """Main loop: a frame in, a picture out, until something says stop."""
         self._install_signal_handlers()
+        self._light_the_power_led()
         self._say_hello()
         self.display.message("Starting camera, please wait...")
         if self.lcd is not None:

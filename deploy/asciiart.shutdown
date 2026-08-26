@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-The last thing this machine does: panel dark, LED out, then the goodbye tune.
+The last thing this machine does: everything dark, then the goodbye tune.
 
 Installed as /usr/lib/systemd/system-shutdown/asciiart.shutdown.  Executables
 in that directory run after every service has stopped and every filesystem has
@@ -9,9 +9,18 @@ in userspace, which is why the tune lives here rather than in the app.  systemd
 passes the kind of shutdown as the only argument: poweroff, halt, reboot or
 kexec.
 
-Order is the point.  The panel and the LED go out *first*, so that by the time
-the tune sounds there is nothing left to see; the tune is last so that it is
-the last thing at all.
+Order is the point.  The panel and both LEDs go out *first*, so that by the
+time the tune sounds there is nothing left to see; the tune is last so that it
+is the last thing at all.  Two LEDs, and they are not the same LED: the board's
+own ACT light, which blinks at the disk, and the power LED on GPIO 4 that the
+app lit at start-up.  Every name here says which.
+
+**The power LED is put out here and nowhere else.**  It is not the app's to
+extinguish.  GPIO 4 keeps its level after the process that set it exits, which
+is what lets the light mean "this machine is up" rather than "ascii_camera is
+running" - so the app never restarting it is the point, and only a real
+poweroff should end it.  A reboot is left alone deliberately: the pad resets
+itself on the way back up, and the app lights it again within seconds.
 
 Three things here were each found the hard way, and none of them is obvious.
 
@@ -50,6 +59,7 @@ import time
 
 BACKLIGHT = 18          # LED/BL on the ILI9341 module, active high
 BUZZER = 13
+POWER_LED = 4           # the indicator the app lit at start-up
 GOODBYE = ((880, 0.25), (440, 0.25))    # the greeting's notes, the other way up
 DEADLINE = 8            # seconds for the whole script, tune included
 
@@ -64,12 +74,30 @@ def hush_the_panel():
     # No GPIO.cleanup(). That is the whole trick.
 
 
-def put_out_the_led():
-    """Stop the activity LED, so nothing blinks after the tune."""
+def put_out_the_activity_led():
+    """Stop the board's own ACT LED, so nothing blinks after the tune."""
     for path, value in (("/sys/class/leds/ACT/trigger", "none"),
                         ("/sys/class/leds/ACT/brightness", "0")):
         with open(path, "w") as f:
             f.write(value)
+
+
+def douse_the_power_led():
+    """
+    Put out the GPIO 4 power LED that the app lit when it started.
+
+    Freed rather than held, unlike the backlight above.  The two pins behave
+    differently and it matters: releasing GPIO 18 lets the panel module's own
+    pull-up relight it, whereas GPIO 4 keeps whatever level it was left at.
+    Measured both ways on this Pi rather than assumed.
+    """
+    import lgpio
+    handle = lgpio.gpiochip_open(0)
+    try:
+        lgpio.gpio_claim_output(handle, POWER_LED, 0)
+        lgpio.gpio_free(handle, POWER_LED)
+    finally:
+        lgpio.gpiochip_close(handle)
 
 
 def play_goodbye():
@@ -102,7 +130,8 @@ def main(argv):
         return 0
 
     signal.alarm(DEADLINE)
-    for step in (hush_the_panel, put_out_the_led, play_goodbye):
+    for step in (hush_the_panel, put_out_the_activity_led,
+                 douse_the_power_led, play_goodbye):
         try:
             step()
         except Exception:                          # noqa: BLE001
