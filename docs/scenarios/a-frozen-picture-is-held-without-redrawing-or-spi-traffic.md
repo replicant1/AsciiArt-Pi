@@ -1,30 +1,38 @@
 # A frozen picture is held without redrawing or SPI traffic
 
-**Priority: `LOW`** — freezing is something a person does occasionally and on purpose, but what the loop does while frozen is the difference between an idle appliance and one heating up. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `LOW`** — freezing is something a person does occasionally and deliberately, but what the loop does while frozen is the difference between an idle appliance and one quietly heating up. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-Press the spacebar and the picture stops. The naive implementation of that is to
-keep the loop running exactly as before and simply hand it the same frame every
-time, which produces a correct picture and a machine burning a core to redraw an
-image identical to the one already on screen — and pushing 153,600 bytes down
-the SPI bus, thirty-odd times a second, to change nothing.
+Press the space bar and the picture stops.
 
-**So the loop stops producing frames rather than producing repeats.**
-[`_next_frame`](../../ascii_camera.py#L691) returns `None` when the picture is
-frozen and nothing has changed, and the loop's redraw is skipped entirely.
-What replaces it is a [50 ms poll](../../ascii_camera.py#L96): twenty wakeups
-a second that read the knob[^detent], drain the socket[^socket] and check for
-a keypress, which is enough to feel instant and costs nothing measurable.
+The obvious way to build that would be to keep the loop running exactly as
+before and simply hand it the same picture every time round. That produces a
+correct-looking result and a computer working flat out to redraw a picture
+identical to the one already on the screen. It would also send 153,600 bytes
+down the wire to the small panel[^panel] fifteen times every second, which
+works out at about 2.3 megabytes a second, in order to change nothing at all.
 
-**The camera is deliberately left running.** Stopping it would be the obvious
-saving and it is the wrong trade: libcamera[^picamera2] takes fifteen to
-twenty seconds to come back, so unfreezing would stall for longer than most
-freezes last. Its queue is one frame deep, so a camera nobody is reading from
-overwrites its own slot and nothing accumulates.
+**So the loop stops producing pictures rather than producing repeats.**
+[`_next_frame`](../../ascii_camera.py#L691) hands back nothing when the picture
+is frozen and nothing has changed, and the drawing is skipped altogether.
+
+What takes its place is a short pause of [50 thousandths of a
+second](../../ascii_camera.py#L96) before going round again. That works out at
+twenty wake-ups a second, each of which reads the knob[^detent], collects
+anything waiting on the connection[^socket] and checks for a key press. Twenty
+times a second is frequent enough that a key press feels immediate to a person,
+and it costs nothing measurable, because each wake-up does almost no work.
+
+**The camera is deliberately left running.** Switching it off would be the
+obvious saving, and it is the wrong trade. The camera framework[^picamera2]
+takes fifteen to twenty seconds to start again, so unfreezing would stall for
+longer than most freezes last in the first place. Leaving it running is free
+because its holding place has room for exactly one picture: a camera nobody is
+reading from simply overwrites its own single slot, and no backlog can form.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`MainRenderLooper`](../../ascii_camera.py#L99) | Capture, process, draw, once per frame. Here it is the part that **declines to run**: it holds the last frame, decides there is no picture to make, and services input on a timer instead |
-| [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen and replaced wholesale. Here it is the **switch**: `freeze` is an ordinary boolean setting, so the spacebar, a typed command, the phone and the model all reach it by the same route as any other change |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | Capture, process, draw, once for every picture. In this scenario it is the part that **declines to run**. It keeps hold of the last picture, decides that there is no new picture to make, and attends to incoming input on a timer instead |
+| [`RenderConfig`](../../src/control/render_config.py#L118) | The complete, current description of how the picture should be drawn, frozen and replaced in one piece. In this scenario it is the **switch**. Freezing is an ordinary true-or-false setting, so the space bar, a typed command, a phone and the language model all reach it by exactly the same route as any other change |
 
 ## The loop stops making pictures
 
@@ -32,136 +40,157 @@ overwrites its own slot and nothing accumulates.
 sequenceDiagram
     autonumber
     actor P as whoever pressed it
-    participant Looper as MainRenderLooper<br/>the render loop
-    participant Cfg as RenderConfig<br/>frozen, replaced not edited
+    participant Looper as MainRenderLooper<br/>the drawing loop
+    participant Cfg as RenderConfig<br/>frozen, replaced rather than edited
     participant Cam as CameraCapture<br/>still running
 
-    P->>Looper: the spacebar
+    P->>Looper: the space bar
     Looper->>Cfg: apply({freeze: not freeze})
-    Cfg-->>Looper: a new config, with a redraw asked for
-    Looper->>Looper: _next_frame sees freeze, and a held frame
-    Looper->>Looper: _redraw is set, so the held frame is drawn once
-    Looper->>Looper: next pass, nothing has changed and no notice is live
-    Looper->>Looper: _drain_input reads the knob, the socket and the keyboard
-    Looper->>Looper: sleep FROZEN_TICK and return no frame at all
-    Cam->>Cam: keeps capturing into a one-deep queue nobody reads
-    P->>Looper: the spacebar again
+    Cfg-->>Looper: a new description, with a redraw asked for
+    Looper->>Looper: _next_frame sees the freeze, and a picture being held
+    Looper->>Looper: the redraw flag is set, so the held picture is drawn once
+    Looper->>Looper: next time round, nothing has changed and no message is showing
+    Looper->>Looper: _drain_input reads the knob, the connection and the keyboard
+    Looper->>Looper: pause for FROZEN_TICK and hand back no picture at all
+    Cam->>Cam: keeps capturing into a one-deep space nobody is reading
+    P->>Looper: the space bar again
     Looper->>Cfg: apply({freeze: False})
-    Looper->>Cam: get_frame resumes, with no warm-up to pay for
+    Looper->>Cam: get_frame resumes, with no warming up to pay for
 ```
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | the spacebar | [The spacebar rather than a letter](../../ascii_camera.py#L609): every other binding is the first letter of what it does, and `freeze` collides with `fill`[^fill]. A pause key nobody has to be told about beats a mnemonic bent to fit |
-| 2 | [`apply`](../../ascii_camera.py#L236)`({freeze: not freeze})` | A delta[^delta], exactly like every other route in. The key handler does not assign the setting itself, which is what keeps one validator in the path rather than a shortcut around it |
-| 3 | a new config, with a redraw asked for | `_redraw` is set by [every config change](../../ascii_camera.py#L236), because the panel[^panel] reads its settings from the config[^config] handed to it with the next frame — and while frozen there is no next frame unless something asks for one |
-| 4 | [`_next_frame`](../../ascii_camera.py#L691) sees freeze, and a held frame | `_held` is [the last frame captured](../../ascii_camera.py#L691), kept for exactly this. Freezing before the first frame arrives falls through to the camera, because there is nothing to hold |
-| 5 | `_redraw` is set, so the held frame is drawn once | The change has to reach the glass. A contrast change while frozen redraws the *same* frame with new settings, which is the reason a frozen picture is still worth pointing settings at |
-| 6 | next pass, nothing has changed and no notice is live | Both conditions. A live notice[^notice] forces the redraw, because it has to appear and then four seconds later go away — and the redraw that shows an expired notice is the one that clears it, so this settles by itself without a timer |
-| 7 | [`_drain_input`](../../ascii_camera.py#L894) reads the knob, the socket and the keyboard | The whole of what a frozen loop does. The knob is polled here rather than on its own timer so it lands in the same place as a keypress: at most one scheme[^scheme] change per pass, applied before anything is drawn |
-| 8 | sleep [`FROZEN_TICK`](../../ascii_camera.py#L96) and return no frame at all | The camera normally paces the loop; with nothing being waited for, this is what stops it spinning a core. Twenty wakeups a second, none of which draw |
-| 9 | keeps capturing into a one-deep queue nobody reads | The cost of not stopping it, and it is a fixed one. The [single slot](../../src/capture/camera.py#L61) means the newest frame replaces the unread one rather than a backlog forming |
-| 10 | the spacebar again | The same key and the same route out. `freeze` has no special unfreeze path |
-| 11 | [`apply`](../../ascii_camera.py#L236)`({freeze: False})` | Sets `_redraw` on the way through, which is what makes the first live frame land immediately rather than after the next capture |
-| 12 | `get_frame` resumes, with no warm-up to pay for | The saving that justifies leaving the camera on. Had it been stopped, this is where fifteen to twenty seconds of libcamera initialisation would appear, in the middle of an interaction |
+| 1 | the space bar | [The space bar rather than a letter](../../ascii_camera.py#L609). Every other key is the first letter of what it does, and the word freeze begins with the same letter as fill[^fill], which is already taken. A pause key that nobody has to be told about is better than a memorable letter bent to fit |
+| 2 | [`apply`](../../ascii_camera.py#L236)`({freeze: not freeze})` | A proposed change[^delta], exactly like every other route in. The key handler does not set the setting itself, which is what keeps a single piece of checking code in the path rather than allowing a shortcut around it |
+| 3 | a new description, with a redraw asked for | The redraw flag is set by [every change of settings](../../ascii_camera.py#L236), because the small panel reads its settings from the description[^config] handed to it alongside the next picture. While frozen there is no next picture unless something asks for one |
+| 4 | [`_next_frame`](../../ascii_camera.py#L691) sees the freeze, and a picture being held | The held picture is [the last one captured](../../ascii_camera.py#L691), kept for exactly this purpose. Freezing before the very first picture has arrived falls through to the camera as normal, because there is nothing yet to hold |
+| 5 | the redraw flag is set, so the held picture is drawn once | The change has to reach the glass somehow. Changing the contrast while frozen redraws the *same* picture with the new setting applied, which is precisely why pointing settings at a frozen picture is worth being able to do |
+| 6 | next time round, nothing has changed and no message is showing | Both conditions have to hold. A message[^notice] that is currently showing forces a redraw, because it has to appear and then remove itself four seconds later. The redraw that displays an expired message is the very one that clears it, so the situation settles itself without needing a separate timer |
+| 7 | [`_drain_input`](../../ascii_camera.py#L894) reads the knob, the connection and the keyboard | This is the whole of what a frozen loop does. The knob is read here rather than on a timer of its own so that it lands in the same place a key press does: at most one change of colour scheme[^scheme] each time round, applied before anything is drawn |
+| 8 | pause for [`FROZEN_TICK`](../../ascii_camera.py#L96) and hand back no picture at all | Normally the camera sets the pace of the loop by making it wait for pictures. With nothing being waited for, this pause is what stops the loop spinning uselessly and consuming a whole processor. Twenty wake-ups a second, not one of which draws anything |
+| 9 | keeps capturing into a one-deep space nobody is reading | This is the cost of not switching the camera off, and it is a fixed one rather than a growing one. The [single space](../../src/capture/camera.py#L61) means each new picture replaces the unread one, so no backlog can build up however long the freeze lasts |
+| 10 | the space bar again | The same key and the same route out. Freezing has no separate unfreezing path of its own |
+| 11 | [`apply`](../../ascii_camera.py#L236)`({freeze: False})` | Sets the redraw flag on its way through, which is what makes the first live picture appear immediately rather than only after the next capture |
+| 12 | `get_frame` resumes, with no warming up to pay for | This is the saving that justifies leaving the camera running. Had it been switched off, this is exactly where fifteen to twenty seconds of camera start-up would appear, in the middle of somebody interacting with the machine |
 
-The status line[^statusline] says `frozen` rather than a frame rate while this
-is going on. A frozen picture stops appending frame times, so a real number
-would sit at whatever it was when the freeze began and then [decay
-slowly](../../ascii_camera.py#L571) as the window aged — a figure that is
-technically derived from measurements and describes nothing.
+The status line[^statusline] shows the word `frozen` instead of a rate while
+this is going on. A frozen picture stops recording the times at which pictures
+were drawn, so a real figure would sit at whatever it happened to be when the
+freeze began and then [drift downwards](../../ascii_camera.py#L571) as the
+measuring window aged past it. That would be a number genuinely derived from
+measurements which nevertheless describes nothing at all.
 
 ## What freezing does not stop
 
 | Still running | Why |
 |---|---|
-| The camera | Restarting it costs 15–20 s; its queue is one deep, so idling is free |
-| The command server, the web server, the encoder | A frozen picture is still a machine somebody can talk to, and `unfreeze` has to arrive somehow |
-| Notices | They expire on a clock, so the band has to be able to come off while frozen |
-| The LCD worker | It stays up on its own [idle tick](../../src/lcd/lcd_worker.py#L43), sending nothing |
+| The camera | Restarting it costs fifteen to twenty seconds, and its holding place is one deep, so leaving it running costs nothing |
+| The command connection, the web server, the knob | A frozen picture is still a machine somebody can talk to, and the instruction to unfreeze has to arrive somehow |
+| Messages on the panel | They remove themselves on a clock, so the band has to be able to come off while the picture is frozen |
+| The panel's thread | It stays awake on its own [regular wake-up](../../src/lcd/lcd_worker.py#L43), sending nothing |
 
-What does stop is the picture pipeline: no processing, no ASCII conversion, no
-terminal repaint, and no SPI traffic at all.
+What does stop is the picture-making itself: no shrinking, no choosing of
+characters, no repainting of the monitor, and no traffic at all down the wire to
+the panel.
 
 ## Related scenarios
 
 - [A camera that stopped delivering frames is detected and announced](a-camera-that-stopped-delivering-frames-is-detected-and-announced.md)
-  — the involuntary version of a still picture, and why the two must not look
-  alike.
+  — the unintended version of a picture that has stopped changing, and why the
+  two must never look alike.
 - [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md)
-  — the route the spacebar takes, and the discipline that keeps it a delta.
+  — the route the space bar takes, and the discipline that keeps it a proposed
+  change like any other.
 - [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md)
-  — why a change while frozen still has to reach the glass, and what `_redraw`
-  is for.
+  — why a change made while frozen still has to reach the glass, and what the
+  redraw flag is for.
 
 ### Footnotes
 
-[^detent]: A **detent** is one click of the knob — the position it settles
-    into, felt as a notch. Electrically it is one full cycle of the two
-    switches, which is what [`QuadratureDecoder`](../../src/control/encoder.py#L88)
-    counts. **Quadrature** is the arrangement: two switches a quarter-cycle
-    apart, so which one changes first says which way the knob turned, and
-    contact bounce that does not complete a cycle emits nothing.
+[^panel]: The **SPI panel** is a small screen measuring 2.4 inches across the
+    diagonal, 240 dots by 320, using a controller chip called the ILI9341. It is
+    connected to the computer by a simple four-wire arrangement called SPI, which
+    is a common way of attaching small devices. It is driven entirely by the
+    program itself, through [`ILI9341`](../../src/lcd/lcd.py#L47), with no
+    separate system driver involved. In the sealed box this program is built
+    for, this panel is the only screen there is. One complete picture for it is
+    153,600 bytes, which has to be sent in pieces of 4 kilobytes each — see
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) — because that is as much as the
+    connection will accept at a time.
 
-[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
-    one machine — the same read-and-write as a network socket, with no network.
-    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
-    which is how a shell, a phone or a script reaches a running camera without
-    the app ever opening a port.
+[^detent]: A **detent** is one click of the knob, meaning the position the knob
+    settles into and which can be felt as a notch under the fingers.
+    Electrically, one click is one complete cycle of the two switches inside the
+    knob, and counting those cycles is the job of
+    [`QuadratureDecoder`](../../src/control/encoder.py#L88). **Quadrature** is
+    the name for the arrangement of those two switches. They are positioned a
+    quarter of a cycle apart, so whichever of them changes first reveals which
+    way the knob was turned. A switch bouncing without completing a full cycle
+    produces nothing at all, which is exactly what is wanted.
 
-[^picamera2]: The Python library for the Pi's camera stack, with **libcamera**
-    — the Linux camera framework it drives — underneath it. It owns the sensor,
-    the ISP configuration and the buffers the app reads from, and it is the
-    successor to the older `picamera`.
+[^socket]: A **Unix domain socket** is a connection between two programs on the
+    same computer, which appears in the file system as though it were a file. It
+    behaves like a network connection, with one program writing and another
+    reading, except that no network is involved at any point.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one of
+    these, which is how a shell, a phone or another program can reach a running
+    camera without the program ever opening a network port.
 
-[^fill]: **fill** and **fit** are the two ways a 4:3 frame can be put into a
-    window that is not its shape. `fit` keeps the whole frame and shrinks the
-    grid to match it, so the window is left with blank cells around the
-    picture. `fill` makes the grid the whole window and crops the frame to
-    suit, so no cell is wasted and the frame's edges are lost. It is one of the
-    two settings that change the grid's shape rather than its appearance.
+[^picamera2]: **picamera2** is the Python library for the Raspberry Pi's camera,
+    built on top of a lower-level piece of software called libcamera. It is the
+    replacement for an older library that was simply called picamera. It owns
+    the camera sensor, the settings given to the camera hardware, and the memory
+    that this loop reads its pictures from.
 
-[^delta]: A **delta** is a plain dict of the settings a change means to alter —
-    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
-    hands it to the configuration; none of them assigns a setting directly.
-    That is what keeps validation in one place no matter who asked.
+[^fill]: **fill** and **fit** are the two ways of placing a picture into a space
+    that is not the same shape as the picture. The camera picture is four units
+    wide for every three units tall. Choosing `fit` keeps the whole picture and
+    shrinks the grid until it matches that shape, which leaves empty cells
+    around the picture. Choosing `fill` makes the grid occupy the whole space
+    and trims the picture to suit, so no cell is wasted but the edges of the
+    picture are lost. It is one of only two settings that change the shape of
+    the grid rather than merely its appearance.
 
-[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
-    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
-    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
-    kernel driver behind it. In the sealed enclosure it is the only display
-    there is. One full frame is 153,600 bytes, sent in
-    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
-    the driver's buffer holds.
+[^delta]: A **delta** is a plain list of the settings a change intends to alter,
+    paired with their new values, such as `{"scheme": "amber"}`, and nothing
+    else besides. Every way of asking for a change builds one of these and hands
+    it to the configuration. None of them ever sets a setting directly. That is
+    what keeps the checking in a single place no matter who did the asking.
 
-[^config]: The **render configuration** is the complete live state of how the
-    picture is drawn — scheme, ramp, contrast, rotation and the rest. It is
-    frozen: nothing assigns to it, and every change produces a whole new
-    [`RenderConfig`](../../src/control/render_config.py#L118) through
-    [`with_changes`](../../src/control/render_config.py#L141), which is also
-    the only code that decides whether a value is allowed. What the settings
-    are, and what each accepts, is
-    [`SPECS`](../../src/control/render_config.py#L74) — one table that the
-    validator, the `help` text, the command-line arguments and the model's
-    tool schema are all built from.
+[^config]: The **render configuration** is the complete, current description of
+    how the picture should be drawn: which colour scheme, which ramp, how much
+    contrast, which way up, and so on. It is frozen, meaning no part of the
+    program ever alters one. Instead, every change produces an entirely new
+    [`RenderConfig`](../../src/control/render_config.py#L118) by way of
+    [`with_changes`](../../src/control/render_config.py#L141), which is also the
+    only code anywhere that decides whether a proposed value is allowed. The
+    list of settings, and what each one will accept, is
+    [`SPECS`](../../src/control/render_config.py#L74). That single table is what
+    the checking code, the `help` text, the command-line options and the
+    description given to the language model are all built from.
 
-[^notice]: A **notice** is a short message painted over the bottom of the
-    picture on the panel — two lines in fixed ink over whatever is underneath,
-    sized by [`NOTICE_LINES`](../../src/lcd/lcd_display.py#L37). It is how a
-    box with no keyboard and no terminal says something went wrong, and it
-    covers 36 of the panel's 240 rows.
+[^notice]: A **notice** is a short message painted over the bottom of whatever
+    picture is currently on the small panel. It is two lines in a fixed colour,
+    laid over the top of the existing picture, and its height is set by
+    [`NOTICE_LINES`](../../src/lcd/lcd_display.py#L37). It is how a box with no
+    keyboard and no monitor tells somebody that something has gone wrong. It
+    covers 36 of the panel's 240 rows of dots.
 
-[^scheme]: A **colour scheme** is one of the nine named looks in
-    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
-    of the render configuration. `grey` is the default, and is what "greyscale
-    mode" means: characters only, drawn from the luma plane and nothing else.
-    `live` is the only scheme that reads the chroma planes, through
-    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
-    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
-    the same greyscale picture from two fixed colours.
+[^scheme]: A **colour scheme** is one of the nine named looks listed in
+    [`SCHEMES`](../../src/art/palettes.py#L79). Which one is currently in use is
+    part of the program's render configuration, and the knob, a key press or a
+    typed command can all change it. The scheme called `grey` is the one the
+    program starts with, and it is what the phrase "greyscale mode" refers to:
+    characters only, worked out from the brightness part of the picture and
+    nothing else. Only the scheme called `live` reads the colour parts, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The remaining
+    seven are tints, such as green phosphor, amber CRT and e-ink on paper. A
+    tint recolours the same greyscale picture using two fixed colours, so it
+    never looks at the colour parts either.
 
-[^statusline]: The **status line** is the single line of readouts under the
-    picture — scheme, ramp, frame rate, grid size — built by
+[^statusline]: The **status line** is the single line of readings underneath the
+    picture, showing the colour scheme, the ramp, how many pictures a second are
+    being drawn, and the size of the grid. It is built by
     [`status_line`](../../src/hdmi/status_line.py#L76). It is also where a
-    refusal or a notice is shown on the terminal, since there is nowhere else
-    to put one.
+    refusal or a short message appears when the program is running on an
+    ordinary monitor, because there is nowhere else on a monitor to put one.

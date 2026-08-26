@@ -1,40 +1,54 @@
 # A camera that stopped delivering frames is detected and announced
 
-**Priority: `MEDIUM`** — it runs only when something has already gone wrong, but it is the difference between a fault a person can see and one they cannot. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `MEDIUM`** — it runs only when something has already gone wrong, but it is the difference between a fault somebody can see and one they cannot. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-One morning an OOM[^oom] storm killed the desktop session, the camera stopped
-delivering at 09:20, and the app carried on redrawing its last good frame for
-**ninety-five minutes**. Every check said healthy: the render loop answered
-the command socket[^socket] in 1.4 seconds, the process was up, the
-panel[^panel] was showing a picture. It was showing the same picture it had
-shown at 09:20.
+One morning the computer ran out of memory[^oom] and began killing things off.
+The camera stopped supplying pictures at twenty past nine, and the program
+carried on redrawing its last good picture for **ninety-five minutes**.
 
-That is what this collaboration exists to prevent, and the value is entirely in
-the sealed box. A frozen picture and a working camera are indistinguishable by
-eye — there is no clock in the corner and no frame counter — so the one output
-the enclosure has must be able to admit that it has nothing new to show.
-Anywhere else you could check a log. Here, the glass is the whole interface.
+Every way of checking said the program was healthy. It answered a typed command
+over its connection[^socket] in 1.4 seconds. The process was running. The small
+panel[^panel] was showing a picture. It was showing the same picture it had been
+showing at twenty past nine.
 
-Two constants carry the judgement, and both are chosen against the *normal*
-case rather than the broken one. [`STALL_SECONDS`](../../ascii_camera.py#L87)
-is ten because the capture thread caps its own rate, so a second of silence is
-ordinary and ten is not. [`STALL_REPEAT`](../../ascii_camera.py#L91) is thirty
-because a notice[^notice] expires after four, and a fault lasting an hour must
-not be announced once and then hidden by the very picture that is wrong. The
-message is re-said while it stays true.
+Preventing exactly that is what this scenario is for, and the value of it lies
+entirely in the sealed box. A frozen picture and a working camera look identical
+to a person standing in front of them. There is no clock in the corner and no
+counter of pictures. So the one screen the box has must be able to admit that it
+has nothing new to show. Anywhere else somebody could read a log file. Here, the
+glass is the entire interface.
 
-The awkward part is that this is precisely the case with **no frame to carry
-the message**. Every other thing the panel says rides along with a picture; this
-one cannot, because the absence of pictures is the news. So the panel's worker
-has to be able to paint on its own clock, and that is what its idle timeout is
-for.
+Two numbers carry the judgement, and both were chosen by thinking about the
+*normal* case rather than the broken one.
+
+[`STALL_SECONDS`](../../ascii_camera.py#L87) is ten. The reason is that the
+camera's own thread limits its rate to fifteen pictures a second, so a gap of
+about a fifteenth of a second is ordinary and even a whole second of silence is
+unremarkable. Ten seconds is roughly 150 times the ordinary gap, which cannot
+happen by chance. Choosing the number by thinking about the broken case instead
+would give either a threshold so short it complains constantly, or one so long
+the fault is never reported.
+
+[`STALL_REPEAT`](../../ascii_camera.py#L91) is thirty. That follows from the
+fact that a message[^notice] on the panel removes itself after four seconds. A
+fault that lasts an hour must not be announced once and then hidden behind the
+very picture that is wrong, so the message is said again while it remains true.
+Thirty seconds is comfortably longer than the four the message lives for, which
+keeps the panel mostly showing the picture, and comfortably short enough that
+somebody glancing at the box sees the warning within half a minute.
+
+The awkward part is that this is precisely the situation in which there is **no
+picture to carry the message**. Everything else the panel says travels along
+with a picture. This one cannot, because the absence of pictures is the news
+itself. So the panel's thread has to be able to draw on its own initiative, and
+that is exactly what its regular wake-up is for.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off. Here it is the **witness**: [`_next_frame`](../../ascii_camera.py#L691) is the only code that knows a frame did not arrive, and [`_note_if_stalled`](../../ascii_camera.py#L352) is the only code that decides the silence has gone on long enough to mean something |
-| [`CameraCapture`](../../src/capture/camera.py#L61) | The camera and the thread that reads it. Here it is the **silence**, and it reports nothing at all: [`get_frame`](../../src/capture/camera.py#L175) returns `None` and cannot distinguish a camera that died from one that is slow. It is not asked to |
-| [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | A thread with an inbox one frame deep. Here it is the **clock**: with the inbox empty its [`run`](../../src/lcd/lcd_worker.py#L217) loop wakes every [`IDLE_TICK`](../../src/lcd/lcd_worker.py#L43) anyway, and that tick is the only reason anything reaches the glass when no frames do |
-| [`LcdDisplay`](../../src/lcd/lcd_display.py#L98) | An ASCII grid[^grid] turned into pixels. Here it is the **band**: [`show_notice`](../../src/lcd/lcd_display.py#L259) paints over whatever is already in the persistent frame buffer and pushes it, so a message can be drawn with no picture behind it |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The single object the whole running program hangs from. In this scenario it is the **witness**. [`_next_frame`](../../ascii_camera.py#L691) is the only code that knows a picture failed to arrive, and [`_note_if_stalled`](../../ascii_camera.py#L352) is the only code that decides the silence has gone on long enough to be worth reporting |
+| [`CameraCapture`](../../src/capture/camera.py#L61) | The camera and the thread that reads it. In this scenario it is the **silence**, and it reports nothing at all. [`get_frame`](../../src/capture/camera.py#L175) hands back nothing, and it cannot tell a camera that has died from one that is merely slow. It is never asked to |
+| [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | A thread with a receiving space one picture deep. In this scenario it is the **clock**. With that space empty its [`run`](../../src/lcd/lcd_worker.py#L217) loop still wakes every [`IDLE_TICK`](../../src/lcd/lcd_worker.py#L43), and that regular wake-up is the only reason anything at all can reach the glass when no pictures are arriving |
+| [`LcdDisplay`](../../src/lcd/lcd_display.py#L98) | A grid[^grid] of characters turned into coloured dots. In this scenario it is the **band of text**. [`show_notice`](../../src/lcd/lcd_display.py#L259) paints over whatever is already sitting in the frame buffer and sends the result, so a message can be drawn with no fresh picture behind it |
 
 ## Ten seconds of nothing, and what the panel does about it
 
@@ -42,121 +56,136 @@ for.
 sequenceDiagram
     autonumber
     participant Cam as CameraCapture<br/>its own thread, gone quiet
-    participant App as MainRenderLooper<br/>the render loop's thread
+    participant App as MainRenderLooper<br/>the drawing loop's thread
     participant W as LcdWorker<br/>its own thread
-    participant Disp as LcdDisplay<br/>persistent frame buffer
-    participant Panel as ILI9341<br/>spidev
+    participant Disp as LcdDisplay<br/>a frame buffer that persists
+    participant Panel as ILI9341<br/>the panel over its wire
 
     rect rgba(80, 140, 220, 0.12)
-        note over Cam, App: the render loop's thread - once a second, getting nothing
-        Cam-->>App: get_frame returns None after one second
-        App->>App: dropped is counted and the terminal says Waiting for camera
-        App->>App: _note_if_stalled, but only once a first frame has ever arrived
-        App->>App: idle is under STALL_SECONDS, so nothing is said
-        App->>App: ten seconds on, idle passes STALL_SECONDS
+        note over Cam, App: the drawing loop's thread, asking once a second and getting nothing
+        Cam-->>App: get_frame hands back nothing after one second
+        App->>App: the miss is counted and the monitor says Waiting for camera
+        App->>App: _note_if_stalled, but only once a first picture has ever arrived
+        App->>App: the silence is under STALL_SECONDS, so nothing is said
+        App->>App: ten seconds on, the silence passes STALL_SECONDS
         App->>W: notice "no picture from the camera for 12s"
     end
     rect rgba(200, 140, 60, 0.12)
-        note over W, Panel: the LCD worker's thread - woken by its own timeout, not by a frame
-        W->>W: get times out after IDLE_TICK with the inbox still empty
+        note over W, Panel: the panel's thread, woken by its own clock rather than by a picture
+        W->>W: the wait gives up after IDLE_TICK with nothing having arrived
         W->>W: _tick_notice finds text that is not yet on the glass
         W->>Disp: show_notice(text)
         Disp->>Disp: the band is painted over the stale picture already in the buffer
-        Disp->>Panel: show_packed, the whole frame again
-        W->>W: _notice_shown records what actually reached the glass
+        Disp->>Panel: show_packed, the whole picture again
+        W->>W: what actually reached the glass is written down
     end
 ```
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | [`get_frame`](../../src/capture/camera.py#L175) returns None after one second | The camera caps its own rate, so a miss here means it is warming up or has stopped — never that the loop polled too fast. `CameraCapture` is deliberately not asked to tell those apart: it has no idea either |
-| 2 | dropped is counted and the terminal says Waiting for camera | [`message`](../../src/hdmi/ncurses_display.py#L282) reaches a terminal, which in the enclosure does not exist. That is the whole reason the rest of this scenario is necessary — the obvious place to put the news is the one place nobody is looking |
-| 3 | [`_note_if_stalled`](../../ascii_camera.py#L352), but only once a first frame has ever arrived | Before the first frame there is nothing to conclude: libcamera[^picamera2] takes fifteen to twenty seconds to hand over frame one on this hardware, which is not a stall, it is a Zero 2[^zero2]. The start-up screen[^splash] owns the panel until then and is already saying what is happening |
-| 4 | idle is under [`STALL_SECONDS`](../../ascii_camera.py#L87), so nothing is said | Ten seconds, chosen against the normal case: the capture thread paces itself, so one second of silence is ordinary. A threshold set against the *broken* case would either cry wolf or never fire |
-| 5 | ten seconds on, idle passes `STALL_SECONDS` | Measured from `_last_frame_at`, which is stamped only when a frame really arrives — so a run of misses accumulates rather than resetting. The counter that matters is time since the last picture, not misses in a row |
-| 6 | [`notice`](../../src/lcd/lcd_worker.py#L143) "no picture from the camera for 12s" | Sent through [`_note`](../../ascii_camera.py#L338), which puts it in the status line[^statusline] *and* on the panel. The elapsed figure is in the text on purpose: "no picture" alone cannot be told from a message left over from a minute ago, and this one is re-sent every [`STALL_REPEAT`](../../ascii_camera.py#L91) seconds with a bigger number |
-| 7 | get times out after [`IDLE_TICK`](../../src/lcd/lcd_worker.py#L43) with the inbox still empty | The pivot of the whole document. Every other message the panel shows arrives with a frame; this one cannot, because no frames are arriving. The worker's idle timeout is its own clock, and it exists so that the failure with nothing to ride on can still be delivered |
-| 8 | [`_tick_notice`](../../src/lcd/lcd_worker.py#L297) finds text that is not yet on the glass | Compared against `_notice_shown` rather than repainted every tick — five times a second of full-frame SPI would be 165 ms of transfer per second spent saying the same thing |
-| 9 | [`show_notice`](../../src/lcd/lcd_display.py#L259)`(text)` | Works only because the frame buffer is **persistent**: the band is drawn over whatever pixels are already there, which here is the stale picture. There is nothing else to draw — the last frame is all the panel has |
-| 10 | the band is painted over the stale picture already in the buffer | The stale picture stays visible, and that is correct. Blanking it would trade one silent lie for another: an empty panel says the machine is off, when in truth it is running and the camera is not |
-| 11 | [`show_packed`](../../src/lcd/lcd.py#L186), the whole frame again | 153,600 bytes for a band a few rows deep, because the panel takes whole frames. At the idle tick that is affordable precisely because nothing else is competing for the SPI bus — there are no frames |
-| 12 | `_notice_shown` records what actually reached the glass | The returned text is recorded rather than re-read, because asking twice can give two answers if the notice expires in between — and a record that disagrees with the glass would stop the band ever being cleared once frames resume |
+| 1 | [`get_frame`](../../src/capture/camera.py#L175) hands back nothing after one second | The camera limits its own rate, so a miss here means it is either warming up or has stopped. It can never mean the loop simply asked too quickly. The camera code is deliberately not asked to tell those two apart, because it has no way of knowing either |
+| 2 | the miss is counted and the monitor says Waiting for camera | [`message`](../../src/hdmi/ncurses_display.py#L282) reaches a monitor, which inside the sealed box does not exist. That is the entire reason the rest of this scenario is necessary: the obvious place to put the news is the one place where nobody is looking |
+| 3 | [`_note_if_stalled`](../../ascii_camera.py#L352), but only once a first picture has ever arrived | Before the first picture there is nothing to conclude. The camera framework[^picamera2] takes fifteen to twenty seconds to hand over the first one on this hardware[^zero2], which is not a fault, it is simply how long it takes. The start-up screen[^splash] owns the panel until then and is already explaining what is happening |
+| 4 | the silence is under [`STALL_SECONDS`](../../ascii_camera.py#L87), so nothing is said | Ten seconds, chosen against the ordinary case as described above. A single second of silence is unremarkable and must not produce a warning |
+| 5 | ten seconds on, the silence passes `STALL_SECONDS` | Measured from the moment the last real picture arrived, which is written down only when one genuinely does. So a run of misses adds up rather than resetting the clock each time. What matters is the time since the last picture, not how many attempts failed in a row |
+| 6 | [`notice`](../../src/lcd/lcd_worker.py#L143) "no picture from the camera for 12s" | Sent by way of [`_note`](../../ascii_camera.py#L338), which puts the text in the status line[^statusline] *and* on the panel. The elapsed time is included in the words on purpose. A message reading only "no picture" cannot be told apart from one left over from a minute ago, whereas a number that keeps growing plainly belongs to now. It is sent again every [`STALL_REPEAT`](../../ascii_camera.py#L91) seconds with a larger number in it |
+| 7 | the wait gives up after [`IDLE_TICK`](../../src/lcd/lcd_worker.py#L43) with nothing having arrived | This is the pivot of the whole document. Every other message the panel shows arrives alongside a picture. This one cannot, because no pictures are arriving at all. The panel thread's regular wake-up is its own clock, and it exists precisely so that the one failure with nothing to travel on can still be delivered |
+| 8 | [`_tick_notice`](../../src/lcd/lcd_worker.py#L297) finds text that is not yet on the glass | The text is compared against what was last drawn, rather than being redrawn on every wake-up. The wake-up happens five times a second, and each complete send takes about 33 milliseconds, so redrawing blindly would spend 165 milliseconds of every second sending the same unchanged message |
+| 9 | [`show_notice`](../../src/lcd/lcd_display.py#L259)`(text)` | This works only because the frame buffer **persists** between uses. The band is drawn over whatever dots are already there, which in this case is the stale picture. There is nothing else available to draw, because the last picture is all the panel has |
+| 10 | the band is painted over the stale picture already in the buffer | The stale picture stays visible, and that is the correct choice. Blanking it would swap one silent untruth for another: an empty panel says the machine is switched off, when in fact it is running perfectly and only the camera has stopped |
+| 11 | [`show_packed`](../../src/lcd/lcd.py#L186), the whole picture again | All 153,600 bytes, for a band only two lines deep covering 36 of the panel's 240 rows, because the panel accepts nothing smaller than a complete picture. At this rate that is affordable precisely because nothing else wants the wire: there are no camera pictures to send |
+| 12 | what actually reached the glass is written down | The text that was drawn is recorded rather than looked up again afterwards. Asking a second time could give a different answer if the message expired in between, and a record that disagreed with the glass would stop the band ever being taken away once pictures resumed |
 
-Two threads, and the boundary is crossed once: the loop knows the camera is
-silent, and only the worker can draw. Neither waits on the other — the notice
-is a value left where the worker will find it on its next tick.
+Two threads are involved and the boundary is crossed once: the drawing loop is
+the only part that knows the camera has gone quiet, and the panel's thread is
+the only part that can draw. Neither waits for the other. The message is simply
+a value left somewhere the panel's thread will find it on its next wake-up.
 
-Recovery needs no code of its own. `_last_frame_at` is stamped and
-`_stall_noted` cleared the moment a frame arrives, so the message stops being
-re-sent, expires four seconds later, and `_tick_notice` takes the band away by
-the same route it painted it.
+Recovering needs no code of its own. The moment a picture arrives, the time of
+the last picture is written down again and the record of having complained is
+cleared. So the message stops being repeated, removes itself four seconds later,
+and the same code that painted the band takes it away again by the same route.
 
 ## Related scenarios
 
 - [A capture thread hands the render loop its newest frame through a one-slot queue](a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md)
-  — the path that has gone quiet here, and where the one-second timeout comes
-  from.
+  — the path that has gone quiet here, and where the one-second wait comes from.
 - [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
-  — the ordinary way something reaches the glass, with a frame to carry it.
-- [A failure notice is painted over the picture on the SPI panel](a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md) — the band
-  itself, its wrapping and its geometry, drawn in full.
-- [A frozen picture is held without redrawing or SPI traffic](a-frozen-picture-is-held-without-redrawing-or-spi-traffic.md) — the *deliberate*
-  version of a picture that does not change, and why the two must not look
-  alike.
+  — the ordinary way something reaches the glass, with a picture to carry it.
+- [A failure notice is painted over the picture on the SPI panel](a-failure-notice-is-painted-over-the-picture-on-the-spi-panel.md)
+  — the band itself, how its text is wrapped and how it is positioned, set out
+  in full.
+- [A frozen picture is held without redrawing or SPI traffic](a-frozen-picture-is-held-without-redrawing-or-spi-traffic.md)
+  — the *deliberate* version of a picture that does not change, and why the two
+  must never look alike.
 
 ### Footnotes
 
-[^oom]: When Linux runs out of memory it kills something to get some back —
-    the **OOM killer**. On a machine with about 416 MB and no swap to speak of
-    that is a routine hazard rather than an exotic one, and it does not stop
-    the process it did not choose: the app kept running, with its camera
-    gone.
+[^oom]: When Linux runs out of memory it kills one of the running programs to
+    recover some, and the part that chooses is known as the **out-of-memory
+    killer**. On a computer with about 416 megabytes and almost no spare disk
+    space set aside for the purpose, that is a routine hazard rather than an
+    exotic one. It also does not stop whichever program it did not choose: this
+    program carried on running perfectly, with its camera gone.
 
-[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
-    one machine — the same read-and-write as a network socket, with no network.
-    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
-    which is how a shell, a phone or a script reaches a running camera without
-    the app ever opening a port.
+[^socket]: A **Unix domain socket** is a connection between two programs on the
+    same computer, which appears in the file system as though it were a file. It
+    behaves like a network connection, with one program writing and another
+    reading, except that no network is involved at any point.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one of
+    these, which is how a shell, a phone or another program can reach a running
+    camera without the program ever opening a network port.
 
-[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
-    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
-    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
-    kernel driver behind it. In the sealed enclosure it is the only display
-    there is. One full frame is 153,600 bytes, sent in
-    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
-    the driver's buffer holds.
+[^panel]: The **SPI panel** is a small screen measuring 2.4 inches across the
+    diagonal, 240 dots by 320, using a controller chip called the ILI9341. It is
+    connected to the computer by a simple four-wire arrangement called SPI, which
+    is a common way of attaching small devices. It is driven entirely by the
+    program itself, through [`ILI9341`](../../src/lcd/lcd.py#L47), with no
+    separate system driver involved. In the sealed box this program is built
+    for, this panel is the only screen there is. One complete picture for it is
+    153,600 bytes, which has to be sent in pieces of 4 kilobytes each — see
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) — because that is as much as the
+    connection will accept at a time.
 
-[^notice]: A **notice** is a short message painted over the bottom of the
-    picture on the panel — two lines in fixed ink over whatever is underneath,
-    sized by [`NOTICE_LINES`](../../src/lcd/lcd_display.py#L37). It is how a
-    box with no keyboard and no terminal says something went wrong, and it
-    covers 36 of the panel's 240 rows.
+[^notice]: A **notice** is a short message painted over the bottom of whatever
+    picture is currently on the small panel. It is two lines in a fixed colour,
+    laid over the top of the existing picture, and its height is set by
+    [`NOTICE_LINES`](../../src/lcd/lcd_display.py#L37). It is how a box with no
+    keyboard and no monitor tells somebody that something has gone wrong. It
+    covers 36 of the panel's 240 rows of dots.
 
-[^grid]: The **character grid** is the picture as this app holds it: `rows` by
-    `cols` character **cells** rather than pixels, each cell one character
-    chosen from the brightness of the patch of camera frame it covers.
-    [`to_grid`](../../src/capture/image_processor.py#L172) is what resizes a
-    plane to it. How big it is depends on where the picture is going — 64 by 24
-    on the SPI panel at the default font size, and whatever the window holds on
-    the HDMI terminal.
+[^grid]: The **character grid** is how this program holds a picture: as a
+    rectangle of character cells rather than of dots. Each cell is one
+    character, chosen according to how bright the patch of camera picture behind
+    it happens to be. [`to_grid`](../../src/capture/image_processor.py#L172) is
+    the code that reduces a picture to that grid. How many cells there are
+    depends on where the picture is being sent — 64 across and 24 down on the
+    small attached panel at the usual text size, and whatever fits the window
+    when the picture goes to an ordinary monitor instead.
 
-[^picamera2]: The Python library for the Pi's camera stack, with **libcamera**
-    — the Linux camera framework it drives — underneath it. It owns the sensor,
-    the ISP configuration and the buffers the app reads from, and it is the
-    successor to the older `picamera`.
+[^picamera2]: **picamera2** is the Python library for the Raspberry Pi's camera,
+    built on top of a lower-level piece of software called libcamera. It is the
+    replacement for an older library that was simply called picamera. It owns
+    the camera sensor, the settings given to the camera hardware, and the memory
+    that this loop reads its pictures from.
 
-[^zero2]: The Raspberry Pi Zero 2 W: the machine this app is built for and
-    deployed on, with about 416 MB of usable RAM and no graphics acceleration
-    to call on. Every timing in these documents was measured there.
+[^zero2]: The **Raspberry Pi Zero 2 W** is the small, inexpensive computer that
+    this program is written for and runs on. It has roughly 416 megabytes of
+    usable memory and no separate graphics hardware to hand work to. Every
+    timing figure quoted in these documents was measured on that machine, which
+    is why a single library taking six seconds to load is a fact worth writing
+    down.
 
-[^splash]: The **start-up screen** is what the panel shows before the camera
-    has produced anything: a name and a moving bar, drawn by
-    [`SplashScreen`](../../src/lcd/lcd_splash.py#L55). It exists because
-    libcamera takes about twenty seconds to deliver a first frame, and unlit
-    glass for twenty seconds is what broken hardware looks like.
+[^splash]: The **start-up screen** is what the small panel shows before the
+    camera has produced anything at all: the program's name, the grid size, a
+    short message and a moving bar. It is drawn by
+    [`SplashScreen`](../../src/lcd/lcd_splash.py#L55). It exists because the
+    camera framework takes about twenty seconds to deliver a first picture, and
+    twenty seconds of unlit glass is what broken hardware looks like.
 
-[^statusline]: The **status line** is the single line of readouts under the
-    picture — scheme, ramp, frame rate, grid size — built by
+[^statusline]: The **status line** is the single line of readings underneath the
+    picture, showing the colour scheme, the ramp, how many pictures a second are
+    being drawn, and the size of the grid. It is built by
     [`status_line`](../../src/hdmi/status_line.py#L76). It is also where a
-    refusal or a notice is shown on the terminal, since there is nowhere else
-    to put one.
+    refusal or a short message appears when the program is running on an
+    ordinary monitor, because there is nowhere else on a monitor to put one.
