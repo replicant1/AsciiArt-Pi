@@ -1,71 +1,78 @@
 # Every ask is recorded with its source, its cost and its elapsed time
 
-**Priority: `LOW`** — nothing depends on it and it is allowed to fail silently, which is exactly why it is the last thing anyone checks and the first thing worth getting right. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `LOW`** — nothing at all depends on it and it is permitted to fail silently, which is precisely why it is the last thing anybody checks and the first thing worth getting right. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-The ask[^ask] path is the one part of this app whose behaviour cannot be
-asserted in a test. A model's answer to "something calmer" is not a fact about
-the codebase, so the only way to know whether the prompt is any good is to
-keep what really happened and look at it later.
+The path for requests phrased in words[^ask] is the one part of this program
+whose behaviour cannot be checked by a test.
 
-[`AskLog`](../../src/language/asklog.py#L75) writes one JSON line per ask to
-`logs/asks.jsonl`[^jsonl]. It records what was said, what the settings were at
-the time, what came back, how long it took and what it cost — and, in the
-field that matters most, **who answered**.
+The reason is worth stating plainly. A test can confirm that code does what it
+was written to do. It cannot confirm that a language model gives a good answer
+to "something calmer", because that answer is not a fact about this program at
+all. It depends on the model and on the instructions it was given. So the only
+way to find out whether those instructions are any good is to keep a record of
+what really happened and look at it afterwards.
 
-**`source` decides what a record is evidence of.** A `table` record says
-nothing whatsoever about the prompt, because the model was never asked.
-Anything counting hit rate, or promoting real utterances into eval
-cases[^eval], has to filter on it or it will score the model on answers it
-never gave. It is written even on the default, because a record that omits it
-is ambiguous rather than obviously a model answer, and this file is read
-months later.
+[`AskLog`](../../src/language/asklog.py#L75) writes one line of structured
+text[^jsonl] for each request into a file. It records what was said, what the
+settings were at that moment, what came back, how long it took and what it cost.
+And, in the field that matters more than any of those, **who answered**.
 
-**It is allowed to do nothing, and it is never allowed to raise.** The caller is
-in the middle of answering somebody. A full disk or a read-only mount costs a
-line in the app log and nothing else — an ask that works is worth more than a
-record of it.
+**That field decides what a record is evidence of.** A record saying the table
+answered tells you nothing whatever about the instructions given to the model,
+because the model was never asked. Anything counting how often the table
+succeeds, or promoting real requests into test cases[^eval], has to filter on
+that field or it will end up scoring the model on answers it never gave.
+
+It is written down even when it holds the ordinary value, because a record that
+simply omits it is ambiguous rather than obviously meaning "the model". This
+file is read months later, by somebody who will not remember.
+
+**The recording is allowed to do nothing at all, and is never allowed to fail
+loudly.** The caller is in the middle of answering a person. A full disk or a
+storage device that has become read-only costs one line in the program's own log
+and nothing more. A request that works is worth more than a record of it.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`AskResolver`](../../src/language/resolver.py#L33) | The whole of the ask path. Here it is the **single caller**: [`record`](../../src/language/resolver.py#L216) is invoked from five places and nowhere else, so every ending — table hit, answer, decline, failure — passes through one function |
-| [`AskLog`](../../src/language/asklog.py#L75) | An append-only record of every ask. Here it is the **archivist**: it decides the outcome, prunes the fields that mean nothing for it, rotates the file, and swallows everything that can go wrong doing so |
+| [`AskResolver`](../../src/language/resolver.py#L33) | The whole path for requests phrased in words. In this scenario it is the **only caller**. [`record`](../../src/language/resolver.py#L216) is called from five places and from nowhere else, so every possible ending — a table match, an answer, a decline, a failure — passes through one single function |
+| [`AskLog`](../../src/language/asklog.py#L75) | A record of every request, only ever added to. In this scenario it is the **archivist**. It works out what kind of ending this was, removes the fields that mean nothing for that kind, starts a fresh file when the old one grows too large, and quietly absorbs anything that goes wrong while doing so |
 
-## One ask, written down
+## One request, written down
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant App as AskResolver<br/>on the client's thread
-    participant Log as AskLog<br/>append-only
+    participant App as AskResolver<br/>on the asking program's thread
+    participant Log as AskLog<br/>only ever added to
     participant Cfg as RenderConfig<br/>read, not changed
-    participant Disk as logs/asks.jsonl<br/>one JSON object per line
+    participant Disk as the log file<br/>one record to a line
 
     App->>Log: record(utterance, config, previous, parsed)
-    Log->>Log: outcome from which field is set, not from a flag
-    Log->>Cfg: _sparse asks the config how it differs from the defaults
-    Cfg-->>Log: {"scheme": "amber"}, and nothing else
-    Log->>Log: keep only the fields that mean something for this outcome
-    Log->>Log: seconds written back explicitly, because 0.0 is falsy
-    Log->>Disk: rotate at two megabytes, keeping one old file
+    Log->>Log: the kind of ending is worked out from which field is filled in
+    Log->>Cfg: _sparse asks how the settings differ from the starting ones
+    Cfg-->>Log: just the scheme is amber, and nothing else
+    Log->>Log: keep only the fields that mean something for this kind of ending
+    Log->>Log: the elapsed time is put back explicitly, because zero counts as empty
+    Log->>Disk: start a fresh file at two megabytes, keeping one old one
     Log->>Disk: append one line, under the lock
-    Log-->>App: the record written, or None if it could not be
+    Log-->>App: the record that was written, or nothing if it could not be
 ```
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | [`record`](../../src/language/asklog.py#L90)`(utterance, config, previous, parsed)` | On the client's thread, alongside the parse — never the render loop. A disk write is exactly the kind of thing the picture must not wait for |
-| 2 | outcome from which field is set, not from a flag | `error` beats `declined` beats everything else. Deriving it from the fields rather than passing it in means the record cannot disagree with itself |
-| 3 | [`_sparse`](../../src/language/asklog.py#L67) asks the config how it differs from the defaults | Storing all twelve settings on every line would make the file unreadable by eye. Storing the difference makes each record show what was unusual about the moment |
-| 4 | `{"scheme": "amber"}`, and nothing else | This is the same shape `eval_cases.json` uses for `now`, on purpose: a real ask can be lifted into a test case without reshaping it |
-| 5 | keep only the fields that mean something for this outcome | A declined record has no `delta`[^delta]; an error has no `usage`[^tokens]. The pruning is a plain [truthiness test](../../src/language/asklog.py#L90), which is why the next step exists |
-| 6 | `seconds` written back explicitly, because `0.0` is falsy | A table hit takes no measurable time, and the truthiness test would drop the field precisely for the records where it is most informative. Two lines of code to keep a zero that means something |
-| 7 | rotate at [two megabytes](../../src/language/asklog.py#L64), keeping one old file | About 5,000 asks at roughly 400 bytes each. Less about disk than about an append-only file nobody ever rotates eventually surprising someone on a small card |
-| 8 | append one line, under the lock | The socket[^socket] thread and the phone's handler can both be answering at once, and a JSONL file survives interleaving only if whole lines are written whole |
-| 9 | the record written, or None if it could not be | The return value is used by tests and ignored in production. Returning `None` rather than raising is the whole contract: this is the one place in the path allowed to do nothing at all |
+| 1 | [`record`](../../src/language/asklog.py#L90)`(utterance, config, previous, parsed)` | Runs on the asking program's thread, alongside the request itself, and never on the drawing loop. Writing to a disk is exactly the sort of thing the picture must not be made to wait for |
+| 2 | the kind of ending is worked out from which field is filled in | An error outranks a decline, which outranks everything else. Working it out from the fields already present, rather than being told separately, means the record cannot end up contradicting itself |
+| 3 | [`_sparse`](../../src/language/asklog.py#L67) asks how the settings differ from the starting ones | Storing all twelve settings on every line would make the file impossible to read by eye. Storing only the differences makes each record show what was unusual about that particular moment |
+| 4 | just the scheme is amber, and nothing else | This is deliberately the same shape the stored test cases use, so that a real request can be lifted into a test without anybody having to reshape it first |
+| 5 | keep only the fields that mean something for this kind of ending | A declined request has no change[^delta] to record; a failed one has no usage figures[^tokens]. The removal is done by a plain test for emptiness, which is exactly why the next step has to exist |
+| 6 | the elapsed time is put back explicitly, because zero counts as empty | A table match takes no measurable time at all, and a plain test for emptiness would therefore drop the timing from precisely the records where it is most informative. Two lines of code to preserve a zero that genuinely means something |
+| 7 | start a fresh file at [two megabytes](../../src/language/asklog.py#L64), keeping one old one | At roughly 400 bytes a record, two megabytes is about 5,200 requests. The concern is less about running out of space than about a file that is only ever added to eventually surprising somebody on a small memory card |
+| 8 | append one line, under the lock | The connection's thread and the phone page's handler can both be answering at the same moment, and a file of one record per line only survives that if each line is written whole rather than interleaved with another |
+| 9 | the record that was written, or nothing if it could not be | The returned value is used by tests and ignored in ordinary running. Handing back nothing rather than reporting an error is the whole agreement here: this is the one place along the path permitted to do nothing at all |
 
 ## What four real records look like
 
-Produced by running the code, not by hand:
+Produced by running the code rather than written out by hand:
 
 ```json
 {"when": "2026-08-20T06:41:28Z", "utterance": "make it amber", "outcome": "answered", "source": "model", "now": {"scheme": "amber"}, "delta": {"scheme": "amber"}, "seconds": 2.61, "usage": {"input": 1520, "output": 38, "cache_read": 1409, "cache_write": 0}}
@@ -74,76 +81,92 @@ Produced by running the code, not by hand:
 {"when": "2026-08-20T06:41:28Z", "utterance": "something calmer", "outcome": "error", "source": "model", "now": {"scheme": "amber"}, "error": "Connection error."}
 ```
 
-Four things are visible in those four lines. The two `answered` records differ
-only in `source` and `seconds`, and treating them as equivalent is exactly the
-mistake `source` exists to prevent. `cache_read`[^promptcache] at 1,409 of
-1,520 input tokens is the [system prompt and tool
-schema](../../src/language/parser.py#L127) being served from cache, which is
-what makes a second ask cheaper than a first. `before` is absent throughout,
-because it was identical to the defaults and the pruning dropped it. And the
-table hit kept its `seconds: 0.0`.
+Four separate things are visible in those four lines.
+
+The two records marked as answered differ only in who answered and how long it
+took. Treating them as equivalent is exactly the mistake that field exists to
+prevent.
+
+The figure of 1,409 out of 1,520 units of input text being served from the
+cache[^promptcache] is the standing instructions and the list of settings being
+charged at the lower repeat rate. That is what makes a second request cheaper
+than a first: about 93 per cent of the input was material the model had already
+been sent.
+
+The description of the settings before the change is absent from all four,
+because in each case it was identical to the starting values and the removal step
+dropped it.
+
+And the table match kept its elapsed time of zero, which is the case step six
+exists for.
 
 ## Turning a record back into a test
 
-[`as_case`](../../src/language/asklog.py#L182) lifts one record into a candidate
-eval case — **candidate**, not case. `expect` is filled in with what the model
-actually said, which is the thing under test, so a human has to look at it and
-decide whether that answer was right before it is worth anything. Promoting
-records automatically would build a suite that tests only that the model still
-does what it already did.
+[`as_case`](../../src/language/asklog.py#L182) lifts one record into a
+**candidate** test case, and the word candidate is doing real work there.
+
+The expected answer is filled in with whatever the model actually said, and that
+is the very thing under test. So a person has to look at it and decide whether
+that answer was right before the case is worth anything at all. Promoting
+records automatically would build a collection of tests that only ever checks
+that the model still does what it already did, which measures nothing.
 
 ## Related scenarios
 
 - [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md)
-  — where `seconds` and `usage` come from, and the round trip they measure.
+  — where the elapsed time and the usage figures come from, and the round trip
+  they measure.
 - [A spoken phrase is answered from the shortcut table, with no model call](a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md)
-  — the records whose `source` is `table`, and why they cannot score a prompt.
+  — the records where the table answered, and why they cannot be used to judge
+  the instructions given to the model.
 - [The language model declines a request it cannot satisfy](the-language-model-declines-a-request-it-cannot-satisfy.md)
-  — the outcome that is not an error, and reads as evidence the system worked.
+  — the ending that is not an error, and which reads as evidence the system
+  worked properly.
 - [A model parse fails and the panel says which kind of failure it was](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md)
-  — the outcome that is, and where the unshortened text is kept.
+  — the ending that is an error, and where the unshortened text is kept.
 
 ### Footnotes
 
-[^ask]: An **ask** is a request in words rather than in settings — "make it
-    warmer" — as opposed to a typed command, which already names the setting.
-    It arrives as [`Ask`](../../src/control/command_server.py#L55), and
-    [`AskResolver`](../../src/language/resolver.py#L33) decides whether the
-    shortcut table can answer it or the language model has to.
+[^ask]: An **ask** is a request phrased in ordinary words, such as "make it
+    warmer", rather than one that already names a setting and a value. It
+    arrives as an [`Ask`](../../src/control/command_server.py#L55), and
+    [`AskResolver`](../../src/language/resolver.py#L33) decides whether a table
+    of known phrases can answer it or whether a language model has to be asked.
 
-[^jsonl]: **JSON Lines**: one complete JSON object per line, appended and
-    never rewritten. A file that is still valid if the process dies mid-write,
-    still readable with `tail`, and does not need parsing in full to add to —
-    which is what a record kept by an appliance needs to be.
+[^jsonl]: **JSON Lines** is a way of storing records: one complete structured
+    object to a line, appended to the end of the file and never rewritten. A
+    file kept that way is still valid if the program stops halfway through
+    writing, can still be read a line at a time by ordinary tools, and does not
+    have to be read in full before something can be added to it. That is exactly
+    what a record kept by an appliance needs to be.
 
-[^eval]: An **eval** is a stored request paired with the answer a person
-    judged correct, run against the model to score a change to the prompt.
-    [`as_case`](../../src/language/asklog.py#L182) can turn a real record into
-    a *candidate* one, but only a candidate: its `expect` field holds what the
-    model actually said, which is the thing under test, so promoting it
-    unlooked-at would build a suite that only checks the model still does what
-    it did before.
+[^eval]: An **eval** is a stored request paired with the answer a person judged
+    to be correct. Running a collection of them against the model gives a score,
+    which is how a change to the instructions given to the model can be
+    measured rather than guessed at.
+    [`as_case`](../../src/language/asklog.py#L182) can turn a real recorded
+    request into a *candidate* eval, but only a candidate. Its expected answer
+    holds whatever the model actually said, and that is the very thing being
+    tested. Promoting one without a person looking at it would build a
+    collection that only checks the model still does what it did before.
 
-[^delta]: A **delta** is a plain dict of the settings a change means to alter —
-    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
-    hands it to the configuration; none of them assigns a setting directly.
-    That is what keeps validation in one place no matter who asked.
+[^delta]: A **delta** is a plain list of the settings a change intends to alter,
+    paired with their new values, such as `{"scheme": "amber"}`, and nothing
+    else besides. Every way of asking for a change builds one of these and hands
+    it to the configuration. None of them ever sets a setting directly. That is
+    what keeps the checking in a single place no matter who did the asking.
 
-[^tokens]: A **token** is the unit a language model reads and writes and is
-    billed by — roughly a short word or a piece of one. It is why the cost of
-    an ask can be stated as a fraction of a cent rather than guessed at:
+[^tokens]: A **token** is the unit of text a language model reads and writes,
+    and the unit it is charged by. One is roughly a short word or a piece of a
+    longer one. Tokens are why the cost of a request can be stated as a fraction
+    of a penny rather than guessed at:
     [`record`](../../src/language/asklog.py#L90) keeps the count the model
-    itself reports.
+    itself reports having used.
 
-[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
-    one machine — the same read-and-write as a network socket, with no network.
-    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
-    which is how a shell, a phone or a script reaches a running camera without
-    the app ever opening a port.
-
-[^promptcache]: The model's provider bills a repeated **prefix** of a request
-    at a lower rate if it is identical to last time. The system prompt and the
-    tool schema never vary, so they go first and are cached — measured at 2,103
-    cached tokens against roughly 420 that change. Putting the live settings
-    into the prompt instead would alter the prefix on every call and cache
-    nothing.
+[^promptcache]: The company providing the model charges a lower rate for a
+    repeated **opening section** of a request, provided it is identical to the
+    one before. The standing instructions and the list of settings never vary,
+    so they are placed first and qualify. Measured on this program, that
+    repeated section is 2,103 units of text against roughly 420 that change from
+    request to request. Putting the current settings into the instructions
+    instead would alter the opening section every time and save nothing.

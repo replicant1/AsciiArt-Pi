@@ -1,30 +1,40 @@
 # The language model declines a request it cannot satisfy
 
-**Priority: `LOW`** — it needs the optional ask[^ask] path switched on, and it is the outcome nobody designs for first, but it is what stops the camera inventing an answer. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `LOW`** — it needs the optional path for requests in words[^ask] to be switched on, and it is the outcome nobody designs for first, but it is what stops the camera inventing an answer. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-`ask point it at the door` is a perfectly sensible thing to say to a camera and
-an impossible thing for this one to do. Nothing in the settings moves a lens.
-The failure mode worth preventing is not a crash — it is the model quietly
-picking the nearest setting it *can* change, so the picture goes green and
-nobody learns that the request was never understood.
+Typing `ask point it at the door` is a perfectly sensible thing to say to a
+camera, and an impossible thing for this one to do. Nothing among its settings
+moves a lens.
 
-**So declining is a first-class answer with its own tool.** The model is given
-[two tools and told to call exactly one](../../src/language/parser.py#L204):
-`set_render` to change something, or `decline` to say why not. It cannot reply
-with prose, because a third output shape is one nothing downstream handles.
+The failure worth preventing here is not a crash. It is the model quietly
+picking the nearest setting it *can* change, so that the picture turns green and
+nobody ever learns that the request was not understood at all. A wrong answer
+delivered confidently is worse than no answer, because there is nothing to
+notice.
 
-**A decline is not a failure.** It travels a different path from a
-[`ParseError`](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md):
-nothing is logged as an error, the reply carries the model's own words rather
-than a summary, and the panel[^panel] says `cannot do that:` followed by the
-reason. The distinction is load-bearing in the log, where a decline is
-evidence the system worked and an error is evidence it did not.
+**So declining is treated as a proper answer with its own name.** The model is
+given [two things it may call](../../src/language/parser.py#L204) and told it
+must call exactly one of them: one to change a setting, and one to explain why
+it will not. It cannot reply with ordinary prose, because a third kind of
+output would be one that nothing further along knows how to handle.
+
+**A decline is not a failure**, and it deliberately travels a different path
+from [a request that goes
+wrong](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md).
+Nothing is recorded as an error, the reply carries the model's own words rather
+than a summary written here, and the small panel[^panel] shows `cannot do that:`
+followed by the reason.
+
+That distinction carries real weight in the log. A decline is evidence that the
+system worked exactly as intended. An error is evidence that it did not. Filing
+them together would make it impossible to tell afterwards which had been
+happening.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`AskResolver`](../../src/language/resolver.py#L33) | The whole of the ask path. Here it is the **router**: a decline is checked for before a delta[^delta], and sent to the panel and the socket[^socket] without ever reaching the render loop |
-| [`parser`](../../src/language/parser.py) | A module of functions, not a class. Here it is the **interpreter of the reply**: it turns a `decline` tool call[^tooluse], and one particular shape of `set_render`, into the same thing |
-| [`Parsed`](../../src/language/parser.py#L274) | What one utterance came back as. Here it is the **discriminated answer**: exactly one of `delta` and `declined` is set, so no caller has to guess which happened |
+| [`AskResolver`](../../src/language/resolver.py#L33) | The whole path for requests phrased in words. In this scenario it is the **router**. A decline is looked for before a change[^delta] is, and is sent to the panel and back down the connection[^socket] without ever reaching the drawing loop at all |
+| [`parser`](../../src/language/parser.py) | A module of plain functions rather than a class. In this scenario it is the **interpreter of the reply**. It turns a decline[^tooluse], and also one particular shape of the change-a-setting reply, into the very same result |
+| [`Parsed`](../../src/language/parser.py#L274) | What one request came back as. In this scenario it is the **either-or answer**. Exactly one of "here is a change" and "I decline" is filled in, so no caller anywhere has to guess which of the two happened |
 
 ## A request nothing in the settings can honour
 
@@ -32,104 +42,117 @@ evidence the system worked and an error is evidence it did not.
 sequenceDiagram
     autonumber
     actor Asker as whoever asked
-    participant App as AskResolver<br/>on the client's thread
-    participant Pr as parser<br/>module of functions
-    participant API as the Anthropic API<br/>external
+    participant App as AskResolver<br/>on the asking program's thread
+    participant Pr as parser<br/>a module of plain functions
+    participant API as the model's service<br/>over the network
     participant Lcd as LcdWorker<br/>the panel's thread
-    participant Log as AskLog<br/>append-only
+    participant Log as AskLog<br/>only ever added to
 
     Asker->>App: ask point it at the door
     App->>Pr: parse(utterance, config, previous)
-    Pr->>API: one request, two tools, exactly one to be called
-    API-->>Pr: decline(reason="I can change how the picture looks...")
-    Pr->>Pr: stop_reason checked before the content is read at all
-    Pr-->>App: Parsed(declined=reason), delta still None
-    App->>Log: record(parsed) with outcome declined
+    Pr->>API: one request, two things it may call, exactly one required
+    API-->>Pr: a decline, with the reason in the model's own words
+    Pr->>Pr: the reason for stopping is checked before the reply is read at all
+    Pr-->>App: a result carrying the decline, with no change alongside it
+    App->>Log: record it, with the outcome noted as declined
     App->>Lcd: cannot do that: I can change how the picture...
     App-->>Asker: the model's own words, indented
 ```
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | `ask point it at the door` | Past the [shortcut table](../../src/language/shortcuts.py#L246), which returns `None` rather than guessing. A table cannot decline well — it can only fail to match, which is not the same thing |
-| 2 | [`parse`](../../src/language/parser.py#L401)`(utterance, config, previous)` | Identical to the successful path. Nothing here anticipates a refusal |
-| 3 | one request, two tools, exactly one to be called | [`tools()`](../../src/language/parser.py#L204) is built from the settings rather than written out, so a new setting is askable without editing a prompt. `decline` is the second of the two |
-| 4 | `decline(reason="I can change how the picture looks...")` | The reason is the model's, in its own words. Nothing rewrites it, which is why this is the one string on the panel that this codebase did not author |
-| 5 | `stop_reason` checked before the content is read at all | A [refused](../../src/language/parser.py#L401) request returns a perfectly good HTTP 200 whose content is empty or partial, so anything indexing `content[0]` first crashes here instead of reporting. Vanishingly unlikely for camera settings; one comparison to be safe |
-| 6 | `Parsed(declined=reason)`, `delta` still None | [Exactly one of the two is set](../../src/language/parser.py#L274). `ok` is defined as `delta is not None`, so a decline can never be mistaken for an empty change |
-| 7 | [`record`](../../src/language/resolver.py#L216)`(parsed)` with outcome `declined` | Not an error. The [outcome field](../../src/language/asklog.py#L90) is what lets anyone reading the log later separate "the model said no" from "the model could not be reached" |
-| 8 | `cannot do that: I can change how the picture...` | Prefixed, because the reason alone reads as a statement about the camera rather than an answer to a question. Wrapped to two lines and cut with an ellipsis if it runs long |
-| 9 | the model's own words, indented | Two leading spaces, which is how the command server marks a line as an answer rather than an acknowledgement |
+| 1 | `ask point it at the door` | This has already passed the [table of known phrases](../../src/language/shortcuts.py#L246), which hands back nothing rather than guessing. A table cannot decline gracefully. It can only fail to match, and those are not the same thing |
+| 2 | [`parse`](../../src/language/parser.py#L401)`(utterance, config, previous)` | Identical to the path that succeeds. Nothing at this point anticipates a refusal, and nothing needs to |
+| 3 | one request, two things it may call, exactly one required | The [list of what may be called](../../src/language/parser.py#L204) is generated from the settings rather than written out by hand, so a newly added setting becomes speakable without anybody editing any instructions. Declining is the second of the two |
+| 4 | a decline, with the reason in the model's own words | The reason belongs to the model. Nothing here rewrites it, which makes this the one piece of text ever shown on the panel that this program did not write |
+| 5 | the reason for stopping is checked before the reply is read at all | A request that the service [refuses on safety grounds](../../src/language/parser.py#L401) still comes back as an apparently successful reply, but with the content empty or incomplete. Code that reached straight for the first piece of content would fail with a confusing error rather than reporting the real one. That is vanishingly unlikely for camera settings, but it costs one comparison to be safe |
+| 6 | a result carrying the decline, with no change alongside it | [Exactly one of the two is filled in](../../src/language/parser.py#L274). Success is defined as there being a change present, so a decline can never be mistaken for a change that happens to be empty |
+| 7 | [`record`](../../src/language/resolver.py#L216) it, with the outcome noted as declined | This is not filed as an error. That [outcome field](../../src/language/asklog.py#L90) is what lets somebody reading the log later separate "the model said no" from "the model could not be reached", which look identical from the outside but mean opposite things |
+| 8 | `cannot do that: I can change how the picture...` | The prefix is added because the reason on its own reads as a statement about the camera rather than as an answer to a question. The text is wrapped to two lines and cut short with an ellipsis if it runs longer |
+| 9 | the model's own words, indented | Indented by two spaces, which is how the command connection marks a line as the substance of an answer rather than an acknowledgement that something was received |
 
-Like every other ask, this runs entirely on the client's thread. The render loop
-is not a participant, and no `Ask` is ever put on its inbox — there is nothing
-to apply.
+Like every other request phrased in words, all of this runs on the asking
+program's own thread. The drawing loop is not a participant, and nothing is ever
+placed on its queue, because there is nothing to apply.
 
 ## Three shapes of "no", and why one of them is an error
 
 | What comes back | Treated as | Why |
 |---|---|---|
-| The `decline` tool, with a reason | `Parsed(declined=...)` | The intended path. The model understood and said why not |
-| `set_render` carrying only an [`unmet` field](../../src/language/parser.py#L401) | `Parsed(declined=unmet)` | "zoom in a bit" on its own: nothing here maps to a setting, and it said so. That is a refusal with a reason wearing a different hat, so it is reported as one rather than as an empty change nobody can see |
-| `set_render` with nothing at all, and no `unmet` | [`ParseError`](../../src/language/parser.py#L270) | Deliberately an error. Dressing a malformed answer up as a polite refusal would hide it from the eval, and hiding it is how a scoreboard stops measuring |
+| A decline, carrying a reason | a decline | The intended path. The model understood the request and explained why it could not be met |
+| A change-a-setting reply carrying only a note about what it [could not do](../../src/language/parser.py#L401) | a decline | Something like "zoom in a bit" on its own: nothing here corresponds to a setting, and the model said so. That is a refusal with a reason wearing a different hat, so it is reported as one rather than as an empty change nobody would ever see |
+| A change-a-setting reply with nothing in it at all, and no note | [an error](../../src/language/parser.py#L270) | Deliberately treated as a fault. Dressing a malformed answer up as a polite refusal would hide it from the scoring, and hiding it is exactly how a scoreboard quietly stops measuring anything |
 
-**`unmet` alongside a real delta is not a decline at all.** "make it warmer
-and play some music" changes the scheme[^scheme] *and* says the second half
-went nowhere. The delta is applied, and the leftover is appended to the note
-the person sees. That is the case the third column above is guarding: a
-request can be partly satisfiable, and collapsing partial success into refusal
-would lose the half that worked.
+**A note about something unachievable, arriving alongside a real change, is not
+a decline at all.** A request such as "make it warmer and play some music"
+changes the colour scheme[^scheme] *and* points out that the second half went
+nowhere. The change is applied, and the leftover explanation is added to the
+note the person sees.
+
+That is precisely the case the third column above is guarding against. A request
+can be partly satisfiable, and collapsing partial success into outright refusal
+would throw away the half that worked.
 
 ## Related scenarios
 
 - [A spoken phrase is turned into a config delta by the language model](a-spoken-phrase-is-turned-into-a-config-delta-by-the-language-model.md)
-  — the same call when the answer is a change, and where `unmet` shows up
-  attached to one.
+  — the same request when the answer is a change, and where a note about
+  something unachievable turns up attached to one.
 - [A model parse fails and the panel says which kind of failure it was](a-model-parse-fails-and-the-panel-says-which-kind-of-failure-it-was.md)
   — the other ending, and the one this document is defined against.
 - [A spoken phrase is answered from the shortcut table, with no model call](a-spoken-phrase-is-answered-from-the-shortcut-table-with-no-model-call.md)
-  — why the table declines to guess and hands these phrases on.
+  — why the table refuses to guess and passes phrases like this one along.
 - [Every ask is recorded with its source, its cost and its elapsed time](every-ask-is-recorded-with-its-source-its-cost-and-its-elapsed-time.md)
   — what a declined record looks like, and why it is not filed as an error.
 
 ### Footnotes
 
-[^ask]: An **ask** is a request in words rather than in settings — "make it
-    warmer" — as opposed to a typed command, which already names the setting.
-    It arrives as [`Ask`](../../src/control/command_server.py#L55), and
-    [`AskResolver`](../../src/language/resolver.py#L33) decides whether the
-    shortcut table can answer it or the language model has to.
+[^ask]: An **ask** is a request phrased in ordinary words, such as "make it
+    warmer", rather than one that already names a setting and a value. It
+    arrives as an [`Ask`](../../src/control/command_server.py#L55), and
+    [`AskResolver`](../../src/language/resolver.py#L33) decides whether a table
+    of known phrases can answer it or whether a language model has to be asked.
 
-[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
-    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
-    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
-    kernel driver behind it. In the sealed enclosure it is the only display
-    there is. One full frame is 153,600 bytes, sent in
-    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
-    the driver's buffer holds.
+[^panel]: The **SPI panel** is a small screen measuring 2.4 inches across the
+    diagonal, 240 dots by 320, using a controller chip called the ILI9341. It is
+    connected to the computer by a simple four-wire arrangement called SPI, which
+    is a common way of attaching small devices. It is driven entirely by the
+    program itself, through [`ILI9341`](../../src/lcd/lcd.py#L47), with no
+    separate system driver involved. In the sealed box this program is built
+    for, this panel is the only screen there is. One complete picture for it is
+    153,600 bytes, which has to be sent in pieces of 4 kilobytes each — see
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) — because that is as much as the
+    connection will accept at a time.
 
-[^delta]: A **delta** is a plain dict of the settings a change means to alter —
-    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
-    hands it to the configuration; none of them assigns a setting directly.
-    That is what keeps validation in one place no matter who asked.
+[^delta]: A **delta** is a plain list of the settings a change intends to alter,
+    paired with their new values, such as `{"scheme": "amber"}`, and nothing
+    else besides. Every way of asking for a change builds one of these and hands
+    it to the configuration. None of them ever sets a setting directly. That is
+    what keeps the checking in a single place no matter who did the asking.
 
-[^socket]: A **Unix domain socket** is a file-backed pipe between processes on
-    one machine — the same read-and-write as a network socket, with no network.
-    [`CommandServer`](../../src/control/command_server.py#L80) listens on one,
-    which is how a shell, a phone or a script reaches a running camera without
-    the app ever opening a port.
+[^socket]: A **Unix domain socket** is a connection between two programs on the
+    same computer, which appears in the file system as though it were a file. It
+    behaves like a network connection, with one program writing and another
+    reading, except that no network is involved at any point.
+    [`CommandServer`](../../src/control/command_server.py#L80) listens on one of
+    these, which is how a shell, a phone or another program can reach a running
+    camera without the program ever opening a network port.
 
-[^tooluse]: Rather than replying in prose, the model is made to answer by
-    **calling a tool** — naming one of the schemas it was given and filling in
-    its arguments. `tool_choice` is set so that it must call one, never write a
-    sentence, which is what keeps the answer a shape this code can act on
-    instead of one it would have to parse.
+[^tooluse]: Instead of replying in ordinary prose, the model is required to
+    answer by **calling a tool**: naming one of the descriptions it was given
+    and filling in its values. The setting that governs this is arranged so that
+    it must call one and may never write a sentence. That is what keeps the
+    answer in a shape this program can act on directly, rather than one it would
+    have to interpret.
 
-[^scheme]: A **colour scheme** is one of the nine named looks in
-    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
-    of the render configuration. `grey` is the default, and is what "greyscale
-    mode" means: characters only, drawn from the luma plane and nothing else.
-    `live` is the only scheme that reads the chroma planes, through
-    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
-    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
-    the same greyscale picture from two fixed colours.
+[^scheme]: A **colour scheme** is one of the nine named looks listed in
+    [`SCHEMES`](../../src/art/palettes.py#L79). Which one is currently in use is
+    part of the program's render configuration, and the knob, a key press or a
+    typed command can all change it. The scheme called `grey` is the one the
+    program starts with, and it is what the phrase "greyscale mode" refers to:
+    characters only, worked out from the brightness part of the picture and
+    nothing else. Only the scheme called `live` reads the colour parts, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The remaining
+    seven are tints, such as green phosphor, amber CRT and e-ink on paper. A
+    tint recolours the same greyscale picture using two fixed colours, so it
+    never looks at the colour parts either.
