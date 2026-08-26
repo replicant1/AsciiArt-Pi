@@ -1,38 +1,63 @@
 # A rotary encoder detent changes the colour scheme
 
-**Priority: `HIGH`** — in a sealed box the knob[^detent] is the only control that needs no second device, so this is the whole of the user interface. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `HIGH`** — inside a sealed box the knob is the only control that needs no second device, so one click[^detent] of it is the whole of the user interface. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-Somebody turns the knob one click and the picture changes colour. The value is
-that it works with no keyboard, no phone, no network and no terminal — in an
-enclosure the knob and the panel[^panel] are the entire machine, and every
-other route into the settings requires something the box does not have.
+Somebody turns the knob by one click and the picture changes colour.
 
-Between the click and the picture are two problems that have nothing to do
-with each other. The first is that **the contacts bounce**, about five to one:
-twenty deliberate clicks produced 453 electrical edges. The second is that
-edges arrive on lgpio[^lgpio]'s own thread whenever the knob moves, and the
-render loop can only act between frames.
+The value is that this works with no keyboard, no phone, no network and no
+monitor. Inside the sealed box the knob and the small panel[^panel] are the
+entire machine. Every other way of changing a setting needs something the box
+simply does not have.
 
-Neither is solved by filtering. Bounce is rejected **by construction**: a
-quadrature transition table only emits on a complete cycle, so the partial
-transitions that bounce produces — which is most of them — advance the state
-machine and return nothing. Ten edges of a bounced cycle yield exactly one
-detent. Debouncing by time, or by sampling the partner pin at each edge, reads
-bounce as movement; this does not have to.
+Between the click and the picture changing lie two problems that have nothing
+whatever to do with one another.
 
-The threading is solved by **counting rather than queueing**. The callback
-thread adds to an integer under a lock and the loop takes the whole balance
-once a frame. That has a consequence worth stating plainly: only counts survive
-between frames, never the order events happened in. A turn and a press in the
-same frame gap cannot be told apart from a press and a turn, so the press wins
-and the rotation is dropped — the answer that is the same wherever the knob had
-got to, and that costs one repaint rather than two.
+The first problem is that **the electrical contacts bounce**. When a metal
+contact closes, it does not close cleanly once. It makes and breaks contact
+several times in a few thousandths of a second before settling. This was
+measured on this actual knob: twenty deliberate clicks produced 453 separate
+electrical changes, which is a ratio of roughly five bounces for every one real
+change. After filtering out anything shorter than a thousandth of a second, 88
+changes remained, which is still more than the twenty clicks that were made. So
+counting electrical changes cannot possibly work.
 
-The last piece is that a banked move is applied **as one move**. Five detents
-between two frames used to be five calls, and every scheme[^scheme] change
-ends in a full repaint of some 27,000 cells; four of those five pictures were
-never on screen long enough to see, and the strobing fed on itself because a
-slower frame banks more detents.
+The second problem is about timing. The electrical changes arrive on a thread
+belonging to the library that watches the pins[^lgpio], at whatever moment the
+knob happens to move. The drawing loop, by contrast, can only act between one
+picture and the next.
+
+Neither problem is solved by filtering, and that is worth dwelling on.
+
+Bounce is rejected **by the shape of the solution rather than by a filter**. The
+two switches inside the knob are arranged a quarter of a turn apart, and the
+decoding works from a table of which pairs of switch positions may legally
+follow which. It only reports movement when a complete cycle has been finished.
+Bounce produces partial movements that go back and forth without ever completing
+a cycle, so it advances the internal state and reports nothing at all. Ten
+electrical changes belonging to one bounced click therefore yield exactly one
+click. Filtering by time, or looking at the second switch each time the first one
+changes, both read bounce as movement. This approach does not have to.
+
+The timing problem is solved by **counting rather than queueing**. The thread
+watching the pins adds to a single whole number, protected by a lock so the two
+threads cannot interfere with one another, and the drawing loop takes the whole
+running total once per picture.
+
+That has a consequence worth stating plainly, because it is a real limitation
+rather than an oversight. Only the counts survive from one picture to the next,
+never the order in which things happened. A turn followed by a press cannot be
+told apart from a press followed by a turn. The program resolves this by letting
+the press win and discarding the turn. That is the right choice because the
+press means "go back to grey", and the answer to that is the same wherever the
+knob had got to. It also costs one repaint rather than two.
+
+The last piece is that a gathered-up move is applied **as a single move**. Five
+clicks arriving between two pictures used to mean five separate changes. Every
+change of colour scheme[^scheme] ends in repainting every cell, which on a
+monitor showing roughly 267 cells across and 100 down is about 26,700 cells. Four
+of those five pictures were never on screen long enough for anybody to see. Worse,
+the problem fed on itself: a slower picture gathers up more clicks, which makes
+the next picture slower still.
 
 ![Two pin traces over one detent. Both rest high; CLK falls, then DT falls, then
 CLK rises, then DT rises back to rest, each edge carrying a burst of contact
@@ -40,11 +65,12 @@ bounce. The four quarters are labelled with the pin pair — 1 1, 0 1, 0 0, 1 0 
 1 1 again — and a green marker at the final transition shows the single point at
 which a step is emitted](../images/quadrature-detent.svg)
 
-*Quadrature drawn rather than described: the two pins a quarter cycle apart, and
-the whole click as one round trip from rest back to rest. The chatter on every
-edge is the bounce that made counting edges impossible — and the green marker is
-the answer to it, since only the transition that completes the cycle emits
-anything at all.*
+*This drawing shows the arrangement rather than describing it. The two switches
+sit a quarter of a cycle apart, and one whole click is a single round trip from
+the resting position back to the resting position again. The rapid chatter on
+every edge is the bounce that makes counting electrical changes impossible. The
+green marker is the answer to it: only the change that completes the full cycle
+reports anything at all.*
 
 Kept by hand: edit
 [`quadrature-detent.svg`](../images/quadrature-detent.svg) directly, since
@@ -52,106 +78,123 @@ nothing regenerates it.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`QuadratureDecoder`](../../src/control/encoder.py#L88) | Pin levels in, detents out. Here it is the **arbiter of what counts as movement**, and it is deliberately free of hardware, threads and clocks: [`feed`](../../src/control/encoder.py#L100) is a table lookup, so the part that can be subtly wrong is testable on a machine with no encoder attached |
-| [`RotaryEncoder`](../../src/control/encoder.py#L123) | A KY-040 on three GPIO[^gpio] pins, read through lgpio's edge callbacks. Here it is the **accumulator**: callbacks arrive on lgpio's thread, so [`take`](../../src/control/encoder.py#L246) hands over the net balance under a lock and resets it |
-| [`SchemeCycle`](../../src/control/scheme_cycle.py#L37) | The `s` key and the knob, walked by one piece of code. Here it is the **policy**: [`poll`](../../src/control/scheme_cycle.py#L86) decides that a press beats a turn, and [`step`](../../src/control/scheme_cycle.py#L133) walks the whole move before changing anything |
-| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off. Here it is the **only thread a setting may change on**, and it does nothing else in this scenario but call `poll` once a frame |
+| [`QuadratureDecoder`](../../src/control/encoder.py#L88) | Switch positions go in, completed clicks come out. In this scenario it is the **judge of what counts as movement**, and it is deliberately free of any hardware, any thread and any clock. [`feed`](../../src/control/encoder.py#L100) is nothing more than a table lookup, which means the part most likely to be subtly wrong can be tested on a computer with no knob attached to it at all |
+| [`RotaryEncoder`](../../src/control/encoder.py#L123) | A KY-040 knob wired to three of the computer's general-purpose pins[^gpio], watched through the pin library's notifications. In this scenario it is the **accumulator**. Notifications arrive on the library's own thread, so [`take`](../../src/control/encoder.py#L246) hands over the running total under a lock and resets it to zero in the same breath |
+| [`SchemeCycle`](../../src/control/scheme_cycle.py#L37) | The `s` key and the knob, walked through by one shared piece of code. In this scenario it is the **policy**. [`poll`](../../src/control/scheme_cycle.py#L86) decides that a press beats a turn, and [`step`](../../src/control/scheme_cycle.py#L133) works out the whole move before changing anything at all |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The single object the whole running program hangs from. In this scenario it is the **only thread on which a setting may change**, and it does nothing else here but ask the policy once per picture whether anything happened |
 
 ## One click, from the contacts to the picture
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Knob as the KY-040<br/>contacts that bounce 5 to 1
-    participant Cb as lgpio's callback thread<br/>not ours
-    participant Dec as QuadratureDecoder<br/>a table, no clock
-    participant Enc as RotaryEncoder<br/>an integer under a lock
+    participant Knob as the KY-040 knob<br/>contacts that bounce about five to one
+    participant Cb as the pin library's thread<br/>not one of ours
+    participant Dec as QuadratureDecoder<br/>a table, with no clock
+    participant Enc as RotaryEncoder<br/>a whole number under a lock
     participant Cyc as SchemeCycle<br/>the policy
-    participant App as MainRenderLooper<br/>the render loop's thread
+    participant App as MainRenderLooper<br/>the drawing loop's thread
 
     rect rgba(200, 140, 60, 0.12)
-        note over Knob, Enc: lgpio's thread - whenever the contacts move
-        Knob->>Cb: ten edges for one detent, most of them bounce
-        Cb->>Dec: feed(clk, dt) for each edge
-        Dec-->>Cb: 0 for every partial transition, +1 only on a complete cycle
-        Cb->>Enc: the step is added to an integer under the lock
+        note over Knob, Enc: the pin library's thread, whenever the contacts move
+        Knob->>Cb: about ten electrical changes for one click, most of them bounce
+        Cb->>Dec: feed(clk, dt) for each change
+        Dec-->>Cb: nothing for a partial move, one step only on a completed cycle
+        Cb->>Enc: the step is added to a whole number under the lock
     end
     rect rgba(80, 140, 220, 0.12)
-        note over Cyc, App: the render loop's thread - once a frame, between pictures
+        note over Cyc, App: the drawing loop's thread, once per picture
         App->>Cyc: poll()
-        Cyc->>Enc: take() and take_presses(), which reset as they read
-        Enc-->>Cyc: the net balance since the last frame
-        Cyc->>Cyc: a press beats a turn, and the turn is dropped rather than added
-        Cyc->>Cyc: step walks the whole move, skipping schemes this display cannot show
-        Cyc->>App: apply({scheme: the destination}), one change for the whole move
+        Cyc->>Enc: take() and take_presses(), which reset as they are read
+        Enc-->>Cyc: the running total since the previous picture
+        Cyc->>Cyc: a press beats a turn, and the turn is discarded rather than added
+        Cyc->>Cyc: step works out the whole move, passing over schemes this screen cannot show
+        Cyc->>App: apply({scheme: the destination}), one change for the entire move
     end
 ```
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | ten edges for one detent, most of them bounce | Measured: twenty clicks gave 453 edges, and 88 survived a 1 ms debounce. The ratio is why counting edges is not an option — a decoder that treated an edge as movement would read one click as several |
-| 2 | [`feed`](../../src/control/encoder.py#L100)`(clk, dt)` for each edge | Both pin levels every time, not one pin sampled at the other's edge. Sampling the partner at an edge is the classic approach and it reads bounce as direction, because during a bounce the partner is whatever it happens to be |
-| 3 | 0 for every partial transition, +1 only on a complete cycle | A table indexed by state and by the two pin levels. Bounce moves the state machine back and forth between intermediate states and never completes a cycle, so it emits nothing — rejection by construction rather than by a timer that has to be tuned. One detent on this module is one full cycle |
-| 4 | the step is added to an integer under the lock | The whole of the cross-thread contract. An integer, not a queue: a queue would preserve an order nothing downstream can use, and would grow if the loop were slow |
-| 5 | [`poll`](../../src/control/scheme_cycle.py#L86)`()` | Called once a frame from the render loop, and returning immediately when nothing moved — which is the usual case and costs only a lock |
-| 6 | [`take`](../../src/control/encoder.py#L246)`()` and `take_presses()`, which reset as they read | Read-and-clear under the lock, so a detent arriving mid-frame is banked for the next one rather than lost or double-counted. `take` returns the **net**: two clicks one way and two back is no change, and the picture should not flicker through four schemes to say so |
-| 7 | the net balance since the last frame | Zero almost always. On a slow frame it may be several, which is the case the rest of this scenario exists to handle |
-| 8 | a press beats a turn, and the turn is dropped rather than added | Only counts survive, not order, so a turn and a press in one frame gap are indistinguishable from a press and a turn. The press wins because its answer — jump home to grey — is the same wherever the knob had got to, and it costs one repaint rather than two |
-| 9 | [`step`](../../src/control/scheme_cycle.py#L133) walks the whole move, skipping schemes this display cannot show | The walk is arithmetic, not a series of changes: it finds the destination and changes the display **once**. A whole lap is the identity, so the move reduces modulo the scheme count — clamping instead would land a lap off. Schemes a monochrome terminal cannot show are skipped on the way past rather than settled on |
-| 10 | apply({scheme: the destination}), one change for the whole move | One [`apply`](../../ascii_camera.py#L236), so a five-detent spin is one repaint of some 27,000 cells rather than five. It used to be five, and it fed on itself: a slower frame banks more detents, which made the next frame slower still. The check that this still holds is that a two-detent move writes a single `Scheme:` line to the log |
+| 1 | about ten electrical changes for one click, most of them bounce | Measured on this knob: twenty clicks produced 453 electrical changes, of which 88 survived a filter that ignored anything shorter than a thousandth of a second. Dividing 453 by 20 gives roughly 22 changes per click, and even the filtered 88 is more than four per click. Those ratios are exactly why treating an electrical change as movement cannot work: one click would be read as several |
+| 2 | [`feed`](../../src/control/encoder.py#L100)`(clk, dt)` for each change | Both switch positions are supplied every time, rather than one switch being examined at the moment the other changes. Examining the second switch at the first one's change is the usual approach, and it reads bounce as direction, because during a bounce the second switch is simply wherever it happens to be at that instant |
+| 3 | nothing for a partial move, one step only on a completed cycle | A table looked up by the current state together with the two switch positions. Bounce moves the state backwards and forwards between intermediate positions and never completes a cycle, so it reports nothing. That is rejection built into the shape of the solution, rather than a timer somebody has to tune. On this particular knob, one click is exactly one complete cycle |
+| 4 | the step is added to a whole number under the lock | This is the entire agreement between the two threads. A whole number rather than a queue: a queue would preserve an ordering that nothing further along is able to use, and it would grow without limit if the drawing loop were slow |
+| 5 | [`poll`](../../src/control/scheme_cycle.py#L86)`()` | Called once per picture from the drawing loop, and returning immediately when nothing has moved. That is the usual case, and it costs nothing beyond taking and releasing the lock |
+| 6 | [`take`](../../src/control/encoder.py#L246)`()` and `take_presses()`, which reset as they are read | Reading and clearing happen together under the lock, so a click arriving in the middle of a picture is saved for the next one rather than being lost or counted twice. The total handed back is the **net** figure: two clicks one way and two back again is no change at all, and the picture should certainly not flicker through four colour schemes in order to say so |
+| 7 | the running total since the previous picture | Almost always zero. On a slow picture it may be several, and that is the case the rest of this scenario exists to handle |
+| 8 | a press beats a turn, and the turn is discarded rather than added | Only counts survive, never the order, so a turn and a press within one gap between pictures cannot be distinguished from a press and then a turn. The press is allowed to win because its meaning, which is to jump straight back to grey, gives the same answer wherever the knob had reached. It also costs one repaint instead of two |
+| 9 | [`step`](../../src/control/scheme_cycle.py#L133) works out the whole move, passing over schemes this screen cannot show | The walk is arithmetic rather than a series of separate changes: it works out the destination and changes the display exactly **once**. There are nine schemes, so a move of nine lands back where it started, and the move is therefore reduced by whole laps of nine. Simply clamping a large move to the last scheme would land a whole lap away from the right answer. Schemes that a monitor showing only one colour cannot display are passed over on the way rather than settled on |
+| 10 | apply({scheme: the destination}), one change for the entire move | A single call to [`apply`](../../ascii_camera.py#L236), so a five-click spin means one repaint of about 26,700 cells rather than five. It used to be five, and the problem fed on itself: a slower picture gathers up more clicks, which made the following picture slower still. The check that this still holds is that a two-click move writes exactly one `Scheme:` line into the log rather than two |
 
-The boundary is crossed once and in one direction, by an integer. Nothing on
-lgpio's thread ever touches a setting, and nothing on the render loop's thread
-ever waits for a knob — which is what lets the picture keep its frame rate
-through a spin fast enough to bank a dozen detents.
+The boundary between the two threads is crossed once, in one direction, by a
+whole number. Nothing on the pin library's thread ever touches a setting, and
+nothing on the drawing loop's thread ever waits for the knob. That is what lets
+the picture keep its normal rate through a spin fast enough to gather up a dozen
+clicks at once.
 
-Which direction counts as forwards cannot be derived: it depends on which pin
-was called CLK when the thing was wired. It was settled by turning the real
-knob, and `--encoder-reverse` exists for the other answer.
+Which direction counts as forwards cannot be worked out from first principles.
+It depends entirely on which of the two pins was called CLK when the knob was
+wired up. It was settled by turning the real knob and looking, and the option
+`--encoder-reverse` exists for anybody whose wiring gives the other answer.
 
 ## Related scenarios
 
 - [A typed command updates the render configuration](a-typed-command-updates-the-render-configuration.md)
-  — where the delta produced here arrives, and the validator it meets.
+  — where the change produced here arrives, and the checking it then meets.
 - [One configuration change is pushed to both displays](one-configuration-change-is-pushed-to-both-displays.md)
-  — what a scheme change costs once it has been accepted, and why one repaint
-  rather than five matters so much.
+  — what a change of scheme actually costs once accepted, and why one repaint
+  rather than five matters as much as it does.
 - [A render configuration change is refused](a-render-configuration-change-is-refused.md)
-  — the same validator, in the case where a value is not allowed. A scheme the
-  knob walks to is always legal, because the walk only visits real ones.
-- [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md) — the `s` key, which reaches
-  `SchemeCycle.step` by the other route and never banks anything.
+  — the same checking, in the case where a value is not allowed. A scheme the
+  knob walks to is always allowed, because the walk only ever visits real ones.
+- [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md)
+  — the `s` key, which reaches the same walking code by the other route and
+  never has anything to gather up.
 
 ### Footnotes
 
-[^detent]: A **detent** is one click of the knob — the position it settles
-    into, felt as a notch. Electrically it is one full cycle of the two
-    switches, which is what [`QuadratureDecoder`](../../src/control/encoder.py#L88)
-    counts. **Quadrature** is the arrangement: two switches a quarter-cycle
-    apart, so which one changes first says which way the knob turned, and
-    contact bounce that does not complete a cycle emits nothing.
+[^detent]: A **detent** is one click of the knob, meaning the position the knob
+    settles into and which can be felt as a notch under the fingers.
+    Electrically, one click is one complete cycle of the two switches inside the
+    knob, and counting those cycles is the job of
+    [`QuadratureDecoder`](../../src/control/encoder.py#L88). **Quadrature** is
+    the name for the arrangement of those two switches. They are positioned a
+    quarter of a cycle apart, so whichever of them changes first reveals which
+    way the knob was turned. A switch bouncing without completing a full cycle
+    produces nothing at all, which is exactly what is wanted.
 
-[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
-    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
-    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
-    kernel driver behind it. In the sealed enclosure it is the only display
-    there is. One full frame is 153,600 bytes, sent in
-    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
-    the driver's buffer holds.
+[^panel]: The **SPI panel** is a small screen measuring 2.4 inches across the
+    diagonal, 240 dots by 320, using a controller chip called the ILI9341. It is
+    connected to the computer by a simple four-wire arrangement called SPI, which
+    is a common way of attaching small devices. It is driven entirely by the
+    program itself, through [`ILI9341`](../../src/lcd/lcd.py#L47), with no
+    separate system driver involved. In the sealed box this program is built
+    for, this panel is the only screen there is. One complete picture for it is
+    153,600 bytes, which has to be sent in pieces of 4 kilobytes each — see
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) — because that is as much as the
+    connection will accept at a time.
 
-[^lgpio]: The userspace library this app uses to read GPIO pins on the Pi,
-    talking to the kernel's character-device interface. It replaces the older
-    `RPi.GPIO` and needs no daemon, unlike `pigpio`.
+[^lgpio]: **lgpio** is the library this program uses to read the computer's
+    general-purpose pins. It talks to the part of Linux that presents those pins
+    as a device, and it needs no background program of its own running
+    alongside, which some of the alternatives do. It replaces an older library
+    called `RPi.GPIO`.
 
-[^scheme]: A **colour scheme** is one of the nine named looks in
-    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
-    of the render configuration. `grey` is the default, and is what "greyscale
-    mode" means: characters only, drawn from the luma plane and nothing else.
-    `live` is the only scheme that reads the chroma planes, through
-    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
-    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
-    the same greyscale picture from two fixed colours.
+[^scheme]: A **colour scheme** is one of the nine named looks listed in
+    [`SCHEMES`](../../src/art/palettes.py#L79). Which one is currently in use is
+    part of the program's render configuration, and the knob, a key press or a
+    typed command can all change it. The scheme called `grey` is the one the
+    program starts with, and it is what the phrase "greyscale mode" refers to:
+    characters only, worked out from the brightness part of the picture and
+    nothing else. Only the scheme called `live` reads the colour parts, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The remaining
+    seven are tints, such as green phosphor, amber CRT and e-ink on paper. A
+    tint recolours the same greyscale picture using two fixed colours, so it
+    never looks at the colour parts either.
 
-[^gpio]: The Pi's general-purpose pins. A pin is claimed by whoever is using
-    it and is unusable to anyone else until it is given back, which is what
-    makes an unreleased pin a fault in the *next* run rather than this one.
+[^gpio]: The computer's **general-purpose pins** are the row of electrical
+    connections along the edge of the board, which a program can set high or low
+    or read the state of. A pin is claimed by whichever program is using it, and
+    it remains unusable by anything else until it is given back. That is why a
+    pin left unreleased causes a fault in the *next* run of a program rather
+    than in the one that failed to release it.

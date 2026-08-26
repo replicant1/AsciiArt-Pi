@@ -1,173 +1,201 @@
 # One configuration change is pushed to both displays
 
-**Priority: `HIGH`** — every accepted change of any kind ends here, whichever route asked for it. [What the priorities mean](../how-to-write-scenario-docs.md).
+**Priority: `HIGH`** — every accepted change of any kind finishes here, no matter which route asked for it. [What the priorities mean](../how-to-write-scenario-docs.md).
 
-A setting has been validated and a replacement config[^config] exists.
-Something now has to *happen* — and what has to happen is different for every
-setting. `contrast` is an assignment the next frame picks up.
-`invert`[^invert] means rebuilding the ASCII generator. `fill`[^fill]
-invalidates the cached grid[^grid] **and** needs the terminal cleared, because
-letterboxing leaves cells the picture no longer writes to and they would keep
-the previous frame's characters for good.
+A setting has been checked and accepted, and a replacement description of the
+picture[^config] now exists. Something has to *happen* as a result, and what has
+to happen is different for every setting.
 
-The value is that this knowledge lives in **one place**. Before
-[`_adopt`](../../ascii_camera.py#L283), "invert also has to rebuild the ASCII
-generator" and "fill also has to invalidate the grid" were spread across the
-key handler, and every new setting had to remember them all — a list nobody
-holds completely, which is the kind of thing that is wrong for months before
-anyone notices.
+Changing the contrast is simply a value being stored, which the next picture
+picks up by itself. Changing the invert setting[^invert] means the table of
+characters has to be built again from scratch. Changing between filling and
+fitting[^fill] does two things at once: it throws away the remembered grid[^grid]
+size, and it also requires the monitor to be cleared. That last requirement is
+easy to miss. When a picture no longer fills the whole window, the cells around
+the edge stop being written to, and whatever characters they held last would
+simply stay there for ever.
 
-The title is half true, and the half that is false is the interesting one. The
-terminal really is **pushed** to: cleared, re-schemed[^scheme], its grid
-invalidated, synchronously and here. The panel[^panel] is not. It reads its
-settings out of the `RenderConfig` it is handed **with the next frame**, so
-there is nothing to push — the change reaches it by the ordinary route a
-moment later, on its own thread. Which leaves exactly one gap, and the code
-closes it: if the picture is frozen there is no next frame, so `_redraw` is
-set to make one happen.
+The value of this scenario is that all of that knowledge lives in **one place**.
+Before [`_adopt`](../../ascii_camera.py#L283) existed, facts like "inverting also
+means rebuilding the character table" and "filling also means discarding the
+remembered grid" were scattered across the key handler. Every newly added
+setting had to remember all of them. That is a list nobody ever holds completely
+in their head, which is exactly the kind of thing that stays wrong for months
+before anybody notices.
 
-Nothing here is conditional on which route asked. A key, the knob[^detent], a
-typed line, a phone and a language model all arrive as a plain dict at
-[`apply`](../../ascii_camera.py#L236), and by the time this runs there is
-nothing left that could tell them apart.
+The title of this document is half true, and the half that is false is the more
+interesting one. The monitor genuinely is **pushed** to: it is cleared, told
+about the colour scheme[^scheme], and has its remembered grid thrown away, all
+immediately and all on this thread. The small panel[^panel] is not pushed to at
+all. It reads its settings out of the description it is handed **along with the
+next picture**, so there is nothing to push. The change reaches it by the
+ordinary route a fraction of a second later, on its own thread.
+
+That leaves exactly one gap, and the code closes it deliberately. If the picture
+has been frozen, then there is no next picture, so the panel would never find
+out. A flag is therefore set to force one more picture to be produced.
+
+None of this depends in any way on who asked. A key press, the knob[^detent], a
+typed line, a phone and a language model all arrive as the same plain list of
+values at [`apply`](../../ascii_camera.py#L236), and by the time this code runs
+there is nothing left that could possibly tell them apart.
 
 | Class | What it represents, and its part in this scenario |
 |---|---|
-| [`MainRenderLooper`](../../ascii_camera.py#L99) | The one object the process is hung off, and the only thread a setting may change on. Here it is the **distributor**: [`_adopt`](../../ascii_camera.py#L283) is the single place that knows what each setting costs to change, and it works from a **set of changed names** rather than from the values |
-| [`RenderConfig`](../../src/control/render_config.py#L118) | The complete live render state, frozen and replaced rather than mutated. Here it is the **diff**: `changes_from` says which fields actually moved, so a delta[^delta] that asks for what is already set costs nothing at all |
-| [`NcursesDisplay`](../../src/hdmi/ncurses_display.py#L34) | The HDMI terminal. Here it is the **pushed** one: it is told about a scheme, cleared when the picture's shape changes, and does so synchronously on this thread |
-| [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | The panel's thread. Here it is the **not pushed** one, and deliberately: it reads the whole config out of the next frame it is handed, so the only thing this code does for it is make sure a next frame exists |
+| [`MainRenderLooper`](../../ascii_camera.py#L99) | The single object the whole running program hangs from, and the only thread on which a setting may change. In this scenario it is the **distributor**. [`_adopt`](../../ascii_camera.py#L283) is the one place that knows what each setting costs to change, and it works from a **list of which setting names moved** rather than from the values themselves |
+| [`RenderConfig`](../../src/control/render_config.py#L118) | The complete, current description of how the picture should be drawn, frozen and replaced rather than altered. In this scenario it is the **comparer**. Asking it which fields actually moved means a proposed change[^delta] that requests something already set costs nothing whatsoever |
+| [`NcursesDisplay`](../../src/hdmi/ncurses_display.py#L34) | An ordinary monitor connected by an HDMI cable. In this scenario it is the one that **is pushed to**. It is told about a colour scheme, and cleared when the shape of the picture changes, and both of those happen immediately on this thread |
+| [`LcdWorker`](../../src/lcd/lcd_worker.py#L61) | The small panel's own thread. In this scenario it is the one that is **not pushed to**, and that is deliberate. It reads the entire description out of the next picture it is handed, so the only thing this code does on its behalf is make certain that a next picture will exist |
 
-## One accepted change, and everything that must be told
+## One accepted change, and everything that has to be told about it
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant App as MainRenderLooper<br/>the render loop's thread
-    participant Cfg as RenderConfig<br/>frozen, replaced not mutated
+    participant App as MainRenderLooper<br/>the drawing loop's thread
+    participant Cfg as RenderConfig<br/>frozen, replaced rather than altered
     participant Proc as ImageProcessor
     participant Art as AsciiArt
-    participant Term as NcursesDisplay<br/>told synchronously
-    participant W as LcdWorker<br/>told by the next frame
+    participant Term as NcursesDisplay<br/>told immediately
+    participant W as LcdWorker<br/>told by the next picture
 
     App->>Cfg: changes_from(previous)
-    Cfg-->>App: the set of field names that actually moved
-    App->>Proc: contrast, auto_levels, rotation, fill, mirror assigned outright
-    App->>Art: rebuilt, but only for ramp, invert or colour_levels
-    App->>App: grid_key cleared, but only for rotation or fill
-    App->>Term: clear, for fill or for a target change
-    App->>Term: set_scheme, for a scheme change
-    App->>App: _redraw set, so a frozen picture still gets one more frame
-    App->>W: nothing - it reads the config it is handed with the next frame
-    App->>App: describe_changes logged, one line whoever asked
+    Cfg-->>App: the list of setting names that actually moved
+    App->>Proc: contrast, auto levels, rotation, fill and mirror stored outright
+    App->>Art: rebuilt, but only for the ramp, invert or the colour levels
+    App->>App: the remembered grid size thrown away, but only for rotation or fill
+    App->>Term: cleared, for a fill change or a change of which screen
+    App->>Term: set_scheme, for a change of colour scheme
+    App->>App: a flag set, so a frozen picture still produces one more
+    App->>W: nothing at all - it reads the description handed to it with the next picture
+    App->>App: describe_changes written to the log, one line whoever asked
 ```
 
 | Step | Message | What is going on |
 |---:|---|---|
-| 1 | `changes_from(previous)` | The diff, not the config. Everything below keys off names rather than values, which is what makes "did `invert` move" a question with a cheap answer |
-| 2 | the set of field names that actually moved | Empty is the common case and returns immediately. A delta asking for what is already set is not an error and not a no-op that still repaints — it costs nothing, which is why `a bit more contrast` at the ceiling is safe to repeat |
-| 3 | contrast, auto_levels, rotation, fill, mirror assigned outright | The cheap ones: plain attributes the processor reads on its next frame. Assigned unconditionally because testing whether each moved would cost more than the assignment |
-| 4 | rebuilt, but only for ramp, invert or colour_levels | Three settings and one rebuild, because all three change the same object: the ramp[^ramp] string, its reversal, and the quantisation. Rebuilding on `contrast` would throw away a 256-entry table[^lut] for nothing |
-| 5 | grid_key cleared, but only for rotation or fill | The grid is fitted from the frame's shape and the window, so only the settings that change a *shape* invalidate it. `scheme` does not — which is why switching scheme with the knob never resizes the picture |
-| 6 | clear, for fill or for a target change | `fill` off leaves letterboxed cells the picture no longer writes to, which would keep the previous frame's characters for ever. A `target` change needs it in **both** directions: switching the terminal off leaves the picture on screen, and switching it back on leaves the off-message under a picture that no longer covers every cell |
-| 7 | set_scheme, for a scheme change | The expensive one, and the reason the knob banks its detents: this ends in a full repaint of every cell — some 27,000 in a full-screen terminal — so a five-detent spin applied one at a time was five repaints of pictures nobody could see |
-| 8 | _redraw set, so a frozen picture still gets one more frame | The gap in "the panel finds out with the next frame": while frozen there is no next frame. Without this a setting changed on a frozen picture would sit invisible until it was unfrozen |
-| 9 | nothing - it reads the config it is handed with the next frame | The panel is handed the whole `RenderConfig` with every frame, so a change reaches it without anything being pushed. There used to be an `LcdConfig` naming eight fields the panel cared about, which meant adding a setting required remembering to add it in two places — and the field it was missing was never going to announce itself |
-| 10 | describe_changes logged, one line whoever asked | The one output of the whole exchange, and it names the fields and their old and new values rather than dumping the config. It is also the check that the knob's banking still works: a two-detent move must write **one** line |
+| 1 | `changes_from(previous)` | What is asked for is the difference, not the description itself. Everything below works from names rather than values, and that is what makes "did the invert setting move" a question with a very cheap answer |
+| 2 | the list of setting names that actually moved | An empty list is the ordinary case, and it returns straight away. A request for something already set is neither an error nor a change that repaints anyway. It costs nothing at all, which is why a phrase such as "a bit more contrast" is safe to repeat once the top of the range has been reached |
+| 3 | contrast, auto levels, rotation, fill and mirror stored outright | These are the cheap ones: plain values that the picture-processing code reads the next time it runs. They are stored without first checking whether they moved, because checking would cost more than simply storing them |
+| 4 | rebuilt, but only for the ramp, invert or the colour levels | Three settings and a single rebuild, because all three change the same object: the ramp[^ramp] of characters, whether that ramp is reversed, and how many distinct levels it is divided into. Rebuilding when the contrast changed would throw away a table[^lut] of 256 prepared answers for no reason at all, since none of those answers depends on contrast |
+| 5 | the remembered grid size thrown away, but only for rotation or fill | The grid size is worked out from the shape of the camera picture and the shape of the window, so only settings that change a *shape* can make it wrong. Changing the colour scheme cannot, and that is precisely why turning the knob to change scheme never resizes the picture |
+| 6 | cleared, for a fill change or a change of which screen | Turning off fill leaves cells around the edge that the picture no longer writes to, and those cells would keep their old characters permanently. A change of which screen a setting applies to needs a clear in **both** directions: switching the monitor off leaves the last picture sitting on the screen, and switching it back on leaves the "switched off" message underneath a picture that no longer covers every cell |
+| 7 | set_scheme, for a change of colour scheme | This is the expensive one, and it is the reason the knob gathers up its clicks before acting. Changing the scheme ends in repainting every single cell. On a monitor showing roughly 267 cells across and 100 down, that is about 26,700 cells repainted. So a five-click spin applied one click at a time meant five complete repaints, four of them showing pictures that were replaced before anybody could see them |
+| 8 | a flag set, so a frozen picture still produces one more | This closes the one gap in "the panel finds out with the next picture". While the picture is frozen there is no next picture. Without this flag, a setting changed during a freeze would sit invisible until somebody unfroze it |
+| 9 | nothing at all - it reads the description handed to it with the next picture | The panel receives the whole description with every picture, so a change reaches it without anything having to be pushed. There used to be a separate, smaller description naming just the eight settings the panel cared about. That meant every newly added setting had to be remembered in two places, and a setting forgotten in the second place would never announce itself. It would simply have no effect on the panel |
+| 10 | describe_changes written to the log, one line whoever asked | This is the single output of the entire exchange. It names the settings that moved together with their old and new values, rather than printing the whole description. It is also the check that the knob's gathering-up still works: a two-click move must produce exactly **one** line in the log, not two |
 
-No thread bands, and the reason is the substance of the document rather than an
-absence of one. Everything here happens on the render loop's thread because
-that is the only thread a setting may change on. The panel's thread is a
-participant that is deliberately never spoken to — the arrow to it carries
-nothing, which is exactly the design.
+There are no coloured thread bands here, and their absence is the substance of
+the document rather than an oversight. Everything happens on the drawing loop's
+thread, because that is the only thread on which a setting may change. The
+panel's thread appears in the diagram as a participant that is deliberately
+never spoken to. The arrow pointing at it carries nothing at all, and that
+emptiness is the design rather than a gap in it.
 
 ## Related scenarios
 
 - [A typed command updates the render configuration](a-typed-command-updates-the-render-configuration.md)
-  — the route in, and where `apply` calls this.
+  — the route in, and the place where the applying step calls this code.
 - [A render configuration change is refused](a-render-configuration-change-is-refused.md)
-  — what happens instead when the replacement config is never built, so none of
-  this runs and nothing is half-applied.
+  — what happens instead when the replacement description is never built at
+  all, so none of this runs and nothing is left half done.
 - [A rotary encoder detent changes the colour scheme](a-rotary-encoder-detent-changes-the-colour-scheme.md)
-  — why a banked move is applied as one change, given what a scheme change
-  costs here.
+  — why a gathered-up move is applied as a single change, given what a change
+  of scheme costs here.
 - [A frame reaches the SPI panel without stalling the render loop](a-frame-reaches-the-spi-panel-without-stalling-the-render-loop.md)
-  — the next frame, which is how the panel actually learns about all of this.
-- [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md) — the shortest route to
-  `apply`, and the one that passes `note=True`.
+  — the next picture, which is how the panel actually learns about any of this.
+- [A keypress updates the render configuration](a-keypress-updates-the-render-configuration.md)
+  — the shortest route to the applying step, and the one that asks for the
+  answer to be drawn on the picture.
 
 ### Footnotes
 
-[^config]: The **render configuration** is the complete live state of how the
-    picture is drawn — scheme, ramp, contrast, rotation and the rest. It is
-    frozen: nothing assigns to it, and every change produces a whole new
-    [`RenderConfig`](../../src/control/render_config.py#L118) through
-    [`with_changes`](../../src/control/render_config.py#L141), which is also
-    the only code that decides whether a value is allowed. What the settings
-    are, and what each accepts, is
-    [`SPECS`](../../src/control/render_config.py#L74) — one table that the
-    validator, the `help` text, the command-line arguments and the model's
-    tool schema are all built from.
+[^config]: The **render configuration** is the complete, current description of
+    how the picture should be drawn: which colour scheme, which ramp, how much
+    contrast, which way up, and so on. It is frozen, meaning no part of the
+    program ever alters one. Instead, every change produces an entirely new
+    [`RenderConfig`](../../src/control/render_config.py#L118) by way of
+    [`with_changes`](../../src/control/render_config.py#L141), which is also the
+    only code anywhere that decides whether a proposed value is allowed. The
+    list of settings, and what each one will accept, is
+    [`SPECS`](../../src/control/render_config.py#L74). That single table is what
+    the checking code, the `help` text, the command-line options and the
+    description given to the language model are all built from.
 
-[^invert]: The **invert** setting reverses the ramp, so bright pixels get the
-    dark end of it — white-on-black becomes black-on-white in effect. It
-    reverses the characters and deliberately leaves the position table alone,
-    which is how both displays stay in agreement about which glyph a brightness
-    deserves.
+[^invert]: The **invert** setting reverses the ramp, so that bright parts of the
+    scene are drawn with the dark end of the character sequence instead. In
+    effect it turns a light-on-dark picture into a dark-on-light one. It
+    reverses the characters and deliberately leaves the list of positions
+    untouched, which is how both screens stay in agreement about which
+    character a given brightness deserves.
 
-[^fill]: **fill** and **fit** are the two ways a 4:3 frame can be put into a
-    window that is not its shape. `fit` keeps the whole frame and shrinks the
-    grid to match it, so the window is left with blank cells around the
-    picture. `fill` makes the grid the whole window and crops the frame to
-    suit, so no cell is wasted and the frame's edges are lost. It is one of the
-    two settings that change the grid's shape rather than its appearance.
+[^fill]: **fill** and **fit** are the two ways of placing a picture into a space
+    that is not the same shape as the picture. The camera picture is four units
+    wide for every three units tall. Choosing `fit` keeps the whole picture and
+    shrinks the grid until it matches that shape, which leaves empty cells
+    around the picture. Choosing `fill` makes the grid occupy the whole space
+    and trims the picture to suit, so no cell is wasted but the edges of the
+    picture are lost. It is one of only two settings that change the shape of
+    the grid rather than merely its appearance.
 
-[^grid]: The **character grid** is the picture as this app holds it: `rows` by
-    `cols` character **cells** rather than pixels, each cell one character
-    chosen from the brightness of the patch of camera frame it covers.
-    [`to_grid`](../../src/capture/image_processor.py#L172) is what resizes a
-    plane to it. How big it is depends on where the picture is going — 64 by 24
-    on the SPI panel at the default font size, and whatever the window holds on
-    the HDMI terminal.
+[^grid]: The **character grid** is how this program holds a picture: as a
+    rectangle of character cells rather than of dots. Each cell is one
+    character, chosen according to how bright the patch of camera picture behind
+    it happens to be. [`to_grid`](../../src/capture/image_processor.py#L172) is
+    the code that reduces a picture to that grid. How many cells there are
+    depends on where the picture is being sent — 64 across and 24 down on the
+    small attached panel at the usual text size, and whatever fits the window
+    when the picture goes to an ordinary monitor instead.
 
-[^scheme]: A **colour scheme** is one of the nine named looks in
-    [`SCHEMES`](../../src/art/palettes.py#L79), and which one is live is part
-    of the render configuration. `grey` is the default, and is what "greyscale
-    mode" means: characters only, drawn from the luma plane and nothing else.
-    `live` is the only scheme that reads the chroma planes, through
-    [`colour_grid`](../../src/capture/image_processor.py#L187). The other seven
-    are **tints** — green phosphor, amber CRT, e-ink on paper — which recolour
-    the same greyscale picture from two fixed colours.
+[^scheme]: A **colour scheme** is one of the nine named looks listed in
+    [`SCHEMES`](../../src/art/palettes.py#L79). Which one is currently in use is
+    part of the program's render configuration, and the knob, a key press or a
+    typed command can all change it. The scheme called `grey` is the one the
+    program starts with, and it is what the phrase "greyscale mode" refers to:
+    characters only, worked out from the brightness part of the picture and
+    nothing else. Only the scheme called `live` reads the colour parts, through
+    [`colour_grid`](../../src/capture/image_processor.py#L187). The remaining
+    seven are tints, such as green phosphor, amber CRT and e-ink on paper. A
+    tint recolours the same greyscale picture using two fixed colours, so it
+    never looks at the colour parts either.
 
-[^panel]: The **SPI panel** is a 2.4 inch ILI9341 LCD, 240x320, wired to the
-    Pi's SPI bus — a four-wire serial bus for talking to peripherals — and
-    driven from userspace by [`ILI9341`](../../src/lcd/lcd.py#L47) with no
-    kernel driver behind it. In the sealed enclosure it is the only display
-    there is. One full frame is 153,600 bytes, sent in
-    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) pieces of 4 KB because that is what
-    the driver's buffer holds.
+[^panel]: The **SPI panel** is a small screen measuring 2.4 inches across the
+    diagonal, 240 dots by 320, using a controller chip called the ILI9341. It is
+    connected to the computer by a simple four-wire arrangement called SPI, which
+    is a common way of attaching small devices. It is driven entirely by the
+    program itself, through [`ILI9341`](../../src/lcd/lcd.py#L47), with no
+    separate system driver involved. In the sealed box this program is built
+    for, this panel is the only screen there is. One complete picture for it is
+    153,600 bytes, which has to be sent in pieces of 4 kilobytes each — see
+    [`SPI_CHUNK`](../../src/lcd/lcd.py#L44) — because that is as much as the
+    connection will accept at a time.
 
-[^detent]: A **detent** is one click of the knob — the position it settles
-    into, felt as a notch. Electrically it is one full cycle of the two
-    switches, which is what [`QuadratureDecoder`](../../src/control/encoder.py#L88)
-    counts. **Quadrature** is the arrangement: two switches a quarter-cycle
-    apart, so which one changes first says which way the knob turned, and
-    contact bounce that does not complete a cycle emits nothing.
+[^detent]: A **detent** is one click of the knob, meaning the position the knob
+    settles into and which can be felt as a notch under the fingers.
+    Electrically, one click is one complete cycle of the two switches inside the
+    knob, and counting those cycles is the job of
+    [`QuadratureDecoder`](../../src/control/encoder.py#L88). **Quadrature** is
+    the name for the arrangement of those two switches. They are positioned a
+    quarter of a cycle apart, so whichever of them changes first reveals which
+    way the knob was turned. A switch bouncing without completing a full cycle
+    produces nothing at all, which is exactly what is wanted.
 
-[^delta]: A **delta** is a plain dict of the settings a change means to alter —
-    `{"scheme": "amber"}` — and nothing else. Every route in builds one and
-    hands it to the configuration; none of them assigns a setting directly.
-    That is what keeps validation in one place no matter who asked.
+[^delta]: A **delta** is a plain list of the settings a change intends to alter,
+    paired with their new values, such as `{"scheme": "amber"}`, and nothing
+    else besides. Every way of asking for a change builds one of these and hands
+    it to the configuration. None of them ever sets a setting directly. That is
+    what keeps the checking in a single place no matter who did the asking.
 
-[^ramp]: A **ramp** is the string of characters the picture is drawn with,
-    ordered from lightest to darkest — ` .:-=+*#%@` is one. Brightness picks a
-    position along it, so the ramp is what decides how the picture looks before
-    any colour is involved. The named ones are in
-    [`RAMPS`](../../src/art/ascii_art.py#L17) and the setting chooses between
+[^ramp]: A **ramp** is the set of characters a picture is drawn with, arranged
+    in order from the one that looks lightest to the one that looks darkest.
+    The sequence ` .:-=+*#%@` is one example. A brightness value picks a
+    position along that sequence, so the choice of ramp decides how the picture
+    looks before any colour is involved at all. The named ramps are listed in
+    [`RAMPS`](../../src/art/ascii_art.py#L17), and a setting chooses between
     them.
 
-[^lut]: A **lookup table** trades arithmetic for memory: every possible input
-    is worked out once, in advance, and afterwards the answer is fetched rather
-    than computed. Brightness is a byte, so 256 entries covers every case. The
-    fetch is a numpy **gather** — one array operation that reads a whole grid
-    of values out of the table at once, with no Python loop over cells.
+[^lut]: A **lookup table** trades arithmetic for memory. Every answer that could
+    ever be needed is worked out once, in advance, and stored. Afterwards the
+    program fetches an answer instead of calculating one. A brightness value is
+    a single byte, so 256 entries is enough to cover every possible case. The
+    fetch itself is a single operation that reads a whole grid of answers out of
+    the table at once, rather than a loop that visits each cell in turn.
