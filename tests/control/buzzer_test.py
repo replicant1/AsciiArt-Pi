@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 """
-Check the start-up tune, without a buzzer and without making a sound.
+Check the tunes, without a buzzer, without a Pi and without making a sound.
 
     python3 tests/control/buzzer_test.py
 
 Nothing in software can hear a piezo, so what is checkable here is everything
-up to the air: which notes, in which order, for how long, at what duty, and
-that the pin is released afterwards. The last line of the run says what a human
-should hear, because that half cannot be automated and should not be claimed.
+up to the air: which notes, in which order, at what duty, that the two notes
+run into each other rather than being separate events, and that the channel is
+always left silent. The last line of the run says what a human should hear,
+because that half cannot be automated and should not be claimed.
 
-The double is a **fake, not a stub**: it refuses a zero frequency exactly as
-lgpio does, raising "bad PWM micros". That is not decoration. The first version
-of this tune stopped a note with `tx_pwm(..., 0, 0)`, which threw mid-tune and
-threw again inside the `finally` meant to clean up, leaving GPIO 13 claimed and
-driving. A fake that accepted 0 Hz would have been perfectly happy with the
-code that did that.
+The double is a **fake, not a stub**: it enforces the two rules the PWM driver
+enforces - a duty may not exceed the period, and a period may not be shrunk
+below the current duty. Both matter. `play` writes duty to zero before every
+period change precisely to stay inside the second one, and against a stub that
+accepted anything, a version with that line deleted would pass and then refuse
+the second note of any tune that more than doubles in pitch.
 """
 
 import logging
@@ -29,7 +30,6 @@ sys.path.insert(0, str(ROOT / "src"))
 from control import buzzer                            # noqa: E402
 
 failures = []
-skipped = []
 
 
 def check(label, got, want):
@@ -40,356 +40,207 @@ def check(label, got, want):
         failures.append(label)
 
 
-class FakeGpio:
+class FakeChannel:
     """
-    lgpio's observable behaviour, recorded rather than performed.
+    The PWM driver's observable behaviour, recorded rather than performed.
 
-    Honest about the two things that actually bit: a zero frequency raises, and
-    a pin has to be claimed before it can be written. Everything the module
-    does to it lands in `events` in order, which is the contract - the sound
-    itself is not reachable from here.
+    Honest about the two rules that actually bite, both of which are refusals
+    the real driver makes with EINVAL. Everything written lands in `events` in
+    order, which is the contract - the sound itself is not reachable from here.
     """
 
     def __init__(self, fail_on_note=None):
         self.events = []
-        self.slept = []
+        self.period = 0
+        self.duty = 0
+        self.periods_written = 0
         self.fail_on_note = fail_on_note
-        self.claimed = set()
-        self.notes_played = 0
 
-    # -- the lgpio surface this module uses -------------------------------
-    def gpiochip_open(self, chip):
-        self.events.append(("open", chip))
-        return 99                       # an arbitrary handle, as lgpio returns
+    def write(self, chip, channel, name, value):
+        value = int(value)
+        if name == "period":
+            if value < self.duty:
+                raise OSError(22, "Invalid argument")   # what the driver does
+            self.period = value
+            self.periods_written += 1
+            if self.periods_written == self.fail_on_note:
+                raise RuntimeError("the panel fell off")
+        elif name == "duty_cycle":
+            if value > self.period:
+                raise OSError(22, "Invalid argument")   # and the other way
+            self.duty = value
+        self.events.append((name, value))
 
-    def gpio_claim_output(self, handle, pin, level):
-        self.claimed.add(pin)
-        self.events.append(("claim", pin, level))
+    # -- readers the checks are written in terms of ------------------------
+    def periods(self):
+        return [v for n, v in self.events if n == "period"]
 
-    def tx_pwm(self, handle, pin, frequency, duty, offset=0, cycles=0):
-        if frequency == 0:
-            raise ValueError("bad PWM micros")        # what lgpio really does
-        if pin not in self.claimed:
-            raise ValueError(f"GPIO {pin} was never claimed as an output")
-        self.notes_played += 1
-        if self.notes_played == self.fail_on_note:
-            raise RuntimeError("the panel fell off")
-        self.events.append(("tone", pin, frequency, duty, cycles))
-
-    def gpio_write(self, handle, pin, level):
-        self.events.append(("write", pin, level))
-
-    def gpio_free(self, handle, pin):
-        self.claimed.discard(pin)
-        self.events.append(("free", pin))
-
-    def gpiochip_close(self, handle):
-        self.events.append(("close",))
+    def names(self):
+        return [n for n, _ in self.events]
 
 
-def without_sleeping(fn):
-    """Run `fn` with buzzer's sleep recording its argument instead of waiting."""
-    slept = []
-    real = buzzer.time.sleep
-    buzzer.time.sleep = slept.append
-    try:
-        fn()
-    finally:
-        buzzer.time.sleep = real
-    return slept
+def period_for(hz):
+    """What a frequency should become in the driver's nanoseconds."""
+    return round(1_000_000_000 / hz)
 
+
+# -- the tunes themselves ----------------------------------------------------
 
 def test_the_tune_is_two_notes_an_octave_apart():
-    """The tune itself, as data, before anything plays it."""
-    check("HELLO is 440 Hz then 880 Hz, a quarter second each",
-          buzzer.HELLO, ((440, 0.25), (880, 0.25)))
-    check("the second note is exactly an octave above the first",
-          buzzer.HELLO[1][0] / buzzer.HELLO[0][0], 2.0)
-    check("the duty is 50%, the loudest a square wave gets", buzzer.DUTY, 50)
-    check("and it plays on GPIO 13, the pin that reaches hardware PWM",
-          buzzer.PIN, 13)
+    print("\nthe greeting is two notes, an octave apart")
+    check("the greeting", buzzer.HELLO, ((440, 0.25), (880, 0.25)))
+    check("an octave apart", buzzer.HELLO[1][0], buzzer.HELLO[0][0] * 2)
+    check("half a second in total", buzzer.duration(buzzer.HELLO), 0.5)
 
 
 def test_goodbye_is_hello_backwards():
     """
-    Derived, not written out twice, so the pair cannot drift apart.
+    Derived, not written out, so the pair cannot drift apart.
 
-    Checked as a relationship rather than as a literal: asserting
-    `((880, 0.25), (440, 0.25))` would pass just as happily if someone changed
-    the greeting and left the farewell behind, which is the one way these two
-    can go wrong.
+    Checked against a reversal of HELLO rather than against a literal, so that
+    changing the greeting changes this expectation too - a literal here would
+    turn the derivation into a coincidence that a later edit could break.
     """
-    check("GOODBYE is HELLO reversed", buzzer.GOODBYE,
-          tuple(reversed(buzzer.HELLO)))
-    check("so it rises on the way in and falls on the way out",
-          (buzzer.HELLO[0][0] < buzzer.HELLO[1][0],
-           buzzer.GOODBYE[0][0] > buzzer.GOODBYE[1][0]), (True, True))
-    check("and both take the same half second",
-          (buzzer.duration(buzzer.HELLO), buzzer.duration(buzzer.GOODBYE)),
-          (0.5, 0.5))
+    print("\nthe farewell is the greeting reversed")
+    check("reversed", buzzer.GOODBYE, tuple(reversed(buzzer.HELLO)))
+    check("same length", buzzer.duration(buzzer.GOODBYE),
+          buzzer.duration(buzzer.HELLO))
 
 
-def test_goodbye_plays_the_notes_the_other_way_up():
-    """The farewell on the wire, cycle counts and all."""
-    fake = FakeGpio()
-    without_sleeping(lambda: buzzer.goodbye(gpio=fake))
-    check("880 Hz first, then 440, each still a quarter second",
-          [(e[2], e[4]) for e in fake.events if e[0] == "tone"],
-          [(880, 220), (440, 110)])
-    check("and the pin is handed back", fake.claimed, set())
+# -- what reaches the driver -------------------------------------------------
+
+def test_the_notes_become_the_right_periods():
+    print("\nthe notes reach the driver as the right periods")
+    fake = FakeChannel()
+    buzzer.hello(write=fake.write)
+    check("440 Hz then 880 Hz, in nanoseconds",
+          fake.periods(), [period_for(440), period_for(880)])
 
 
-def test_hello_drives_the_pin_in_the_right_order():
+def test_the_duty_is_half_the_period():
     """
-    The whole sequence, which is the only contract software can see.
+    50% is as loud as a square wave gets - above it the fundamental shrinks.
 
-    Written out in full rather than checked a property at a time: the order is
-    the part that matters - a tone before the claim, or a free before the last
-    note, is exactly the kind of fault that still makes a noise on the bench
-    and leaves the pin unusable for the next run.
+    Checked as a ratio of whatever period was written rather than as a
+    constant, so it stays a statement about duty and not about 440 Hz.
     """
-    fake = FakeGpio()
-    slept = without_sleeping(lambda: buzzer.hello(gpio=fake))
-    check("it opens the chip, claims 13, plays both notes, and hands it back",
-          fake.events,
-          [("open", 0),
-           ("claim", 13, 0),
-           ("tone", 13, 440, 50, 110),
-           ("tone", 13, 880, 50, 220),
-           ("write", 13, 0), ("free", 13), ("close",)])
-    # Each note waited out for its own length, from when it started. A shared
-    # deadline was tried and cut notes short: time already lost came out of the
-    # next note's wait, the wait reached zero, and the pin went low the instant
-    # the note began. [0.25, 0.5] here would be that bug.
-    check("and each note is waited out for its own length",
-          [round(x, 2) for x in slept], [0.25, 0.25])
+    print("\nthe duty is half of each period")
+    fake = FakeChannel()
+    buzzer.hello(write=fake.write)
+    duties = [v for n, v in fake.events if n == "duty_cycle" and v]
+    check("one non-zero duty per note", len(duties), 2)
+    check("each is half its period",
+          duties, [period_for(440) // 2, period_for(880) // 2])
 
 
-def test_the_note_length_is_lgpios_job_not_pythons():
+def test_the_duty_is_zeroed_before_every_period_change():
     """
-    The bug the user heard: a note stretched by 181 ms in the real app.
+    The ordering the driver insists on, and the reason `play` looks odd.
 
-    A note timed by `sleep` ends when the thread next runs, and the tune plays
-    during the busiest half second of start-up - the panel and the camera both
-    coming up on the main thread. Measured in the app, the first note was asked
-    for 250 ms and sounded for 431. Handing lgpio a cycle count moves the note's
-    end into C, where the GIL cannot reach it.
-
-    Checked as arithmetic rather than by timing anything: 440 Hz for a quarter
-    second is 110 cycles, and if that number is wrong the note is the wrong
-    length no matter how good the scheduler is.
+    A period may not be shrunk below the current duty. The greeting escapes
+    that by one nanosecond, so this check is written against the ordering
+    itself rather than against a tune that happens to expose it.
     """
-    fake = FakeGpio()
-    without_sleeping(lambda: buzzer.hello(gpio=fake))
-    cycles = [(e[2], e[4]) for e in fake.events if e[0] == "tone"]
-    check("each note is handed over as its own cycle count",
-          cycles, [(440, 110), (880, 220)])
-    for frequency, count in cycles:
-        check(f"and {count} cycles at {frequency} Hz really is a quarter second",
-              round(count / frequency, 4), 0.25)
+    print("\nduty goes to zero before each period")
+    fake = FakeChannel()
+    buzzer.hello(write=fake.write)
+    names = fake.names()
+    for i, name in enumerate(names):
+        if name == "period":
+            before = names[i - 1] if i else None
+            check(f"the write before period #{i} is a duty",
+                  before, "duty_cycle")
+    zeroed_before = [fake.events[i - 1][1] for i, n in enumerate(names)
+                     if n == "period"]
+    check("and every one of those duties was zero", zeroed_before, [0, 0])
 
 
-def test_a_late_wake_up_does_not_cut_the_next_note_short():
+def test_a_tune_that_doubles_in_pitch_still_plays():
     """
-    The second timing bug, and the one this test was previously blind to.
+    The check that makes the zeroing matter, using a tune that really needs it.
 
-    The note's end is a cycle count in C, so nothing in python needs to stop
-    it - and anything in python that *does* stop it can only stop it early. The
-    first version wrote the pin low after each note as a belt-and-braces
-    silence. When the thread woke late, `remaining` went negative, the sleep
-    was skipped, and that write landed immediately after tx_pwm: the note was
-    cut before a single cycle of it sounded. At boot, where the pi is at its
-    busiest and the thread is descheduled for longer than a note lasts, the
-    two-note tune came out as one note.
-
-    `without_sleeping` makes every wait return instantly, which is the extreme
-    of that lateness - so if a write can cut a note, it does it here.
-
-    The old expected-events list asserted a write after each note, which is to
-    say it asserted the bug. That is the trap this file is otherwise careful
-    about: a test written from the behaviour rather than from the requirement
-    passes for as long as the behaviour stays wrong.
+    440 Hz to 1760 Hz shrinks the period below the old duty. Without the
+    zeroing the driver refuses the second note - so delete that line and this
+    is the check that fails, where the greeting's own notes would not notice.
     """
-    fake = FakeGpio()
-    without_sleeping(lambda: buzzer.hello(gpio=fake))
-    check("no write ever lands between two notes",
-          [kind for kind, *_ in fake.events],
-          ["open", "claim", "tone", "tone", "write", "free", "close"])
-
-
-def test_a_note_that_fails_still_hands_the_pin_back():
-    """
-    The failure that actually happened, and the reason the finally is there.
-
-    A tone raising mid-tune must not leave GPIO 13 claimed and driving: the
-    next run would fail to start, which is a worse fault than a missing beep
-    and a far more confusing one.
-    """
-    fake = FakeGpio(fail_on_note=2)
+    print("\na tune that more than doubles in pitch still plays")
+    fake = FakeChannel()
+    raised = None
     try:
-        buzzer.hello(gpio=fake)
-    except RuntimeError:
-        pass
-    else:
-        check("the second note raised", "no exception", "RuntimeError")
-    check("the pin is freed even when a note raises", fake.claimed, set())
-    check("and the chip is closed", fake.events[-1], ("close",))
-    check("and it was driven low on the way out", fake.events[-3], ("write", 13, 0))
+        buzzer.play(((440, 0.01), (1760, 0.01)), write=fake.write)
+    except Exception as e:                          # noqa: BLE001
+        raised = f"{type(e).__name__}: {e}"
+    check("nothing was refused", raised, None)
+    check("both notes reached the driver",
+          fake.periods(), [period_for(440), period_for(1760)])
 
 
-def test_a_zero_frequency_is_never_asked_for():
+def test_the_notes_run_into_each_other():
     """
-    lgpio raises on 0 Hz, so silence has to be a write rather than a frequency.
+    One gesture, not two events: `enable` is never turned off mid-tune.
 
-    The fake enforces this by raising, so the check is that the tune completes
-    at all - but assert it explicitly too, because a future edit could stop a
-    note some other way and this names what is wrong with 0.
+    This is the audible difference the child process bought, kept honest here:
+    a version that disabled between notes would put a gap back in by
+    construction rather than by bad luck.
     """
-    fake = FakeGpio()
-    without_sleeping(lambda: buzzer.hello(gpio=fake))
-    frequencies = [e[2] for e in fake.events if e[0] == "tone"]
-    check("every frequency handed to tx_pwm is a real one", frequencies,
-          [440, 880])
-    check("and the pin is driven low exactly once, on the way out",
-          [e for e in fake.events if e[0] == "write"], [("write", 13, 0)])
+    print("\nthe two notes are one continuous sound")
+    fake = FakeChannel()
+    buzzer.hello(write=fake.write)
+    enables = [v for n, v in fake.events if n == "enable"]
+    check("on, on, then off at the end", enables, [1, 1, 0])
+    # the last enable is the only zero
+    check("nothing was silenced mid-tune", enables[:-1], [1, 1])
+
+
+def test_the_channel_is_left_silent():
+    print("\nthe channel is left silent")
+    fake = FakeChannel()
+    buzzer.hello(write=fake.write)
+    check("the last two writes are duty 0 then enable 0",
+          fake.events[-2:], [("duty_cycle", 0), ("enable", 0)])
+
+
+def test_a_note_that_fails_still_silences_the_channel():
+    """
+    The `finally`, with a driver that dies in the middle of the tune.
+
+    A buzzer stuck on is worse than a buzzer that never sounded, because it
+    does not stop when the app does.
+    """
+    print("\na note that fails still leaves the channel silent")
+    fake = FakeChannel(fail_on_note=2)
+    raised = None
+    try:
+        buzzer.hello(write=fake.write)
+    except Exception as e:                          # noqa: BLE001
+        raised = type(e).__name__
+    check("the failure reached the caller", raised, "RuntimeError")
+    check("and the channel was silenced anyway",
+          fake.events[-2:], [("duty_cycle", 0), ("enable", 0)])
 
 
 def test_play_takes_any_tune():
-    """`hello` is one tune, not the only one the module can play."""
-    fake = FakeGpio()
-    slept = without_sleeping(
-        lambda: buzzer.play(((100, 0.1), (200, 0.2), (300, 0.3)), gpio=fake))
-    check("three notes go out in the order given",
-          [(e[2], e[3]) for e in fake.events if e[0] == "tone"],
-          [(100, 50), (200, 50), (300, 50)])
-    check("each with its own cycle count",
-          [e[4] for e in fake.events if e[0] == "tone"], [10, 40, 90])
-    check("and its own wait", [round(x, 2) for x in slept], [0.1, 0.2, 0.3])
+    print("\nplay takes any tune, not just the two named ones")
+    fake = FakeChannel()
+    buzzer.play(((262, 0.01), (330, 0.01), (392, 0.01)), write=fake.write)
+    check("three notes", fake.periods(),
+          [period_for(262), period_for(330), period_for(392)])
 
 
-def test_start_up_does_not_wait_for_the_tune():
+def test_the_pin_and_channel_are_the_wired_ones():
     """
-    The point of the thread: start-up carries on while the tune is playing.
+    GPIO 13 is PWM1, and that mapping is made in config.txt.
 
-    Gated rather than timed. A fake that blocks inside the first note lets this
-    assert that `in_background` had already returned *while the note was still
-    sounding*, which is the actual claim - where "it returned in under 50 ms"
-    would pass on a machine that was merely fast, and flake on one that was
-    busy.
+    A silent repin would leave the buzzer dead with every other check green,
+    because they all read the channel from the module they are testing.
     """
-    sounding = threading.Event()
-    release = threading.Event()
-
-    class GatedGpio(FakeGpio):
-        def tx_pwm(self, handle, pin, frequency, duty, offset=0, cycles=0):
-            super().tx_pwm(handle, pin, frequency, duty, offset, cycles)
-            sounding.set()
-            release.wait(5)
-
-    fake = GatedGpio()
-    thread = buzzer.in_background(gpio=fake)
-    check("the first note is sounding", sounding.wait(5), True)
-    check("and the caller already has control back while it sounds",
-          thread.is_alive(), True)
-    check("on a thread that cannot hold the process open", thread.daemon, True)
-    release.set()
-    thread.join(5)
-    check("the tune finishes on its own", thread.is_alive(), False)
-    check("and the pin is handed back without the caller doing anything",
-          fake.claimed, set())
+    print("\nthe pin and channel are the wired ones")
+    check("PIN", buzzer.PIN, 13)
+    check("CHANNEL", buzzer.CHANNEL, 1)
+    check("chip path", buzzer.PWMCHIP, "/sys/class/pwm/pwmchip0")
 
 
-def test_a_failure_on_the_thread_stays_on_the_thread():
-    """
-    Nothing is left to raise to once the caller has moved on.
-
-    A tune that dies must log and stop, not kill a thread with an unhandled
-    traceback in a process whose whole job is to keep drawing.
-    """
-    fake = FakeGpio(fail_on_note=1)
-    thread = buzzer.in_background(gpio=fake)
-    thread.join(5)
-    check("the thread ends rather than hanging", thread.is_alive(), False)
-    check("and the pin is still handed back", fake.claimed, set())
-
-
-def test_the_shutdown_waits_for_its_tune():
-    """
-    The farewell is waited for, where the greeting is not.
-
-    Gated the same way round as the start-up check, and asserting the opposite:
-    there, the caller had control back while the note was sounding; here it must
-    still be inside `goodbye` until the tune is done. Timing would not settle
-    this - a fast machine finishes the tune before anyone can look.
-
-    The app no longer calls this; deploy/asciiart.shutdown does, after systemd
-    has stopped everything else. The blocking behaviour still has to hold,
-    because a shutdown hook that returns before its tune has played would let
-    the kernel halt over the top of it.
-    """
-    sounding = threading.Event()
-    release = threading.Event()
-
-    class GatedGpio(FakeGpio):
-        def tx_pwm(self, handle, pin, frequency, duty, offset=0, cycles=0):
-            super().tx_pwm(handle, pin, frequency, duty, offset, cycles)
-            sounding.set()
-            release.wait(5)
-
-    fake = GatedGpio()
-    returned = threading.Event()
-
-    def farewell():
-        buzzer.goodbye(gpio=fake)
-        returned.set()
-
-    caller = threading.Thread(target=farewell, daemon=True)
-    caller.start()
-    check("the first note is sounding", sounding.wait(5), True)
-    check("and the caller has NOT returned while it sounds",
-          returned.is_set(), False)
-    release.set()
-    check("it returns once the tune is done", returned.wait(5), True)
-
-
-def test_the_app_survives_a_buzzer_that_is_not_there():
-    """
-    A missing buzzer must not stop the picture.
-
-    This is the consequence that matters at the enclosure: the tune is a
-    courtesy, the picture is the point. `_say_hello` is called with a bare
-    object because it touches nothing on self - if that stops being true, this
-    fails loudly and the test needs rewriting rather than deleting.
-    """
-    sys.path.insert(0, str(ROOT))
-    try:
-        import ascii_camera                            # noqa: E402
-    except ModuleNotFoundError as e:
-        # ascii_camera pulls in PIL, which lives only on the Pi. Announced
-        # rather than passed: a check that quietly skips reads exactly like a
-        # check that ran, and this is the one that covers the app itself.
-        print(f"  [SKIP] a buzzer that raises is logged, not propagated  -- "
-              f"needs the Pi ({e.name} is not installed here)")
-        skipped.append("a buzzer that raises is logged, not propagated")
-        return
-
-    real = ascii_camera.buzzer
-
-    class Broken:
-        @staticmethod
-        def in_background(*a, **kw):
-            raise OSError("no such device")
-
-    ascii_camera.buzzer = Broken
-    try:
-        ascii_camera.MainRenderLooper._say_hello(object())
-        survived = True
-    except Exception as e:                             # noqa: BLE001
-        survived = f"{type(e).__name__}: {e}"
-    finally:
-        ascii_camera.buzzer = real
-    check("a buzzer that raises is logged, not propagated", survived, True)
-
+# -- how start-up plays it ---------------------------------------------------
 
 class FakePopen:
     """
@@ -423,9 +274,9 @@ def test_the_tune_is_played_by_a_child_not_a_thread():
     """
     The greeting is spawned as its own interpreter running buzzer.py.
 
-    The point of the change: a child has its own GIL, so the half second in
-    which the app is bringing up libcamera and the panel cannot pull the two
-    notes apart.
+    A child has its own GIL, so the half second in which the app is bringing up
+    libcamera and the panel cannot pull the two notes apart. On a thread it
+    did, audibly.
     """
     print("\nthe greeting is played by a child process")
     FakePopen.spawned = []
@@ -433,8 +284,7 @@ def test_the_tune_is_played_by_a_child_not_a_thread():
                               popen=FakePopen)
     check("one child spawned", len(FakePopen.spawned), 1)
     check("the interpreter is the one asked for", child.argv[0], "/usr/bin/python3")
-    check("it runs buzzer.py itself",
-          Path(child.argv[1]).name, "buzzer.py")
+    check("it runs buzzer.py itself", Path(child.argv[1]).name, "buzzer.py")
     check("the script it names exists", Path(child.argv[1]).is_file(), True)
     child.finish()
 
@@ -445,7 +295,7 @@ def test_start_up_does_not_wait_for_the_child():
 
     The fake's `wait` blocks until told to finish, so a version that waited for
     the child would hang here rather than fail quietly - and the elapsed time
-    is checked as well, so a fake that stopped blocking could not hide it.
+    is checked too, so a fake that stopped blocking could not hide it.
     """
     print("\nstart-up does not wait for the child")
     FakePopen.spawned = []
@@ -460,7 +310,7 @@ def test_start_up_does_not_wait_for_the_child():
 
 def test_a_child_that_fails_is_logged_not_raised():
     """
-    A non-zero exit is noticed, and noticed *somewhere* - the reaping thread.
+    A non-zero exit is noticed, and noticed somewhere - the reaping thread.
 
     Without the reaper the child stays a zombie and its exit code is seen by
     nobody, which is how a buzzer that stopped working would look exactly like
@@ -487,45 +337,63 @@ def test_a_child_that_fails_is_logged_not_raised():
 
     check("the non-zero exit was logged",
           any("exited with 3" in r for r in records), True)
-    check("nothing was raised at the caller", True, True)
+
+
+def test_a_failure_on_the_thread_stays_on_the_thread():
+    """
+    in_background is kept for callers not fighting the GIL, and still must not
+    take the app down when the buzzer is missing.
+    """
+    print("\na failure inside in_background stays there")
+    fake = FakeChannel(fail_on_note=1)
+    raised = None
+    thread = None
+    try:
+        thread = buzzer.in_background(write=fake.write, name="Test tune")
+    except Exception as e:                          # noqa: BLE001
+        raised = type(e).__name__
+    check("nothing reached the caller", raised, None)
+    if thread is not None:
+        thread.join(5)
+        check("the thread finished rather than hanging", thread.is_alive(), False)
+        check("and the channel was still silenced",
+              fake.events[-2:], [("duty_cycle", 0), ("enable", 0)])
 
 
 def main():
-    print("the start-up tune")
     print("=" * 66)
+    print("Buzzer - the tunes, with no Pi and no sound")
+    print("=" * 66)
+
     test_the_tune_is_two_notes_an_octave_apart()
     test_goodbye_is_hello_backwards()
-    test_goodbye_plays_the_notes_the_other_way_up()
-    test_hello_drives_the_pin_in_the_right_order()
-    test_the_note_length_is_lgpios_job_not_pythons()
-    test_a_late_wake_up_does_not_cut_the_next_note_short()
-    test_a_note_that_fails_still_hands_the_pin_back()
-    test_a_zero_frequency_is_never_asked_for()
+    test_the_notes_become_the_right_periods()
+    test_the_duty_is_half_the_period()
+    test_the_duty_is_zeroed_before_every_period_change()
+    test_a_tune_that_doubles_in_pitch_still_plays()
+    test_the_notes_run_into_each_other()
+    test_the_channel_is_left_silent()
+    test_a_note_that_fails_still_silences_the_channel()
     test_play_takes_any_tune()
-    test_start_up_does_not_wait_for_the_tune()
-    test_the_shutdown_waits_for_its_tune()
-    test_a_failure_on_the_thread_stays_on_the_thread()
-    test_the_app_survives_a_buzzer_that_is_not_there()
+    test_the_pin_and_channel_are_the_wired_ones()
     test_the_tune_is_played_by_a_child_not_a_thread()
     test_start_up_does_not_wait_for_the_child()
     test_a_child_that_fails_is_logged_not_raised()
+    test_a_failure_on_the_thread_stays_on_the_thread()
 
     print("\n" + "=" * 66)
-    if skipped:
-        print(f"{len(skipped)} check(s) skipped, needing the Pi: "
-              + ", ".join(skipped))
     if failures:
         print(f"RESULT: {len(failures)} CHECK(S) FAILED")
         for name in failures:
             print(f"  - {name}")
         return 1
-    print("RESULT: the tune is the right notes, in the right order, it does "
-          "not hold up start-up,")
-    print("        and the pin is always handed back.")
+    print("RESULT: the right notes reach the driver as the right periods, at "
+          "half duty, running")
+    print("        into each other, and the channel is always left silent.")
     print("        Nothing here can hear it. On the real buzzer it should be "
           "two short notes,")
-    print("        the second an octave above the first - "
-          "`python3 src/control/buzzer.py` to listen.")
+    print("        the second an octave above the first, with no gap - "
+          "`python3 src/control/buzzer.py`.")
     return 0
 
 
