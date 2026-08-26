@@ -65,7 +65,8 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             language/shortcuts_test.py language/asklog_test.py
             language/resolver_test.py
             docs/__init__.py docs/module_map_test.py
-            docs/docs_links_test.py docs/class_map_test.py)
+            docs/docs_links_test.py docs/class_map_test.py
+            deploy/setup_test.py)
 # README.md links to these, so they are kept alongside rather than repo-only:
 # otherwise the two copies of the README would reference files that exist on one
 # side and not the other.

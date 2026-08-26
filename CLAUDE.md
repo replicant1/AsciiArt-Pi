@@ -428,8 +428,19 @@ existing "gpio=18=op,dl" that holds the panel backlight off.
 ### What this machine needs that git does NOT have
 
 Everything in src/, tests/, tools/, docs/ and deploy/ is in the repository and
-comes back from a clone. The following is machine state, is recorded nowhere,
-and would have to be redone by hand after a reimage. Audited 26 Aug 2026.
+comes back from a clone. The following is machine state, is recorded in no file
+that git tracks, and would have to be redone by hand after a reimage. Audited
+26 Aug 2026.
+
+**deploy/setup.sh checks all of it**, which is the practical answer to this
+whole section - run it first on any machine that is behaving oddly:
+
+    bash deploy/setup.sh              # check everything; install missing packages
+    bash deploy/setup.sh --fix        # ...and add missing config.txt lines and groups
+    bash deploy/setup.sh --boot-only  # just config.txt and groups; no apt, no camera
+
+It exits non-zero when something is missing, so it is usable as a check rather
+than only as a thing to read.
 
 **/boot/firmware/config.txt is the important one.** Nothing tracks it, nothing
 syncs it, and four of its lines are load-bearing for this project:
@@ -447,10 +458,11 @@ pre-PWM file is saved on the Pi as /boot/firmware/config.txt.bak-prepwm.
 script in the repo adds. Without them the app needs root, which the service
 deliberately does not use.
 
-**Packages deploy/setup.sh does not check.** It checks numpy, PIL, picamera2
-and curses. It does NOT check lgpio, spidev, evdev, RPi.GPIO or gpiozero, all
-of which are imported by code in src/ and all of which are present here. It also
-says nothing about config.txt or the groups above.
+**The python modules.** numpy, PIL, picamera2, curses, lgpio, spidev, evdev,
+RPi.GPIO and gpiozero. setup.sh checks all nine and installs any that are
+missing; for months it checked only the first four, while the panel, the
+encoder, the buzzer and the input simulation quietly depended on the rest - so a
+fresh machine passed setup and then failed at run time.
 
 **Whether the services are enabled.** deploy/ascii-camera.service and
 deploy/ascii-camera-web.service are both in git and both currently enabled, but
