@@ -106,6 +106,34 @@ between them is crossed exactly once, in one direction only, by a single
 message. Everything on the right of that boundary is allowed to be slow.
 Nothing on the left of it ever waits for anything.
 
+### The protection only runs one way
+
+It is worth being exact about what this arrangement does and does not promise,
+because it is easy to assume it protects both screens equally. It does not.
+
+If the **panel** falls behind, the drawing loop is entirely unaffected. Handing
+over a picture cannot pause and cannot fail, and a picture the panel has not
+collected is simply replaced by a newer one. The panel then draws fewer pictures
+than the camera produced, and nothing else in the program notices or cares.
+
+If the **monitor** falls behind, the situation is not symmetrical. Building a
+monitor picture happens on the drawing loop's own thread, so a slow monitor
+makes the whole loop slow. The panel is handed a picture once per turn of that
+loop. So a slow monitor gives the panel fewer pictures as well. **The panel
+cannot run faster than the loop that feeds it.**
+
+That asymmetry is not an oversight, and it is easier to see once the sizes are
+compared. The panel draws 1,536 cells. A monitor filling this Pi's screen draws
+roughly 26,700, which is about seventeen times as many. The panel's cost is
+mostly *waiting* on the wire, and waiting overlaps with other work. The
+monitor's cost is *calculation*, and calculation does not overlap. So the
+monitor is by far the more likely of the two to fall behind, despite the panel
+being the one attached to the slow connection.
+
+Inside the sealed box none of this arises, because the program is started with
+no monitor at all. There is no monitor picture to build, so the loop's only
+work is the path leading to the panel.
+
 ## Related scenarios
 
 - [A capture thread hands the render loop its newest frame through a one-slot queue](a-capture-thread-hands-the-render-loop-its-newest-frame-through-a-one-slot-queue.md)
