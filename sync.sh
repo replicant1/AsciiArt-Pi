@@ -43,6 +43,7 @@ SRC_FILES=(version.py
            control/args.py
            control/command_server.py control/web_server.py control/encoder.py
            control/scheme_cycle.py control/buzzer.py
+           control/power_led.py
            language/__init__.py language/parser.py language/shortcuts.py
            language/asklog.py language/resolver.py)
 TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
@@ -57,7 +58,7 @@ TEST_FILES=(capture/__init__.py capture/bench_pipeline.py
             control/__init__.py control/render_config_test.py
             control/commands_test.py control/keymap_test.py
             control/encoder_test.py control/web_server_test.py
-            control/buzzer_test.py
+            control/buzzer_test.py control/power_led_test.py
             language/__init__.py language/parser_test.py
             language/parser_eval.py language/eval_cases.json
             language/shortcuts_test.py language/asklog_test.py

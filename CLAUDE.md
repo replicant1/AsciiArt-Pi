@@ -183,6 +183,45 @@ Performance facts measured on this Pi, worth not rediscovering:
 - Font sizes 6, 8 and 9 (DejaVu Sans Mono) each tile 320x240 exactly AND give a character grid whose on-screen aspect is exactly 4:3, matching the camera - so filling the panel crops nothing. They give 80x30, 64x24 and 64x20 respectively. 8 is the default.
 - The font size can be changed live with the l key, which rebuilds the glyph atlas on the LCD worker's own thread. Measured over eleven rebuilds: 168 ms for the first, then 13-24 ms. The first is an order of magnitude worse, most likely the font file being read from disk once and found in the page cache after - inferred from the shape of the numbers, not measured. Not a per-frame cost: it happens only on a ramp, invert or font-size change. The rebuild must zero the frame buffer, because a larger font gives a SMALLER picture and nothing ever writes to the margin it no longer reaches; tests/lcd/lcd_font_size_test.py checks that on the real panel.
 
+**The backlight comes back on when the machine halts, and no software prevents
+it.** Measured by a real poweroff on 26 Aug 2026, which is the only way to find
+out - a dry run of the shutdown hook cannot answer it, because the question is
+what the firmware does after the kernel has gone.
+
+At halt the pads revert to inputs. This module fits its OWN pull-up on LED/BL,
+strong enough to light the panel, so the backlight comes on after everything
+else has stopped and stays lit until the next boot. deploy/asciiart.shutdown
+drives GPIO 18 low and deliberately never frees it, and that holds right up to
+the halt and not one moment further. The step is still worth having - it keeps
+the panel dark through the shutdown itself, which is when anyone is watching -
+but it cannot outlive the kernel.
+
+Pressing the GPIO 3 button puts it out again, because "gpio=18=op,dl" in
+config.txt is applied early in boot. So the lit window is exactly halt to next
+power-on, the whole of which the machine is off.
+
+Contrast GPIO 4, which sits through the same halt and stays dark: it falls back
+on the CHIP's internal pull-up of roughly 50 kohm, which passes microamps and
+cannot light an LED, where GPIO 18 falls back on the MODULE's pull-up, which
+can. Same behaviour, opposite outcome, and that asymmetry is the only reason
+the power LED works at all.
+
+gpio-poweroff is the one overlay that can hold a pin through halt, and
+/boot/firmware/overlays/README rules it out three ways: it "interferes with the
+normal power-down sequence, preventing the kernel from resetting the SoC", it
+REQUIRES an external mechanism to cut the supply or the result is "a kernel BUG,
+increased power consumption and undefined behaviour", and it disables booting by
+driving GPIO 3 low - this box's only power switch. Note the mechanism, because
+it is easy to get backwards: the overlay does not itself drive GPIO 3 low, it
+disables that boot trigger. The docstring in deploy/asciiart.shutdown states the
+former and is wrong on that detail.
+
+The only real fix is hardware - a pull-down on BL, something like 1 kohm, so the
+default state is dark and GPIO 18 can still drive it high at about 3 mA. NOT
+fitted, and the value wants measuring against the module's actual pull-up rather
+than guessing. Left alone on purpose: the panel is lit only while the machine is
+off, which is a cosmetic complaint about a box nobody is looking at.
+
 A caution learned here: synthetic keypresses via piinput proved unreliable for toggling app settings during this work - the first keystroke after creating the device was dropped, and later ones were delivered twice, silently toggling a setting on and back off. Prefer launching the app with the command-line flag you want to test; it is deterministic. See also the piinput gotchas above.
 
 ### The KY-040 rotary encoder
@@ -209,6 +248,97 @@ Which direction is "forwards" cannot be derived - it depends on which pin was ca
 Only counts survive between frames, not the order events happened in, so a turn and a press in the same frame gap cannot be told apart from a press and a turn. The press wins and the rotation is dropped: it is the answer that can be checked by looking, since it is the same wherever the knob had got to, and it costs one repaint rather than two.
 
 Do NOT benchmark or restart the app while the user is testing the knob by hand. Doing that here produced a confident "turning the encoder has no visible effect" report from the user, because the benchmark had just relaunched the app WITHOUT --encoder. Get the user's verification first, then measure.
+
+### The GPIO 4 indicator LED
+
+A discrete LED sits on GPIO 4, fed through a 220 ohm resistor. It is the fourth
+piece of hardware, alongside the camera, the SPI panel and the encoder, and it
+is the box's power light: lit at start-up, out when the machine stops.
+
+    GPIO 4 -> 220 ohm resistor -> LED anode ... LED cathode -> GND
+
+So it is active HIGH: driving the pin high lights it. The resistor is an
+Adafruit 2780, 220 ohm 5% 1/4 W carbon film, banded red-red-brown-gold.
+
+Current is comfortable. A red LED (Vf about 1.9 V) draws roughly 6.4 mA from the
+3.3 V rail through 220 ohm; a green, blue or white one (Vf about 3.0 V) draws
+nearer 1.4 mA. Pi GPIO pins default to 8 mA drive strength, with 16 mA the
+per-pin ceiling and about 50 mA across all pins together, so even the worst case
+here sits under the default drive. Do not reach for a smaller resistor without
+redoing that arithmetic: 22 ohm is one colour band away from 220 ohm
+(red-red-black-gold) and would pull about 64 mA, well past the point where the
+pin is damaged.
+
+It is lit by the app and put out by the shutdown hook, which is a deliberately
+lopsided pair:
+
+    src/control/power_led.py              on() and off(); one pin, nothing else
+    ascii_camera.py                       _light_the_power_led(), called from
+                                          run() beside the greeting
+    deploy/asciiart.shutdown              douse_the_power_led(), just before the
+                                          goodbye tune
+    tests/control/power_led_test.py       pin handling, no Pi and no LED needed
+
+The asymmetry is the design. **GPIO 4 keeps its level after the process that
+set it exits** - measured three ways on this Pi, and true even after gpio_free,
+which does NOT hand the pad back to being an input. So the app sets the pin and
+walks away; nothing holds it for the hours in between, and the light survives
+the app being restarted, killed or stopped for a test. That is what makes it a
+power LED rather than an "ascii_camera is running" LED. Note this is the
+opposite of GPIO 18, where releasing the pin lets the panel module's own pull-up
+relight the backlight - the two pins behave differently and confusing them costs
+an afternoon.
+
+Only a real poweroff or halt puts it out. A reboot is left alone on purpose: the
+hook returns early, and the pad resets itself on the way back up, so GPIO 4
+comes back as an input with the chip's pull-up (microamps, invisible) and the
+app relights it within seconds.
+
+Confirmed end to end by a real poweroff on 26 Aug 2026: the LED lights with the
+greeting, stays lit while the app is stopped, goes out before the goodbye tune,
+STAYS out through the kernel halting, and is relit by the app on the next boot.
+The panel backlight does not survive the same halt - see the ILI9341 section for
+why two pins treated the same way come out differently.
+
+Gotcha: the shutdown hook is INSTALLED AS A COPY, not a symlink. Editing
+deploy/asciiart.shutdown does nothing to what systemd actually runs until
+"bash deploy/install_shutdown_hook.sh" is run again. Verify with a diff against
+/usr/lib/systemd/system-shutdown/asciiart.shutdown rather than assuming.
+
+GPIO 4 is free on this Pi, but it is not free by default on every Pi, and the
+collision is easy to miss. "dtoverlay=w1-gpio" puts 1-Wire on GPIO 4 unless told
+otherwise; this config.txt does not enable it. "dtoverlay=gpio-shutdown", which
+IS enabled here, defaults to GPIO 3, not 4. Check both before assuming the pin
+is available after any config.txt change.
+
+**Verifying it needs a human, for the same reason the SPI panel does.** grim
+photographs the Wayland/HDMI output and the LED is not in it. Worse, the obvious
+passive check does not work either: an LED below its forward voltage is
+essentially an open circuit, so "correctly wired" and "not connected at all"
+look almost identical to the internal pulls. Measured here, with the LED already
+in circuit:
+
+    pinctrl set 4 ip pu ; pinctrl get 4   ->  hi
+    pinctrl set 4 ip pd ; pinctrl get 4   ->  lo
+
+which is exactly what an unconnected pin does. The internal pull-up is around
+50 kohm and could not pass enough current to bring this LED near Vf, so the pin
+stayed high. (That the pull-up failed to drag it down suggests a higher-Vf LED -
+green, blue or white rather than red. Inferred from the threshold, not measured.)
+
+The check that does work is to drive the pin and look. Steady on/off answers it
+in one bit, but if the LED's polarity is in question, a lopsided duty cycle
+reads correctly at a glance where a plain blink does not - a 50/50 blink looks
+identical whichever way round the LED is wired, only the phase differs. Hold the
+pin high 90% of the time for ten seconds, then low 90% for ten seconds:
+active-high wiring shows mostly-on-with-brief-blips followed by
+mostly-off-with-brief-flashes, and active-low shows the reverse. "It flashed"
+is NOT an answer to the polarity question; insist on which window was bright.
+
+State across a reboot: GPIO 4 returns to input with a pull-up, which leaves the
+LED dark (the pull-up passes microamps). If it ever needs to be guaranteed off
+from the first instant of boot, add "gpio=4=op,dl" to config.txt next to the
+existing "gpio=18=op,dl" that holds the panel backlight off.
 
 ### Installing packages on the Pi (low memory)
 
@@ -281,3 +411,8 @@ Check the ILI9341 panel is alive (colour bars, needs a human to confirm): python
 Launch it with the rotary encoder cycling the colour schemes: bash /home/rod/Projects/AsciiArt/run_ascii_camera.sh fit --lcd --encoder
 Find which GPIO pins the rotary encoder is on (needs a human to turn the knob): python3 /home/rod/Projects/AsciiArt/tools/hardware/probe_encoder.py
 Check the rotary encoder decode without any hardware: python3 /home/rod/Projects/AsciiArt/tests/control/encoder_test.py
+Light the GPIO 4 LED (needs a human to look - grim cannot see it): /Users/rodneybailey/run_on_pi.sh "pinctrl set 4 op dh"
+Switch the GPIO 4 LED off again: /Users/rodneybailey/run_on_pi.sh "pinctrl set 4 op dl"
+See what GPIO 4 is currently doing: /Users/rodneybailey/run_on_pi.sh "pinctrl get 4"
+Light or extinguish the power LED by hand: python3 /home/rod/Projects/AsciiArt/src/control/power_led.py [--off]
+Check the power LED logic without any hardware: python3 /home/rod/Projects/AsciiArt/tests/control/power_led_test.py
