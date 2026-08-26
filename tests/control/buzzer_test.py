@@ -17,6 +17,7 @@ driving. A fake that accepted 0 Hz would have been perfectly happy with the
 code that did that.
 """
 
+import logging
 import sys
 import threading
 import time
@@ -390,6 +391,105 @@ def test_the_app_survives_a_buzzer_that_is_not_there():
     check("a buzzer that raises is logged, not propagated", survived, True)
 
 
+class FakePopen:
+    """
+    subprocess.Popen's observable behaviour, recorded rather than performed.
+
+    Honest about the one thing that matters to the caller: the child is not
+    finished when the call returns. `wait` blocks until `finish` is called, so
+    a test can prove start-up carried on while the tune was still playing -
+    which a fake returning instantly could not distinguish from the blocking
+    version it replaced.
+    """
+
+    spawned = []
+
+    def __init__(self, argv, stdout=None, stderr=None):
+        self.argv = argv
+        self.code = None
+        self.done = threading.Event()
+        FakePopen.spawned.append(self)
+
+    def wait(self):
+        self.done.wait(5)
+        return self.code
+
+    def finish(self, code=0):
+        self.code = code
+        self.done.set()
+
+
+def test_the_tune_is_played_by_a_child_not_a_thread():
+    """
+    The greeting is spawned as its own interpreter running buzzer.py.
+
+    The point of the change: a child has its own GIL, so the half second in
+    which the app is bringing up libcamera and the panel cannot pull the two
+    notes apart.
+    """
+    print("\nthe greeting is played by a child process")
+    FakePopen.spawned = []
+    child = buzzer.in_process(name="Start-up tune", python="/usr/bin/python3",
+                              popen=FakePopen)
+    check("one child spawned", len(FakePopen.spawned), 1)
+    check("the interpreter is the one asked for", child.argv[0], "/usr/bin/python3")
+    check("it runs buzzer.py itself",
+          Path(child.argv[1]).name, "buzzer.py")
+    check("the script it names exists", Path(child.argv[1]).is_file(), True)
+    child.finish()
+
+
+def test_start_up_does_not_wait_for_the_child():
+    """
+    in_process returns while the tune is still sounding.
+
+    The fake's `wait` blocks until told to finish, so a version that waited for
+    the child would hang here rather than fail quietly - and the elapsed time
+    is checked as well, so a fake that stopped blocking could not hide it.
+    """
+    print("\nstart-up does not wait for the child")
+    FakePopen.spawned = []
+    started = time.time()
+    child = buzzer.in_process(name="Start-up tune", popen=FakePopen)
+    elapsed = time.time() - started
+    check("returned while the child was still running", elapsed < 0.5, True)
+    check("the child had not finished", child.done.is_set(), False)
+    print(f"           returned in {elapsed:.3f} s, tune still playing")
+    child.finish()
+
+
+def test_a_child_that_fails_is_logged_not_raised():
+    """
+    A non-zero exit is noticed, and noticed *somewhere* - the reaping thread.
+
+    Without the reaper the child stays a zombie and its exit code is seen by
+    nobody, which is how a buzzer that stopped working would look exactly like
+    one that never had.
+    """
+    print("\na child that fails is reaped and logged")
+    FakePopen.spawned = []
+    records = []
+
+    class Catch(logging.Handler):
+        def emit(self, record):
+            records.append(record.getMessage())
+
+    handler = Catch()
+    buzzer.logger.addHandler(handler)
+    try:
+        child = buzzer.in_process(name="Start-up tune", popen=FakePopen)
+        child.finish(code=3)
+        deadline = time.time() + 5
+        while not any("exited with 3" in r for r in records) and time.time() < deadline:
+            time.sleep(0.01)
+    finally:
+        buzzer.logger.removeHandler(handler)
+
+    check("the non-zero exit was logged",
+          any("exited with 3" in r for r in records), True)
+    check("nothing was raised at the caller", True, True)
+
+
 def main():
     print("the start-up tune")
     print("=" * 66)
@@ -406,6 +506,9 @@ def main():
     test_the_shutdown_waits_for_its_tune()
     test_a_failure_on_the_thread_stays_on_the_thread()
     test_the_app_survives_a_buzzer_that_is_not_there()
+    test_the_tune_is_played_by_a_child_not_a_thread()
+    test_start_up_does_not_wait_for_the_child()
+    test_a_child_that_fails_is_logged_not_raised()
 
     print("\n" + "=" * 66)
     if skipped:

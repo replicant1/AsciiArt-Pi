@@ -32,11 +32,16 @@ square wave gets: above it the fundamental shrinks again, so 90% sounds like
 """
 
 import logging
+import os
 import sys
 import threading
 import time
 
 logger = logging.getLogger(__name__)
+
+# This file is also the child process `in_process` starts, so it needs to be
+# able to name itself.
+SCRIPT = os.path.abspath(__file__)
 
 PIN = 13                 # the only free pin that reaches hardware PWM
 CHIP = 0
@@ -142,6 +147,13 @@ def in_background(notes=HELLO, pin=PIN, chip=CHIP, duty=DUTY, gpio=None,
     """
     Start a tune on a thread of its own and return it, without waiting.
 
+    NOT what start-up calls any more - `in_process` is, and the reason is
+    written up there. A thread keeps the tune off the critical path but leaves
+    it sharing this process's GIL, which is audible: the notes come apart. This
+    is kept because it is the right answer when the caller is not fighting the
+    GIL, and because `play` on a thread is a smaller thing to reason about than
+    a child process.
+
     Start-up must not stand still for half a second of sound.  Nothing later
     depends on the tune having finished, and nothing about the tune depends on
     what start-up does next, so the two have no reason to be in step.
@@ -175,6 +187,65 @@ def in_background(notes=HELLO, pin=PIN, chip=CHIP, duty=DUTY, gpio=None,
     logger.info("%s: %s on GPIO %d", name,
                 ", ".join(f"{hz} Hz for {s}s" for hz, s in notes), pin)
     return thread
+
+
+def in_process(name="Tune", python=None, script=None, popen=None):
+    """
+    Play the start-up tune in a child process, and return without waiting.
+
+    A thread was not enough, and the reason is the GIL rather than anything to
+    do with sound. `play` ends each note in C on a cycle count, so a note
+    cannot be stretched - but the *next* note cannot begin until python wakes
+    up, and during start-up the main thread is holding the GIL while libcamera
+    and the panel come up. A late wake-up is a silence between two notes that
+    are meant to be one gesture. That silence is what this removes.
+
+    A child has its own interpreter and its own GIL, so nothing this process
+    does can delay it.
+
+    The cost is one interpreter start-up, measured at about 130 ms on this Pi -
+    not the ~400 ms the whole child takes, because the in-process version
+    already paid for importing lgpio (~104 ms) and opening the chip (~100 ms)
+    before its own first note. So the greeting arrives about an eighth of a
+    second later than it used to, and arrives whole.
+
+    subprocess is imported here rather than at the top of the file because this
+    module IS the child: a module-level import would be paid again by every
+    child, on the one path where start-up latency is the thing being bought.
+
+    `popen` is the spawner, and exists so a test can pass one that records
+    instead of one that makes a noise - the same reason `play` takes `gpio`.
+
+    The child is reaped on a daemon thread, which costs nothing: waitpid
+    releases the GIL, so the thread is asleep in the kernel rather than
+    competing with anything. Without it the finished child stays a zombie for
+    the life of the app, which is untidy rather than harmful, but the thread is
+    also the only place a non-zero exit can be noticed at all.
+    """
+    import subprocess                    # see the docstring: the child pays it
+
+    if popen is None:
+        popen = subprocess.Popen
+    if python is None:
+        python = sys.executable
+    if script is None:
+        script = SCRIPT
+
+    child = popen([python, script],
+                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def reap():
+        code = child.wait()
+        if code:
+            logger.warning("%s: the buzzer process exited with %s", name, code)
+
+    threading.Thread(target=reap, name="buzzer-reap", daemon=True).start()
+    # Said out loud, because otherwise a tune that played and a tune that never
+    # started look identical in the log - and on a board with no buzzer fitted
+    # they sound identical too.
+    logger.info("%s: %s on GPIO %d, in a child process", name,
+                ", ".join(f"{hz} Hz for {s}s" for hz, s in HELLO), PIN)
+    return child
 
 
 def main():

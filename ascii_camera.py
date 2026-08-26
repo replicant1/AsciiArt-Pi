@@ -793,18 +793,29 @@ class MainRenderLooper:
         opposite of the panel, which _start_lcd is allowed to give up on only
         because the terminal can take over.
 
-        Does not wait. The tune runs on its own daemon thread while the camera
-        warms up, so start-up is no slower for having a buzzer than without
-        one. There is no matching farewell here on purpose: a tune played from
+        Does not wait. The tune plays in a child process while the camera warms
+        up, so start-up is no slower for having a buzzer than without one.
+
+        A child rather than a thread, which is a change made by ear. On a
+        thread the two notes came apart: the note itself cannot be stretched,
+        because it ends in C on a cycle count, but the note *after* it cannot
+        begin until python wakes up - and this is precisely the half second
+        when the main thread is holding the GIL to bring up libcamera and the
+        panel. The silence in the middle was the GIL, audible. A child has its
+        own interpreter and its own, so nothing here can reach it. It costs one
+        extra interpreter start-up, about 130 ms, which is the greeting
+        arriving an eighth of a second later and arriving whole.
+
+        There is no matching farewell here on purpose: a tune played from
         _shut_down is followed by every other service stopping and by the
         kernel halting, so it cannot be the last thing the machine does. The
         goodbye lives in deploy/asciiart.shutdown, which systemd runs after
-        everything is stopped and unmounted. Failures inside the thread are logged by the buzzer itself; the
-        guard here is for the ones that happen before there is a thread at all,
-        which is mostly the import of lgpio on a machine that has none.
+        everything is stopped and unmounted. Failures inside the child are its
+        own to log; the guard here is for the ones that happen before there is
+        a child at all, which is mostly a spawn that will not start.
         """
         try:
-            buzzer.in_background(name="Start-up tune")
+            buzzer.in_process(name="Start-up tune")
         except Exception as e:                      # noqa: BLE001
             logger.warning("No start-up tune: %s: %s", type(e).__name__, e)
 
