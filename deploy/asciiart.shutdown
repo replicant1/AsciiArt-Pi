@@ -28,15 +28,28 @@ Three things here were each found the hard way, and none of them is obvious.
 minimal environment, so `#!/usr/bin/env python3` has no PATH to search and the
 script never starts - silently, because by then there is nothing to log to.
 
-**The tune is bit-banged, not handed to lgpio's tx_pwm.**  tx_pwm times its
-waveform in a helper thread, and at this point in a shutdown that thread
-produces nothing at all.  It does not fail: every call returns success and the
-pin stays silent, which is the worst way for it to be wrong.  Proved by
-substituting a hand-written square wave with a busy wait, which was plainly
-audible on the same reboot where tx_pwm had reported "ok" and made no sound.
-A busy wait is the right tool here anyway: nothing else is running by now, and
-at 880 Hz a half period is 568 us, well under the granularity `sleep` can be
-trusted for.
+**The tune comes from the SoC's PWM block, and nothing here has a thread.**
+That is the whole reason it can be trusted at this point in a shutdown. lgpio's
+tx_pwm was tried first and is silently dead here: it times its waveform in a
+helper thread, every call returns success, and the pin stays silent - the worst
+way for a thing to be wrong. A hand-written square wave with a busy wait fixed
+that and was plainly audible, and it is still here as `bit_bang_goodbye`, used
+if the PWM channel cannot be reached at all.
+
+Hardware PWM is better than either. The waveform is a clock divider and a
+counter in silicon, so it needs no thread, no busy wait and no accurate sleep -
+writing four files is the whole of it. It also removed the static from the
+start-up tune, which was jitter in the software-timed version; this is the same
+change applied to the farewell.
+
+Note that /sys is in memory, not on the root filesystem, so it is still there
+after everything is unmounted. The channel is normally exported already, by the
+app's ExecStartPre at boot; `ensure_channel` covers the case where the app never
+started.
+
+This duplicates a little of src/control/buzzer.py on purpose. This script runs
+after /home is unmounted, so it cannot import from the project, and being
+self-contained is the only way it can be sure of running at all.
 
 **The backlight is driven low with RPi.GPIO and never handed back.**  Releasing
 the pin makes it an input and the module's own pull-up relights the panel;
@@ -53,12 +66,17 @@ hook that hangs is a machine that never powers down, which is far worse than a
 missing tune.
 """
 
+import os
 import signal
 import sys
 import time
 
 BACKLIGHT = 18          # LED/BL on the ILI9341 module, active high
-BUZZER = 13
+BUZZER = 13             # PWM1; dtoverlay=pwm-2chan in config.txt makes it so
+PWMCHIP = "/sys/class/pwm/pwmchip0"
+PWM_CHANNEL = 1
+NANOSECONDS = 1_000_000_000
+DUTY = 50               # loudest a square wave gets
 POWER_LED = 4           # the indicator the app lit at start-up
 GOODBYE = ((880, 0.25), (440, 0.25))    # the greeting's notes, the other way up
 DEADLINE = 8            # seconds for the whole script, tune included
@@ -100,8 +118,47 @@ def douse_the_power_led():
         lgpio.gpiochip_close(handle)
 
 
-def play_goodbye():
-    """The greeting's notes the other way up, as a hand-written square wave."""
+def pwm_write(name, value):
+    """Write one attribute of the buzzer's PWM channel."""
+    with open(f"{PWMCHIP}/pwm{PWM_CHANNEL}/{name}", "w") as f:
+        f.write(str(value))
+
+
+def ensure_channel():
+    """
+    Make sure the PWM channel exists. Returns False if it cannot be had.
+
+    Normally there is nothing to do: deploy/pwm_export.sh exported it from the
+    service's ExecStartPre hours ago, and an export survives the service
+    stopping because it is kernel state rather than anything the app holds.
+    This is for the case where the app never started at all, which is exactly
+    the run where a farewell is most worth hearing.
+    """
+    if os.path.exists(f"{PWMCHIP}/pwm{PWM_CHANNEL}"):
+        return True
+    if not os.path.isdir(PWMCHIP):
+        return False                    # no overlay; nothing to export from
+    try:
+        with open(f"{PWMCHIP}/export", "w") as f:
+            f.write(str(PWM_CHANNEL))
+    except OSError:
+        return False
+    for _ in range(20):                 # the driver creates it asynchronously
+        if os.path.exists(f"{PWMCHIP}/pwm{PWM_CHANNEL}"):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def bit_bang_goodbye():
+    """
+    The old way: a hand-written square wave with a busy wait.
+
+    Kept as the fallback for a machine where the PWM channel cannot be reached -
+    a config.txt that lost its overlay, most likely. It works because lgpio can
+    take GPIO 13 back from alt0, which was checked rather than assumed. It
+    sounds rougher, and rough is better than silent.
+    """
     import lgpio
     handle = lgpio.gpiochip_open(0)
     try:
@@ -121,6 +178,43 @@ def play_goodbye():
         lgpio.gpio_write(handle, BUZZER, 0)
         lgpio.gpio_free(handle, BUZZER)
         lgpio.gpiochip_close(handle)
+
+
+def play_goodbye(write=None):
+    """
+    The greeting's notes the other way up, through the PWM block.
+
+    `write` exists so a test can pass one that records instead of one that makes
+    a noise, the same way src/control/buzzer.py takes one.
+
+    The notes run into each other: `enable` stays on and only the period
+    changes, so the pair is one falling gesture rather than two events. Duty
+    goes to zero before each period change because the driver refuses to shrink
+    a period below the current duty - the farewell falls in pitch so it does not
+    actually hit that, but the rule is written in rather than relied upon not to
+    matter.
+
+    Note this does NOT protect against the failure that has already happened
+    once here, where the pin stayed silent while every call reported success.
+    Nothing in software can, and only a real poweroff can tell you.
+    """
+    if write is None:
+        if not ensure_channel():
+            bit_bang_goodbye()
+            return
+        write = pwm_write
+
+    try:
+        for frequency, seconds in GOODBYE:
+            period = round(NANOSECONDS / frequency)
+            write("duty_cycle", 0)
+            write("period", period)
+            write("duty_cycle", period * DUTY // 100)
+            write("enable", 1)
+            time.sleep(seconds)
+    finally:
+        write("duty_cycle", 0)
+        write("enable", 0)
 
 
 def main(argv):

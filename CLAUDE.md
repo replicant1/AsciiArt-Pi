@@ -314,11 +314,21 @@ Tested by booting with both: pwmchip0 appears and the tune plays. If the tune is
 ever silent while pinctrl still reports GPIO 13 as "a0", "dtparam=audio=off" is
 the first thing to try.
 
-The shutdown hook is deliberately NOT on hardware PWM. deploy/asciiart.shutdown
-still bit-bangs GPIO 13 with lgpio, and that keeps working because lgpio can
-take the pin back from alt0 - verified, claim and write both succeed and the pad
-flips to "op". Leaving it alone keeps a farewell that only a real poweroff can
-test. Moving it would probably improve the sound and wants its own change.
+The shutdown hook is on hardware PWM too, and confirmed by a real poweroff on
+26 Aug 2026 - the farewell sounded clean and joined at the actual halt, not just
+when run by hand. That distinction matters here more than anywhere: lgpio's
+tx_pwm was silent at exactly that moment while every call reported success, so a
+farewell that plays from a terminal proves nothing about the one that matters.
+
+deploy/asciiart.shutdown keeps the old bit-banged square wave as
+bit_bang_goodbye, used only when the PWM channel cannot be reached at all - a
+config.txt that lost its overlay. It still works because lgpio can take GPIO 13
+back from alt0, which was checked rather than assumed. Rough beats silent.
+
+The hook imports nothing from the project, because it runs after /home is
+unmounted. It therefore duplicates a little of src/control/buzzer.py on purpose,
+and both files say so. /sys is in memory rather than on the root filesystem,
+which is why writing to /sys/class/pwm still works when nothing is mounted.
 
 Two traps, both the same trap:
 
