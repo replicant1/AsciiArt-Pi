@@ -249,6 +249,91 @@ Only counts survive between frames, not the order events happened in, so a turn 
 
 Do NOT benchmark or restart the app while the user is testing the knob by hand. Doing that here produced a confident "turning the encoder has no visible effect" report from the user, because the benchmark had just relaunched the app WITHOUT --encoder. Get the user's verification first, then measure.
 
+### The PS1240 piezo buzzer, on hardware PWM
+
+A bare piezo transducer on GPIO 13, driven by the SoC's own PWM peripheral. It
+plays a two-note greeting when the app starts and a two-note farewell when the
+machine powers down. It is a bare disc with no oscillator in it, so the pitch is
+whatever it is driven at - which is why it was chosen over the KY-006 that came
+first, and it is checkable before anything drives it: a piezo reads open at DC
+and a coil reads short.
+
+GPIO 13 was not picked because it was free. It is the only free pin on this
+board that reaches a hardware PWM channel, and everything below depends on that.
+
+    dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4
+
+**Name the pins. Always.** The overlay's own defaults are "pin=18" and
+"pin2=19", which on this board are the panel backlight and the encoder's CLK.
+A bare "dtoverlay=pwm-2chan" would take both, and the failure would look like
+the panel and the knob dying for no reason. GPIO 12 is claimed only because
+pwm-2chan configures both channels; nothing uses it. The legal pin/function
+pairs are in /boot/firmware/overlays/README - for PWM1 they are 13,4(Alt0) and
+19,2(Alt5), and func=4 is what makes GPIO 13 read as "a0" in pinctrl.
+
+The channel is /sys/class/pwm/pwmchip0/pwm1 and everything under it is
+root-owned, while the app runs as rod. deploy/pwm_export.sh exports the channel
+and chowns it, run as root from the service's ExecStartPre with systemd's "+"
+prefix, which keeps that one step privileged while the service itself drops to
+rod. It exits 0 whatever happens, on purpose: an ExecStartPre that fails stops
+the app starting at all, and a missing buzzer has never been a reason to refuse
+to show a picture.
+
+Two problems were fixed here, and they were independent - neither fix would have
+touched the other, which is why they were done one at a time and listened to
+separately.
+
+- **The static was jitter.** It used to be lgpio's tx_pwm, which is software PWM
+  timed by a helper thread in C. The tune plays during the busiest half second
+  of start-up, so that thread was scheduled irregularly and the period wandered.
+  Hardware PWM is a clock divider and a counter in silicon and is indifferent to
+  CPU load. Rod confirmed the roughness simply gone.
+- **The pause between the notes was the GIL.** Fixed separately, by playing the
+  tune in a child process - see src/control/buzzer.py's in_process. The two
+  changes are a pair now: nothing in the PWM block can end a note, so a late
+  wake-up STRETCHES a note here where the old lgpio version would have cut it.
+  Do not put this back on a thread.
+
+Numbers measured on this Pi, worth not rediscovering:
+
+- Interpreter start-up 128 ms, "import lgpio" 104 ms, opening a gpiochip 100 ms.
+  So moving the tune to a child process cost about 130 ms, not the ~400 ms the
+  whole child takes - the in-process version was already paying the other two.
+- Writing period and duty is in NANOSECONDS. 440 Hz is 2,272,727 ns.
+- Duty must be written to zero BEFORE shrinking a period, or the driver refuses
+  with EINVAL. The greeting escapes this by one nanosecond (50% of 440 Hz is
+  1,136,363 against 880 Hz's period of 1,136,364), which is luck; 440 Hz to
+  1760 Hz is refused outright. tests/control/buzzer_test.py uses that pair
+  deliberately, because the greeting's own notes would not notice the bug.
+- 50% duty is as loud as a square wave gets. Above it the fundamental shrinks
+  again, so 90% sounds like 10% rather than louder.
+
+"dtparam=audio=on" is still enabled and does NOT conflict, despite the overlay
+README warning that "the onboard analogue audio output uses both PWM channels".
+Tested by booting with both: pwmchip0 appears and the tune plays. If the tune is
+ever silent while pinctrl still reports GPIO 13 as "a0", "dtparam=audio=off" is
+the first thing to try.
+
+The shutdown hook is deliberately NOT on hardware PWM. deploy/asciiart.shutdown
+still bit-bangs GPIO 13 with lgpio, and that keeps working because lgpio can
+take the pin back from alt0 - verified, claim and write both succeed and the pad
+flips to "op". Leaving it alone keeps a farewell that only a real poweroff can
+test. Moving it would probably improve the sound and wants its own change.
+
+Two traps, both the same trap:
+
+- The service unit is INSTALLED AS A COPY at /etc/systemd/system/. Editing
+  deploy/ascii-camera.service does nothing until it is copied over and
+  "systemctl daemon-reload" is run. The same is true of the shutdown hook.
+- config.txt is NOT in git and nothing syncs it. If this SD card is reimaged the
+  overlay line above is the piece that does not come back on its own. The
+  pre-change file is saved on the Pi as /boot/firmware/config.txt.bak-prepwm.
+
+**Nothing in software can hear it.** The tests check which notes, as which
+periods, at what duty, in what order, and that the channel is always left
+silent - and then say what a human should hear. Do not report a tune as verified
+on the strength of a clean run; ask Rod to listen.
+
 ### The GPIO 4 indicator LED
 
 A discrete LED sits on GPIO 4, fed through a 220 ohm resistor. It is the fourth
@@ -340,6 +425,47 @@ LED dark (the pull-up passes microamps). If it ever needs to be guaranteed off
 from the first instant of boot, add "gpio=4=op,dl" to config.txt next to the
 existing "gpio=18=op,dl" that holds the panel backlight off.
 
+### What this machine needs that git does NOT have
+
+Everything in src/, tests/, tools/, docs/ and deploy/ is in the repository and
+comes back from a clone. The following is machine state, is recorded nowhere,
+and would have to be redone by hand after a reimage. Audited 26 Aug 2026.
+
+**/boot/firmware/config.txt is the important one.** Nothing tracks it, nothing
+syncs it, and four of its lines are load-bearing for this project:
+
+    dtparam=spi=on                                     the ILI9341 panel
+    gpio=18=op,dl                                      backlight held off at boot
+    dtoverlay=gpio-shutdown                            the power button (GPIO 3)
+    dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4  the buzzer on GPIO 13
+
+Lose those and the symptoms are unrelated-looking: no /dev/spidev0.0, a panel
+lit from power-on, no way to switch the box on, and a silent buzzer. The
+pre-PWM file is saved on the Pi as /boot/firmware/config.txt.bak-prepwm.
+
+**rod's group memberships.** spi, i2c, gpio, input and video, none of which any
+script in the repo adds. Without them the app needs root, which the service
+deliberately does not use.
+
+**Packages deploy/setup.sh does not check.** It checks numpy, PIL, picamera2
+and curses. It does NOT check lgpio, spidev, evdev, RPi.GPIO or gpiozero, all
+of which are imported by code in src/ and all of which are present here. It also
+says nothing about config.txt or the groups above.
+
+**Whether the services are enabled.** deploy/ascii-camera.service and
+deploy/ascii-camera-web.service are both in git and both currently enabled, but
+"systemctl enable" is machine state; the unit file's own header has the command.
+
+**python3-coverage**, installed for the coverage workflow and used by no code.
+
+Recoverable without worry, confirmed by diff on 26 Aug 2026: the installed unit
+at /etc/systemd/system/ascii-camera.service and the hook at
+/usr/lib/systemd/system-shutdown/asciiart.shutdown are byte-identical to their
+sources in deploy/. /etc/udev/rules.d/99-uinput.rules and
+/etc/modules-load.d/uinput.conf are created by deploy/setup_uinput.sh, which is
+in git. Both units and the hook are installed as COPIES, so editing the repo
+copy changes nothing until it is reinstalled - see the individual sections.
+
 ### Installing packages on the Pi (low memory)
 
 The Pi Zero 2 has only ~416 MB of usable RAM and apt can be OOM-killed mid-install, leaving packages half-configured and every later install blocked. This actually happened: apt-listchanges was killed while reading a 28 MB LibreOffice changelog. Always disable it:
@@ -416,3 +542,6 @@ Switch the GPIO 4 LED off again: /Users/rodneybailey/run_on_pi.sh "pinctrl set 4
 See what GPIO 4 is currently doing: /Users/rodneybailey/run_on_pi.sh "pinctrl get 4"
 Light or extinguish the power LED by hand: python3 /home/rod/Projects/AsciiArt/src/control/power_led.py [--off]
 Check the power LED logic without any hardware: python3 /home/rod/Projects/AsciiArt/tests/control/power_led_test.py
+Play the buzzer greeting by hand (needs a human to listen): python3 /home/rod/Projects/AsciiArt/src/control/buzzer.py
+Play the buzzer farewell by hand: python3 /home/rod/Projects/AsciiArt/src/control/buzzer.py --goodbye
+Hand the PWM channel to rod after a manual overlay load: sudo bash /home/rod/Projects/AsciiArt/deploy/pwm_export.sh

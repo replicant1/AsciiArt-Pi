@@ -39,6 +39,13 @@ Group=rod
 # encoder and the camera. No added capabilities and no root are needed.
 
 WorkingDirectory=/home/rod/Projects/AsciiArt
+
+# The buzzer is driven by the SoC's PWM block, and everything under
+# /sys/class/pwm is root-owned. The "+" prefix keeps this one step running as
+# root while the service itself drops to rod. It exits 0 whatever happens, so a
+# buzzer that cannot be set up costs the greeting and never the picture.
+ExecStartPre=+/bin/bash /home/rod/Projects/AsciiArt/deploy/pwm_export.sh
+
 ExecStart=/usr/bin/python3 -u /home/rod/Projects/AsciiArt/ascii_camera.py \
           --lcd --encoder --no-terminal
 
